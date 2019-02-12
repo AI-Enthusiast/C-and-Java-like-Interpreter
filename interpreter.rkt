@@ -22,7 +22,10 @@
   (lambda (exp s) ; exp = expression, s = state
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
-      [(eq? (bool_operator exp) '||) (or (mcondition ()])))
+      [(eq? (bool_operator exp) '||) (or  (mcondition (left-operand) s) (mcondition (right-operand) s))]
+      [(eq? (bool_operator exp) '&&) (and (mcondition (left-operand) s) (mcondition (right-operand) s))]
+      [(eq? (car exp) '!)            (not (mcondition (cdr exp) s))]
+      []
 
 ; for mcondition
 (define bool_operator caddr)
