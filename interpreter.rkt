@@ -46,10 +46,12 @@
 ; for mvalue
 (define operator cadr)
 (define left-operand car)
+<<<<<<< HEAD
 (define right-operand caddr)
 
 ; (5 + 2 <= 7)
 ; ((5 + 2) <= 7)
+
 (define right-operand cadr)
 (define vars car)
 (define vals cadr)
