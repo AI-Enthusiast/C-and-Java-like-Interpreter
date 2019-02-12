@@ -50,3 +50,37 @@
 
 ; (5 + 2 <= 7)
 ; ((5 + 2) <= 7)
+(define right-operand cadr)
+(define vars car)
+(define vals cadr)
+
+;;define state with abstration as
+;((x, y, ...) (4, 6, ...))
+;state is s
+;methods to implement
+;look up binding
+;remove binding
+;update existing binding
+
+(define m-update
+  (lambda (var update-val s)
+    (cond
+      [(base case)]
+      [(eq? 
+
+(define var-assign
+  (lambda (val location s)
+    (cons ((car s) (assign val location (vals lis))))))
+
+(define assign
+  (lambda (val location vals)
+    (cond
+      [(null? vals) "error"]
+      [(eq? val (car
+                                 
+
+
+
+                     
+
+
