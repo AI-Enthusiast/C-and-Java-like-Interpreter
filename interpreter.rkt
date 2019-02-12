@@ -55,7 +55,7 @@
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
       [(mcondition (loop-condition exp) s) (m-what-type (loop-body exp) s)]
-      [(not (null? (else-statement exp))) (m-what-type (else-statement exp) s)])))
+      [(not (null? (else-statement exp)))  (m-what-type (else-statement exp) s)])))
 
 ;; implementing while loop
 (define whileloop
@@ -72,8 +72,8 @@
 (define loop-body caddr)
 
 ;; for value operations 
-(define operator cadr)
-(define left-operand car)
+(define operator car)
+(define left-operand cadr)
 (define right-operand caddr)
 
 
