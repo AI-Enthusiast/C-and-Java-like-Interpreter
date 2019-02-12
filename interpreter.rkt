@@ -1,4 +1,8 @@
 #lang racket
+;;;; A Java/C (ish) interpreter
+;;;; EECS 345
+;;;; Group #7: Shanti ..., Catlin ...., Cormac Dacker
+
 
 (require "simpleParser.rkt") ; loads simpleParser.rkt, which itself loads lex.rkt
 
@@ -17,11 +21,11 @@
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
       [(number? exp) exp]
-      [(eq? (operator exp) '+) (+         (mvalue (left-operand exp) s) (mvalue (right-operand exp) s))]
-      [(eq? (operator exp) '-) (-         (mvalue (left-operand exp) s) (mvalue (right-operand exp) s))]
-      [(eq? (operator exp) '*) (*         (mvalue (left-operand exp) s) (mvalue (right-operand exp) s))]
-      [(eq? (operator exp) '/) (quotient  (mvalue (left-operand exp) s) (mvalue (right-operand exp) s))]
-      [(eq? (operator exp) '%) (remainder (mvalue (left-operand exp) s) (mvalue (right-operand exp) s))])))
+      [(eq? (operator exp) '+) (+         (mvalue (left-operand exp)) (mvalue (right-operand exp)))]
+      [(eq? (operator exp) '-) (-         (mvalue (left-operand exp)) (mvalue (right-operand exp)))]
+      [(eq? (operator exp) '*) (*         (mvalue (left-operand exp)) (mvalue (right-operand exp)))]
+      [(eq? (operator exp) '/) (quotient  (mvalue (left-operand exp)) (mvalue (right-operand exp)))]
+      [(eq? (operator exp) '%) (remainder (mvalue (left-operand exp)) (mvalue (right-operand exp)))])))
 
 ; Code a function that can take in an expression such as (5 < 2) and return true/false
 ; ==, !=, <, >, <=, >=
@@ -60,6 +64,8 @@
 ; ((5 + 2) <= 7)
 
 
+
+
 ;;;;**********TESTING**********
 
 ;; Performs a quick test to see if the test passed or failed and prints info about test if failure
@@ -89,7 +95,7 @@
   (pass? (mvalue '((3 * 2) + (4 / (2 % 3)))) 8)                                           ; 2/2
   (newline)
   
-  (display "Test 2 exp") (newline)                                                    ;Test start
+  (display "Test #2 exp") (newline)                                                   ;Test start
   (pass? (start "Test1.txt") '((var x) (= x 10) (var y (+ (* 3 x) 5))                     ; 1/1
                                    (while (!= (% y x) 3) (= y (+ y 1)))
                                    (if (> x y) (return x)
