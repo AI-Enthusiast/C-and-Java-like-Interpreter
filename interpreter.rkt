@@ -1,5 +1,10 @@
 #lang racket
 
+;; figures out which method should be used to evaluate this
+(define m-what-type
+  (lambda (exp s)
+    (exp #|TODO: UPDATE THIS!!!|#)))
+
 ;; Code a function that can take in expression of numbers and operators and return the value
 ;; e.g. (3 + (4 / 2))
 ;;      (1 + 2)
@@ -24,67 +29,52 @@
       ; null checking
       [(null? exp)                    (error 'undefined "undefined expression")]
       [(not (pair? exp))              exp]
-      [(null? (bool_operator exp))    (mvalue exp s)]
-      [(null? (left-operand exp))     (mvalue exp s)]
-      [(null? (right-operand exp))    (mvalue exp s)]
+      [(null? (operator exp))    (mvalue exp s)]
+      [(null? (operator exp))     (mvalue exp s)]
+      [(null? (operator exp))    (mvalue exp s)]
 
       ; condition checking (&&, ||, !)
-      [(eq? (bool_operator exp) '||)  (or  (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
-      [(eq? (bool_operator exp) '&&)  (and (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (operator exp) '||)  (or  (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (operator exp) '&&)  (and (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
       [(eq? (car exp) '!)             (not (mcondition (cdr exp) s))]
 
       ; equality/inequality operator checking (==, !=, <, >, <=, >=)
-      [(eq? (bool_operator exp) '==)  (eq? (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
-      [(eq? (bool_operator exp) '!=)  (not (eq? (mcondition (left-operand exp) s) (mcondition (right-operand exp) s)))]
-      [(eq? (bool_operator exp) '<)   (< (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
-      [(eq? (bool_operator exp) '>)   (> (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
-      [(eq? (bool_operator exp) '<=)  (<= (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
-      [(eq? (bool_operator exp) '>=)  (>= (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (operator exp) '==)  (eq? (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (operator exp) '!=)  (not (eq? (mcondition (left-operand exp) s) (mcondition (right-operand exp) s)))]
+      [(eq? (operator exp) '<)   (< (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (operator exp) '>)   (> (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (operator exp) '<=)  (<= (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (operator exp) '>=)  (>= (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
 
       ; oh no
       [else                           (error 'undefined "undefined expression")])))
 
-; for mcondition
-(define bool_operator cadr)
+;; implementing if statement
+(define mifstatement
+  (lambda (exp s)
+    (cond
+      [(null? exp) (error 'undefined "undefined expression")]
+      [(mcondition (loop-condition exp) s) (m-what-type (loop-body exp) s)]
+      [(not (null? (else-statement exp))) (m-what-type (else-statement exp) s)])))
 
-; for mvalue
+;; implementing while loop
+(define whileloop
+  (lambda (exp s)
+    (cond
+      [(null? exp) (error 'undefined "undefined expression")]
+      [(mcondition (loop-condition exp) s) (whileloop exp s #|TODO: SOMETHING TO UPDATE THE STATE IN HERE!!!|#)])))
+
+;; Abstration
+;; for if statements  
+(define loop-type-id car) ; e.g. if, while, etc.
+(define else-statement cadddr) ; else statement, if it exists
+(define loop-condition cadr)
+(define loop-body caddr)
+
+;; for value operations 
 (define operator cadr)
 (define left-operand car)
-<<<<<<< HEAD
 (define right-operand caddr)
-
-; (5 + 2 <= 7)
-; ((5 + 2) <= 7)
-
-(define right-operand cadr)
-(define vars car)
-(define vals cadr)
-
-;;define state with abstration as
-;((x, y, ...) (4, 6, ...))
-;state is s
-;methods to implement
-;look up binding
-;remove binding
-;update existing binding
-
-(define m-update
-  (lambda (var update-val s)
-    (cond
-      [(base case)]
-      [(eq? 
-
-(define var-assign
-  (lambda (val location s)
-    (cons ((car s) (assign val location (vals lis))))))
-
-(define assign
-  (lambda (val location vals)
-    (cond
-      [(null? vals) "error"]
-      [(eq? val (car
-                                 
-
 
 
                      
