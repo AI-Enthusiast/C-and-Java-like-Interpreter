@@ -55,6 +55,8 @@
 (define right-operand cadr)
 (define vars car)
 (define vals cadr)
+(define nextvar cadr)
+(define nextval caadr)
 
 ;;define state with abstration as
 ;((x, y, ...) (4, 6, ...))
@@ -64,11 +66,18 @@
 ;remove binding
 ;update existing binding
 
+
+(define m-lookup
+  (lambda (var s)
+    (cond
+      [(null? (vars s)) "error, does not exist"]
+      [(
+        
 (define m-update
   (lambda (var update-val s)
     (cond
       [(base case)]
-      [(eq? 
+      [(eq? var nextvar)(
 
 (define var-assign
   (lambda (val location s)
