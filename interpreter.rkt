@@ -9,11 +9,11 @@
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
       [(number? exp) exp]
-      [(eq? (operator exp) '+) (+         (mvalue (left-operand exp)) (mvalue (right-operand exp)))]
-      [(eq? (operator exp) '-) (-         (mvalue (left-operand exp)) (mvalue (right-operand exp)))]
-      [(eq? (operator exp) '*) (*         (mvalue (left-operand exp)) (mvalue (right-operand exp)))]
-      [(eq? (operator exp) '/) (quotient  (mvalue (left-operand exp)) (mvalue (right-operand exp)))]
-      [(eq? (operator exp) '%) (remainder (mvalue (left-operand exp)) (mvalue (right-operand exp)))])))
+      [(eq? (operator exp) '+) (+         (mvalue (left-operand exp) s) (mvalue (right-operand exp) s))]
+      [(eq? (operator exp) '-) (-         (mvalue (left-operand exp) s) (mvalue (right-operand exp) s))]
+      [(eq? (operator exp) '*) (*         (mvalue (left-operand exp) s) (mvalue (right-operand exp) s))]
+      [(eq? (operator exp) '/) (quotient  (mvalue (left-operand exp) s) (mvalue (right-operand exp) s))]
+      [(eq? (operator exp) '%) (remainder (mvalue (left-operand exp) s) (mvalue (right-operand exp) s))])))
 
 ; Code a function that can take in an expression such as (5 < 2) and return true/false
 ; ==, !=, <, >, <=, >=
@@ -21,16 +21,32 @@
 (define mcondition
   (lambda (exp s) ; exp = expression, s = state
     (cond
-      [(null? exp) (error 'undefined "undefined expression")]
-      [(eq? (bool_operator exp) '||) (or  (mcondition (left-operand) s) (mcondition (right-operand) s))]
-      [(eq? (bool_operator exp) '&&) (and (mcondition (left-operand) s) (mcondition (right-operand) s))]
-      [(eq? (car exp) '!)            (not (mcondition (cdr exp) s))]
-      []
+      [(null? exp)                    (error 'undefined "undefined expression")]
+      [(not (pair? exp))              exp]
+      [(null? (bool_operator exp))    (mvalue exp s)]
+      [(null? (left-operand exp))     (mvalue exp s)]
+      [(null? (right-operand exp))    (mvalue exp s)]
+
+      [(eq? (bool_operator exp) '||)  (or  (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (bool_operator exp) '&&)  (and (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (car exp) '!)             (not (mcondition (cdr exp) s))]
+
+      [(eq? (bool_operator exp) '==)  (eq? (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (bool_operator exp) '!=)  (not (eq? (mcondition (left-operand exp) s) (mcondition (right-operand exp) s)))]
+      [(eq? (bool_operator exp) '<)   (< (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (bool_operator exp) '>)   (> (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (bool_operator exp) '<=)  (<= (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+      [(eq? (bool_operator exp) '>=)  (>= (mcondition (left-operand exp) s) (mcondition (right-operand exp) s))]
+
+      [else                           (mvalue exp s)])))
 
 ; for mcondition
-(define bool_operator caddr)
+(define bool_operator cadr)
 
 ; for mvalue
-(define operator caddr)
+(define operator cadr)
 (define left-operand car)
-(define right-operand cadr)
+(define right-operand caddr)
+
+; (5 + 2 <= 7)
+; ((5 + 2) <= 7)
