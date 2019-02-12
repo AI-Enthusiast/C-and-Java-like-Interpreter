@@ -1,9 +1,23 @@
 #lang racket
 
+; Code a function that can take in expression of numbers and operators and return the value
+; e.g. (3 + (4 / 2))
+;      (1 + 2)
+; The operators are +, -, *, /, %, and division is integer division
+(require "simpleParser.rkt") ; loads simpleParser.rkt, which itself loads lex.rkt
+
+;; Takes a file that contains code to be interpreted and returns the parse tree in list format
+(define start
+  (lambda (filename)
+    (parser filename)))
+
 ;; figures out which method should be used to evaluate this
 (define m-what-type
   (lambda (exp s)
     (exp #|TODO: UPDATE THIS!!!|#)))
+(require racket/trace)
+
+
 
 ;; Code a function that can take in expression of numbers and operators and return the value
 ;; e.g. (3 + (4 / 2))
@@ -74,10 +88,62 @@
 ;; for value operations
 (define operator car)
 (define left-operand cadr)
+; for mvalue
+(define operator cadr)
+(define left-operand car)
 (define right-operand caddr)
 
 ; (5 + 2 <= 7)
 ; ((5 + 2) <= 7)
+
+(define vars car)
+(define vals cadr)
+(define nextvar caar)
+(define nextval caadr)
+
+;;define state with abstration as
+;((x, y, ...) (4, 6, ...))
+;state is s
+;methods to implement
+;look up binding
+;remove binding
+;update existing binding
+
+
+(define m-lookup
+  (lambda (var s)
+    (cond
+      [(null? (vars s)) "error, does not exist"]
+      [(equal? var (nextvar s)) (nextval s)]
+      [else (m-lookup var (cons (cdr (vars s)) (cons (cdr (vals s)) '())))])))
+
+
+
+(define m-update
+  (lambda (var update-val s)
+    (cond
+      [(not (number? (var m-lookup))) "error"]
+      [else (update var update-val s)])))
+
+#|(define update
+  (lambda (|#
+
+
+#|(define var-assign
+  (lambda (val location s)
+    (cons ((car s) (assign val location (vals lis))))))|#
+
+#|(define assign
+  (lambda (val location vals)
+    (cond
+      [(null? vals) "error"]
+      [(eq? val (car|#
+
+
+
+
+
+
 
 
 ;;;;**********TESTING**********
