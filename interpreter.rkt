@@ -1,4 +1,8 @@
 #lang racket
+;;;; A Java/C (ish) interpreter
+;;;; EECS 345
+;;;; Group #7: Shanti ..., Catlin ...., Cormac Dacker
+
 
 ; Code a function that can take in expression of numbers and operators and return the value
 ; e.g. (3 + (4 / 2))
@@ -146,6 +150,8 @@
 
 
 
+
+
 ;;;;**********TESTING**********
 
 ;; Performs a quick test to see if the test passed or failed and prints info about test if failure
@@ -175,7 +181,7 @@
   (pass? (mvalue '((3 * 2) + (4 / (2 % 3)))) 8)                                           ; 2/2
   (newline)
 
-  (display "Test 2 exp") (newline)                                                    ;Test start
+  (display "Test #2 exp") (newline)                                                   ;Test start
   (pass? (start "Test1.txt") '((var x) (= x 10) (var y (+ (* 3 x) 5))                     ; 1/1
                                    (while (!= (% y x) 3) (= y (+ y 1)))
                                    (if (> x y) (return x)
