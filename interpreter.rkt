@@ -10,7 +10,7 @@
 ;;      (1 + 2)
 ;; The operators are +, -, *, /, %, and division is integer division
 (define mvalue
-  (lambda (exp s)
+  (lambda (exp)
     (cond
       [(null? exp)             (error 'undefined "undefined expression")]
       [(number? exp)           exp]
@@ -65,18 +65,59 @@
       [(mcondition (loop-condition exp) s) (whileloop exp s #|TODO: SOMETHING TO UPDATE THE STATE IN HERE!!!|#)])))
 
 ;; Abstration
-;; for if statements  
+;; for if statements
 (define loop-type-id car) ; e.g. if, while, etc.
 (define else-statement cadddr) ; else statement, if it exists
 (define loop-condition cadr)
 (define loop-body caddr)
 
-;; for value operations 
+;; for value operations
 (define operator car)
 (define left-operand cadr)
 (define right-operand caddr)
 
+; (5 + 2 <= 7)
+; ((5 + 2) <= 7)
 
-                     
+
+;;;;**********TESTING**********
+
+;; Performs a quick test to see if the test passed or failed and prints info about test if failure
+(define pass?
+  (lambda (actual expected)
+    (if (equal? actual expected)
+        (display 'Pass)
+        (donothing (display "Fail {actual} ") (display actual)      ; displays info about the failed test
+                   (display " != {expected} ") (display expected)))
+    (newline)))
+
+;; This function does nothing but allows for all the displays of a failed test to occure without an error :)
+(define donothing ; there is probably a better way to do this but as this isn't part of the grade, ̄\_(ツ)_/̄
+  (lambda (a b c d)
+    '())) ; literly does nothing (like what I wish I was doing xD)
+
+;; Performs all the tests needed to prove the validity of the functions, I love this function
+(define (test)
+
+  ;Example:
+  ;(diplay "Test #{test number} {test name}") (newline)
+  ;(pass? {actual} {expected})
+  ;(newline)
+
+  (display "Test #1 mvalue") (newline)                                                ;Test mvalue
+  (pass? (mvalue '(3 + (4 / 2))) 5)                                                       ; 1/2
+  (pass? (mvalue '((3 * 2) + (4 / (2 % 3)))) 8)                                           ; 2/2
+  (newline)
+
+  (display "Test 2 exp") (newline)                                                    ;Test start
+  (pass? (start "Test1.txt") '((var x) (= x 10) (var y (+ (* 3 x) 5))                     ; 1/1
+                                   (while (!= (% y x) 3) (= y (+ y 1)))
+                                   (if (> x y) (return x)
+                                       (if (> (* x x) y) (return (* x x))
+                                           (if (> (* x (+ x x)) y)
+                                               (return (* x (+ x x)))
+                                               (return (- y 1)))))))
+  (newline)
 
 
+  ) ;left hanging for easy test addition
