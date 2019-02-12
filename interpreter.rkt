@@ -1,5 +1,7 @@
 #lang racket
 
+(require racket/trace)
+
 ; Code a function that can take in expression of numbers and operators and return the value
 ; e.g. (3 + (4 / 2))
 ;      (1 + 2)
@@ -46,16 +48,14 @@
 ; for mvalue
 (define operator cadr)
 (define left-operand car)
-<<<<<<< HEAD
 (define right-operand caddr)
 
 ; (5 + 2 <= 7)
 ; ((5 + 2) <= 7)
 
-(define right-operand cadr)
 (define vars car)
 (define vals cadr)
-(define nextvar cadr)
+(define nextvar caar)
 (define nextval caadr)
 
 ;;define state with abstration as
@@ -71,23 +71,30 @@
   (lambda (var s)
     (cond
       [(null? (vars s)) "error, does not exist"]
-      [(
-        
+      [(equal? var (nextvar s)) (nextval s)] 
+      [else (m-lookup var (cons (cdr (vars s)) (cons (cdr (vals s)) '())))])))
+
+
+ 
 (define m-update
   (lambda (var update-val s)
     (cond
-      [(base case)]
-      [(eq? var nextvar)(
+      [(not (number? (var m-lookup))) "error"]
+      [else (update var update-val s)])))
 
-(define var-assign
+#|(define update
+  (lambda (|#
+
+
+#|(define var-assign
   (lambda (val location s)
-    (cons ((car s) (assign val location (vals lis))))))
+    (cons ((car s) (assign val location (vals lis))))))|#
 
-(define assign
+#|(define assign
   (lambda (val location vals)
     (cond
       [(null? vals) "error"]
-      [(eq? val (car
+      [(eq? val (car|#
                                  
 
 
