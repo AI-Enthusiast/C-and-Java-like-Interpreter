@@ -28,7 +28,7 @@
 ;;      (1 + 2)
 ;; The operators are +, -, *, /, %, and division is integer division
 (define mvalue
-  (lambda (exp)
+  (lambda (exp s)
     (cond
       [(null? exp)             (error 'undefined "undefined expression")]
       [(number? exp)           exp]
@@ -75,12 +75,12 @@
       [(mcondition (loop-condition exp) s) (m-what-type (loop-body exp) s)]
       [(not (null? (else-statement exp)))  (m-what-type (else-statement exp) s)])))
 
-;; implementing while loop
+#|;; implementing while loop
 (define whileloop
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
-      [(mcondition (loop-condition exp) s) (whileloop exp s #|TODO: SOMETHING TO UPDATE THE STATE IN HERE!!!|#)])))
+      [(mcondition (loop-condition exp) s) (whileloop exp s #|TODO: SOMETHING TO UPDATE THE STATE IN HERE!!!|#)])))|#
 
 ;; Abstration
 ;; for if statements
@@ -90,11 +90,9 @@
 (define loop-body caddr)
 
 ;; for value operations
-(define operator car)
 (define left-operand cadr)
 ; for mvalue
 (define operator cadr)
-(define left-operand car)
 (define right-operand caddr)
 
 ; (5 + 2 <= 7)
@@ -122,15 +120,36 @@
       [else (m-lookup var (cons (cdr (vars s)) (cons (cdr (vals s)) '())))])))
 
 
-
+;;takes a variable, the value it is to be updated to, and the state, returns the updated state
 (define m-update
   (lambda (var update-val s)
     (cond
-      [(not (number? (var m-lookup))) "error"]
-      [else (update var update-val s)])))
+      [(not (number? (locate var 0 s))) "error"]
+      [else (cons (vars s) (list (update update-val (locate var 0 s) (vals s))))])))
 
-#|(define update
-  (lambda (|#
+
+      
+;;updates the variable at the location with the new value, returns the updated state
+(define update
+  (lambda (update-val loc values)
+    (cond
+      [(null? values) "error"]
+      [(eq? loc 0) 
+        (cons update-val (cdr values))]
+      [else (cons (car values) (update update-val (- loc 1) (cdr values)))])))
+                                                                 
+
+;(m-update 'v '4 '((f s a v x)(5 6 7 1 8)))
+
+;;need to go down, find how deep
+;;finds the location of the variable's value in the state
+;;takes the variable it is locating, a counter and a state
+(define locate
+  (lambda (var counter s)
+    (cond
+      [(null? (vars s)) "error"]
+      [(eq? var (nextvar s)) counter]
+      [else (locate var (+ counter 1) (cons (cdr (vars s)) (cons (cdr (vals s)) '())))])))
 
 
 #|(define var-assign
