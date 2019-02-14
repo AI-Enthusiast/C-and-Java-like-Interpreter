@@ -120,8 +120,7 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-lookup
   (lambda (var s)
     (cond
-      [(null? s) "error, does not exist"]
-      [(null? (vars s)) "error, does not exist"]
+      [(or (null? s) (null? (vars s))) "error, does not exist"]
       [(and (equal? var (nextvar s)) (nextval s))]
       [else (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
 
@@ -130,24 +129,19 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-update
   (lambda (var update-val s)
     (cond
-      [(null? s) "error"]
+      [(or (null? s) (null? (vars s))) "error"]
       [(not (number? (locate var 0 s))) "error"]
-      [else (cons (vars s) (list (update update-val (locate var 0 s) (vals s))))])))
+      [else (list (vars s) (update var update-val s))])))
 
 
 ;;takes the value to be updated, the location of the value and the      
 ;;updates the variable at the location with the new value, returns the updated state
 (define update
-  (lambda (update-val loc values)
+  (lambda (var update-val s)
     (cond
-      [(null? values)
-       "error"]
-      [(eq? loc 0) 
-       (cons update-val (cdr values))]
-      [else
-       (cons (car values) (update update-val (- loc 1) (cdr values)))])))
+      [(eq? var (nextvar s)) (cons update-val (cdr (vals s)))]
+      [else (cons (nextval s) (update var update-val (list (cdr (vars s)) (cdr (vals s)))))])))
                                                                  
-
 ;(m-update 'v '4 '((f s a v x)(5 6 7 1 8)))
 
 ;;finds the location of the variable's value in the state
