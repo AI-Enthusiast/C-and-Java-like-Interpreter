@@ -3,8 +3,10 @@
 ;;;; EECS 345
 ;;;; Group #7: Shanti ..., Catlin ...., Cormac Dacker
 
+;;TODO: Var decleration, assignment (after decleration, error otherwise), return, if & while statements
 
 (require "simpleParser.rkt") ; loads simpleParser.rkt, which itself loads lex.rkt
+
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define start
@@ -12,9 +14,10 @@
     (parser filename)))
     
 
+; TODO: change to precondition
 ;; Code a function that can take in expression of numbers and operators and return the value
-;; e.g. (3 + (4 / 2))
-;;      (1 + 2)
+;; e.g. (+ 3 (/ 4 2))
+;;      (+ 1 2)
 ;; The operators are +, -, *, /, %, and division is integer division
 (define mvalue
   (lambda (exp)
