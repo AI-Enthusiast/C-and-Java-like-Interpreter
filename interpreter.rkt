@@ -3,7 +3,7 @@
 ;;;; EECS 345
 ;;;; Group #7: Shanti Polara, Catlin ...., Cormac Dacker
 
-;;TODO: Var decleration, assignment (after decleration, error otherwise), return
+;;TODO: Var decleration, assignment (after decleration, error otherwise)
 
 (require "simpleParser.rkt") ; loads simpleParser.rkt, which itself loads lex.rkt
 
