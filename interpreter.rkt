@@ -1,7 +1,7 @@
 #lang racket
 ;;;; A Java/C (ish) interpreter
 ;;;; EECS 345
-;;;; Group #7: Shanti ..., Catlin ...., Cormac Dacker
+;;;; Group #7: Shanti Polara, Catlin ...., Cormac Dacker
 
 ;;TODO: Var decleration, assignment (after decleration, error otherwise), return, if & while statements
 
@@ -32,7 +32,7 @@
 ;;      (+ 1 2)
 ;; The operators are +, -, *, /, %, and division is integer division
 (define mvalue
-  (lambda (exp, s)
+  (lambda (exp s)
     (cond
       [(null? exp)             (error 'undefined "undefined expression")]
       [(number? exp)           exp]
@@ -79,12 +79,12 @@
       [(mcondition (loop-condition exp) s) (m-what-type (loop-body exp) s)]
       [(not (null? (else-statement exp)))  (m-what-type (else-statement exp) s)])))
 
-;; implementing while loop
+#|;; implementing while loop
 (define whileloop
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
-      [(mcondition (loop-condition exp) s) (whileloop exp s #|TODO: SOMETHING TO UPDATE THE STATE IN HERE!!!|#)])))
+      [(mcondition (loop-condition exp) s) (whileloop exp s #|TODO: SOMETHING TO UPDATE THE STATE IN HERE!!!|#)])))|#
 
 ;; Abstration
 ;; for if statements
@@ -94,11 +94,9 @@
 (define loop-body caddr)
 
 ;; for value operations
-(define operator car)
 (define left-operand cadr)
 ; for mvalue
 (define operator cadr)
-(define left-operand car)
 (define right-operand caddr)
 
 ; (5 + 2 <= 7)
@@ -109,43 +107,101 @@
 (define nextvar caar)
 (define nextval caadr)
 
-;;define state with abstration as
-;((x, y, ...) (4, 6, ...))
-;state is s
-;methods to implement
-;look up binding
-;remove binding
-;update existing binding
+
+#|
+define state with abstration as
+((x, y, ...) (4, 6, ...))
+state is s
+methods for state
+m-lookup - looks up variable's value, returns value
+m-update - updates variable's value, returns updated state
+m-add - adds uninitilized variable to state, returns updated state
+m-remove - removes a variable and it's value from state, returns updated state
+|#
 
 
+;;takes a variable and a state
+;;returns the value of the variable, or error message if it does not exist
+;;will return "init" if not yet initilized
 (define m-lookup
   (lambda (var s)
     (cond
+      [(null? s) "error, does not exist"]
       [(null? (vars s)) "error, does not exist"]
-      [(equal? var (nextvar s)) (nextval s)]
-      [else (m-lookup var (cons (cdr (vars s)) (cons (cdr (vals s)) '())))])))
+      [(and (equal? var (nextvar s)) (nextval s))]
+      [else (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
 
 
-
+;;takes a variable, the value it is to be updated to, and the state, returns the updated state
 (define m-update
   (lambda (var update-val s)
     (cond
-      [(not (number? (var m-lookup))) "error"]
-      [else (update var update-val s)])))
-
-#|(define update
-  (lambda (|#
+      [(null? s) "error"]
+      [(not (number? (locate var 0 s))) "error"]
+      [else (cons (vars s) (list (update update-val (locate var 0 s) (vals s))))])))
 
 
-#|(define var-assign
-  (lambda (val location s)
-    (cons ((car s) (assign val location (vals lis))))))|#
-
-#|(define assign
-  (lambda (val location vals)
+;;takes the value to be updated, the location of the value and the      
+;;updates the variable at the location with the new value, returns the updated state
+(define update
+  (lambda (update-val loc values)
     (cond
-      [(null? vals) "error"]
-      [(eq? val (car|#
+      [(null? values)
+       "error"]
+      [(eq? loc 0) 
+       (cons update-val (cdr values))]
+      [else
+       (cons (car values) (update update-val (- loc 1) (cdr values)))])))
+                                                                 
+
+;(m-update 'v '4 '((f s a v x)(5 6 7 1 8)))
+
+;;finds the location of the variable's value in the state
+;;takes the variable it is locating, a counter and a state
+(define locate
+  (lambda (var counter s)
+    (cond
+      [(or (null? s)(null? (vars s)))
+       "error"]
+      [(eq? var (nextvar s))
+       counter]
+      [else
+       (locate var (+ counter 1) (cons (cdr (vars s)) (cons (cdr (vals s)) '())))])))
+
+;;takes a varaiable and a state, adds it to a state with non number uninitilized value "init"
+;;(does not take value, to update value, use m-update)
+;;returns the updated state, if used before assigned, should result in error
+;;will accept an empty state '(), a state formated '(()()) or a state formated '((var1 var2 ...)(val1 val2 ...))
+(define m-add
+  (lambda (var s)
+     (if (null? s)
+         (list (list var) (list "init"))
+         (list (cons  var (vars s)) (cons "init" (vals s))))))
+
+;;takes a variable and a state
+;;returns the updated state with the variable and assosiated value removed
+(define m-remove
+  (lambda (var s)
+    (if (not (number? (locate var 0 s)))
+        "error"
+        (list (remove var (vars s)) (remove-val var s)))))
+
+;;takes a variable and a state
+;;returns the value list with the value attached to the variable removed
+(define remove-val
+  (lambda (var s)
+    (if (eq? var (nextvar s))
+        (cdr (vals s))
+        (cons (nextval s) (remove-val var (list (cdr (vars s)) (cdr (vals s))))))))
+                              
+;;takes an atom and a list
+;;returns the list with the first instance of the atom removed
+(define remove
+  (lambda (a lis)
+    (cond
+      [(null? lis) '()]
+      [(eq? a (car lis)) (cdr lis)]
+      [else (cons (car lis) (remove a (cdr lis)))])))
 
 
 
@@ -175,8 +231,8 @@
   ;(newline)
 
   (display "Test #1 mvalue") (newline)                                                ;Test mvalue
-  (pass? (mvalue '(3 + (4 / 2))) 5)                                                       ; 1/2
-  (pass? (mvalue '((3 * 2) + (4 / (2 % 3)))) 8)                                           ; 2/2
+  ;(pass? (mvalue '(3 + (4 / 2))) 5)                                                       ; 1/2
+  ;(pass? (mvalue '((3 * 2) + (4 / (2 % 3)))) 8)                                           ; 2/2
   (newline)
   
   (display "Test #2 exp") (newline)                                                   ;Test start
@@ -190,4 +246,40 @@
   (newline)
 
 
+  ;lookup variable's value in the state
+  (display "Test #3 m-lookup") (newline)
+  (pass? (m-lookup 'a '((a b c d)(2 5 6 7))) 2)
+  (pass? (m-lookup 'c '((a b c d)(2 5 6 7))) 6)
+  (pass? (m-lookup 'd '((a b c d)(2 5 6 7))) 7)
+  (pass? (m-lookup 'd '()) "error, does not exist")
+  (pass? (m-lookup 's '(()())) "error, does not exist")
+  (newline)
+
+  ;update variable's value in the state
+  (display "Test #4 m-update") (newline)
+  (pass? (m-update 's 3 '((a b c d)(2 5 6 7))) "error")
+  (pass? (m-update 'a 3 '((a b c d)(2 5 6 7))) '((a b c d)(3 5 6 7)))
+  (pass? (m-update 'b 21 '((a b c d)(2 5 6 7))) '((a b c d)(2 21 6 7)))
+  (pass? (m-update 'd 1 '((a b c d)(2 5 6 7)))  '((a b c d)(2 5 6 1)))
+  (pass? (m-update 'a 0 '()) "error")
+  (pass? (m-update 'a 0 '(()())) "error")
+  (newline)
+
+  ;add a variable to the state
+  (display "Test #5 m-add") (newline)
+  (pass? (m-add 's '()) '((s)("init")))
+  (pass? (m-add 's '(()())) '((s)("init")))
+  (pass? (m-add 's '((a)(2))) '((s a)("init" 2)))
+  (pass? (m-add 's '((a b c)(3 4 5))) '((s a b c)("init" 3 4 5)))
+  (newline)
+
+  ;remove a variable from a state
+  (display "Test #6 m-remove") (newline)
+  (pass? (m-remove 'a '((a b c d)(2 5 6 7))) '((b c d)(5 6 7)))
+  (pass? (m-remove 'b '((a b c d)(2 5 6 7))) '((a c d)(2 6 7)))
+  (pass? (m-remove 'd '((a b c d)(2 5 6 7))) '((a b c)(2 5 6)))
+  (pass? (m-remove 'a '((b c d)(5 6 7))) "error")
+  (pass? (m-remove 'a '(()())) "error")
+  (pass? (m-remove 'a '()) "error")
+           
   ) ;left hanging for easy test addition
