@@ -1,7 +1,7 @@
 #lang racket
 ;;;; A Java/C (ish) interpreter
 ;;;; EECS 345
-;;;; Group #7: Shanti ..., Catlin ...., Cormac Dacker
+;;;; Group #7: Shanti Polara, Catlin ...., Cormac Dacker
 
 
 ; Code a function that can take in expression of numbers and operators and return the value
@@ -103,13 +103,17 @@
 (define nextvar caar)
 (define nextval caadr)
 
-;;define state with abstration as
-;((x, y, ...) (4, 6, ...))
-;state is s
-;methods to implement
-;look up binding
-;remove binding
-;update existing binding
+
+#|
+define state with abstration as
+((x, y, ...) (4, 6, ...))
+state is s
+methods for state
+m-lookup - looks up variable's value, returns value
+m-update - updates variable's value, returns updated state
+m-add - adds uninitilized variable to state, returns updated state
+m-remove - removes a variable and it's value from state, returns updated state
+|#
 
 
 ;;takes a variable and a state
