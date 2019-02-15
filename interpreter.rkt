@@ -7,22 +7,42 @@
 
 (require "simpleParser.rkt") ; loads simpleParser.rkt, which itself loads lex.rkt
 
-(define m-state
-  (lambda (list s)
-    (list)))
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define start
   (lambda (filename)
     (parser filename)))
 
-;; figures out which method should be used to evaluate this
-(define m-what-type
-  (lambda (exp s)
-    (exp #|TODO: UPDATE THIS!!!|#)))
 (require racket/trace)
 
+;; executes code, returns updated state
+(define m-state
+  (lambda (exp s)
+    (if (null? exp)
+        s
+        (m-state (cdr exp) (m-what-type (car exp) s)))))
 
+;; figures out which method should be used to evaluate this, and evaluates this
+;; returns updated state
+(define m-what-type
+  (lambda (exp s)
+    (cond
+      ;; null checking
+      [(null? exp) s]
+      [(not (pair? exp)) s] ; if exp is not a list, then it's either just a variable or a number, which wouldn't change the state
+
+      ;; conditional statement checking (if/while/etc.)
+      [(eq? (statement-type-id exp) 'if)    (m-if-statement exp s)]
+      [(eq? (statement-type-id exp) 'while) (m-while-loop exp s)]
+
+      ;; is it a declaration
+      [(eq? (statement-type-id exp) 'var) (m-var-dec exp s)]
+
+      ;; is it an assignment
+      [(eq? (statement-type-id exp) '=) (m-assign exp s)]
+
+      ;; is it a return statement
+      [(eq? (statement-type-id exp) 'return) (m-return exp s)])))
 
 ;; Code a function that can take in expression of numbers and operators and return the value
 ;; e.g. (+ 3 (/ 4 2))
@@ -77,15 +97,17 @@
 
 ;; implementing while loop
 ;; NEEDS 'm-state' TO USE!!!
-(define whileloop
+(define m-while-loop
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
-      [(m-condition (loop-condition exp) s) (whileloop exp (m-state loop-body s))])))
+      [(m-condition (loop-condition exp) s) (m-while-loop exp (m-state loop-body s))])))
 
 ;; Abstration
+(define statement-type-id car) ; e.g. if, while, var, etc.
+(define statement-body cadr) ; e.g. the body of a return statement
+
 ;; for if statements
-(define loop-type-id car) ; e.g. if, while, etc.
 (define else-statement cadddr) ; else statement, if it exists
 (define loop-condition cadr)
 (define loop-body caddr)
@@ -197,11 +219,12 @@ m-remove - removes a variable and it's value from state, returns updated state
 ;; takes an expression
 ;; returns it as if it where in C/Java
 (define m-return
-  (lambda (exp)
+  (lambda (exp s)
     (cond
-      [(eq? exp #t) "True"]
-      [(eq? exp #f) "False"]
-      [else exp])))
+      [(eq?   (statement-body exp) #t) "True"]
+      [(eq?   (statement-body exp) #f) "False"]
+      [(pair? (statement-body exp))    (m-return (m-value (statement-body exp) s) s)]
+      [else                            (statement-body exp)])))
 
 
 ;;;;**********TESTING**********
