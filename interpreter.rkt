@@ -32,17 +32,19 @@
       [(not (pair? exp)) s] ; if exp is not a list, then it's either just a variable or a number, which wouldn't change the state
 
       ;; conditional statement checking (if/while/etc.)
-      [(eq? (statement-type-id exp) 'if)    (m-if-statement exp s)]
-      [(eq? (statement-type-id exp) 'while) (m-while-loop exp s)]
+      [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s)]
+      [(eq? (statement-type-id exp) 'while)  (m-while-loop exp s)]
 
       ;; is it a declaration
-      [(eq? (statement-type-id exp) 'var) (m-var-dec exp s)]
+      [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
 
       ;; is it an assignment
-      [(eq? (statement-type-id exp) '=) (m-assign exp s)]
+      [(eq? (statement-type-id exp) '=)      (m-assign exp s)]
 
       ;; is it a return statement
-      [(eq? (statement-type-id exp) 'return) (m-return exp s)])))
+      [(eq? (statement-type-id exp) 'return) (m-return exp s)]
+
+      [else                                  (error 'undefined "undefined expression")])))
 
 ;; Code a function that can take in expression of numbers and operators and return the value
 ;; e.g. (+ 3 (/ 4 2))
