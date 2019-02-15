@@ -54,8 +54,12 @@
   (lambda (exp s)
     (cond
       [(null? exp)             (error 'undefined "undefined expression")]
-      [(number? exp)           exp]
+      [(number? exp)           exp] ; if it's a number, return a number
+      [(and (not (pair? exp)) (eq? exp #t)) #t]
+      [(and (not (pair? exp)) (eq? exp #f)) #f]
       [(not (pair? exp))       (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
+
+      ;;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
