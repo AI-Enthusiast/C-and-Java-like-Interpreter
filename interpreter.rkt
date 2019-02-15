@@ -7,6 +7,9 @@
 
 (require "simpleParser.rkt") ; loads simpleParser.rkt, which itself loads lex.rkt
 
+(define m-state
+  (lambda (list s)
+    (list)))
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define start
@@ -30,6 +33,7 @@
     (cond
       [(null? exp)             (error 'undefined "undefined expression")]
       [(number? exp)           exp]
+      [(not (pair? exp))       (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -44,15 +48,13 @@
     (cond
       ; null checking
       [(null? exp)                    (error 'undefined "undefined expression")]
-      [(not (pair? exp))              exp]
-      [(null? (operator exp))    (m-value exp s)]
-      [(null? (operator exp))     (m-value exp s)]
-      [(null? (operator exp))    (m-value exp s)]
+      [(not (pair? exp))              (m-value exp s)]
+      [(null? (operator exp))         (m-value exp s)]
 
       ; condition checking (&&, ||, !)
       [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
       [(eq? (operator exp) '&&)  (and (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (car exp) '!)             (not (m-condition (left-operand exp) s))]
+      [(eq? (car exp) '!)        (not (m-condition (left-operand exp) s))]
 
       ; equality/inequality operator checking (==, !=, <, >, <=, >=)
       [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
@@ -63,22 +65,23 @@
       [(eq? (operator exp) '>=)  (>= (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
 
       ; oh no
-      [else                           (error 'undefined "undefined expression")])))
+      [else                      (m-value exp s)])))
 
 ;; implementing if statement
 (define m-if-statement
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
-      [(m-condition (loop-condition exp) s) (m-what-type (loop-body exp) s)]
-      [(not (null? (else-statement exp)))  (m-what-type (else-statement exp) s)])))
+      [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s)] ; run the loop of the body
+      [(not (null? (else-statement exp)))   (m-state (else-statement exp) s)]))) ; run the else of the body
 
-#|;; implementing while loop
+;; implementing while loop
+;; NEEDS 'm-state' TO USE!!!
 (define whileloop
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
-      [(m-condition (loop-condition exp) s) (whileloop exp s #|TODO: SOMETHING TO UPDATE THE STATE IN HERE!!!|#)])))|#
+      [(m-condition (loop-condition exp) s) (whileloop exp (m-state loop-body s))])))
 
 
 
