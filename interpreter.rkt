@@ -80,6 +80,24 @@
       [(null? exp) (error 'undefined "undefined expression")]
       [(m-condition (loop-condition exp) s) (whileloop exp s #|TODO: SOMETHING TO UPDATE THE STATE IN HERE!!!|#)])))|#
 
+
+
+(define variable cadr)
+(define expression caddr)
+
+(define m-assign
+  (lambda (lis s)
+      (if (eq? (m-lookup (variable lis) s) "error, does not exist")
+          (error "assigning before declared")
+          (m-update (variable lis) (m-value (expression lis) s) s))))
+
+(define m-var-dec
+  (lambda (dec s)
+    (if (null? (cddr dec)) ;just need to add variable, not value
+        (m-add (variable dec) s)
+        (m-update (variable dec) (m-value (expression dec) s) (m-add (variable dec) s))))) ;need to add value as well
+
+                  
 ;; Abstration
 ;; for if statements
 (define loop-type-id car) ; e.g. if, while, etc.
@@ -162,9 +180,10 @@ m-remove - removes a variable and it's value from state, returns updated state
 ;;will accept an empty state '(), a state formated '(()()) or a state formated '((var1 var2 ...)(val1 val2 ...))
 (define m-add
   (lambda (var s)
-     (if (null? s)
-         (list (list var) (list "init"))
-         (list (cons  var (vars s)) (cons "init" (vals s))))))
+      (cond
+        [(null? s)  (list (list var) (list "init"))]
+        [(number? (locate var 0 s)) (m-update var "init" s)]
+        [else (list (cons  var (vars s)) (cons "init" (vals s)))])))
 
 ;;takes a variable and a state
 ;;returns the updated state with the variable and assosiated value removed
@@ -309,5 +328,22 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (m-remove 'a '(()())) "error")                                                         ; 5/6
   (pass? (m-remove 'a '()) "error")                                                             ; 6/6
   (newline)
+
+  ;assign a variable
+  (display "Test #8 m-assign") (newline)
+  ;(pass? (m-assign '(var 'a 2) '(()()) ;should error
+  (pass? (m-assign '(var a 2) '((a)(1))) '((a)(2)))
+  (pass? (m-assign '(var d 2) '((x y d z)(1 1 1 1))) '((x y d z)(1 1 2 1)))
+  (pass? (m-assign '(var d 2) '((x y d z)(1 1 "init" 1))) '((x y d z)(1 1 2 1)))
+  (pass? (m-assign '(var d (+ 2 4)) '((x y d z)(1 1 1 1))) '((x y d z)(1 1 6 1)))
+  ;(pass? (m-assign '(var d (+ x 4)) '((x y d z)(2 3 7 1))) '((x y d z)(2 3 6 1)))
+  ;(pass? (m-assign '(var d (+ x (* y 2))) '((x y d z)(2 3 7 1))) '(x y d z)(2 3 8 1))
+  (newline)
+
+  ;(display "Test #9 m-var-dec") (newline)
+  ;(m-var-dec '(var a) '((q)(1)))
+
+  
+  
 
   ) ;left hanging for easy test addition
