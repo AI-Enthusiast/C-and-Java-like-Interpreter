@@ -368,12 +368,20 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (m-assign '(var d 2) '((x y d z)(1 1 1 1))) '((x y d z)(1 1 2 1)))
   (pass? (m-assign '(var d 2) '((x y d z)(1 1 "init" 1))) '((x y d z)(1 1 2 1)))
   (pass? (m-assign '(var d (+ 2 4)) '((x y d z)(1 1 1 1))) '((x y d z)(1 1 6 1)))
-  ;(pass? (m-assign '(var d (+ x 4)) '((x y d z)(2 3 7 1))) '((x y d z)(2 3 6 1)))
-  ;(pass? (m-assign '(var d (+ x (* y 2))) '((x y d z)(2 3 7 1))) '(x y d z)(2 3 8 1))
+  (pass? (m-assign '(var d (+ x 4)) '((x y d z)(2 3 7 1))) '((x y d z)(2 3 6 1)))
+  (pass? (m-assign '(var d (+ x (* y 2))) '((x y d z)(2 3 7 1))) '((x y d z)(2 3 8 1)))
   (newline)
 
-  ;(display "Test #9 m-var-dec") (newline)
-  ;(m-var-dec '(var a) '((q)(1)))
+  (display "Test #9 m-var-dec") (newline)
+  (pass? (m-var-dec '(var a) '((q)(1))) '((a q) ("init" 1)))
+  (pass? (m-var-dec '(var a) '((d a s)(1 2 3))) '((d a s)(1 "init" 3)))
+  (pass? (m-var-dec '(var a) '(()())) '((a)("init")))
+  (pass? (m-var-dec '(var a 1) '((d a s)(1 2 3))) '((d a s)(1 1 3)))
+  (pass? (m-var-dec '(var a 1) '((d s)(2 3))) '((a d s)(1 2 3)))
+  (pass? (m-var-dec '(var a (+ x 1)) '((c s x)(2 3 4))) '((a c s x)(5 2 3 4)))
+  (pass? (m-var-dec '(var a (+ x (* c 3))) '((c s x)(2 3 4))) '((a c s x)(10 2 3 4)))
+  (pass? (m-var-dec '(var a (+ x 1)) '((c s a x)(2 3 5 7))) '((c s a x)(2 3 8 7)))
+  (pass? (m-var-dec '(var a (+ a 1)) '((c s a x)(2 3 5 4))) '((c s a x)(2 3 6 4)))
 
   
   
