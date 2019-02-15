@@ -7,9 +7,6 @@
 
 (require "simpleParser.rkt") ; loads simpleParser.rkt, which itself loads lex.rkt
 
-(define m-state
-  (lambda (list s)
-    (list)))
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define start
@@ -33,7 +30,6 @@
     (cond
       [(null? exp)             (error 'undefined "undefined expression")]
       [(number? exp)           exp]
-      [(not (pair? exp))       (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -48,13 +44,15 @@
     (cond
       ; null checking
       [(null? exp)                    (error 'undefined "undefined expression")]
-      [(not (pair? exp))              (m-value exp s)]
-      [(null? (operator exp))         (m-value exp s)]
+      [(not (pair? exp))              exp]
+      [(null? (operator exp))    (m-value exp s)]
+      [(null? (operator exp))    (m-value exp s)]
+      [(null? (operator exp))    (m-value exp s)]
 
       ; condition checking (&&, ||, !)
       [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
       [(eq? (operator exp) '&&)  (and (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (car exp) '!)        (not (m-condition (left-operand exp) s))]
+      [(eq? (car exp) '!)             (not (m-condition (left-operand exp) s))]
 
       ; equality/inequality operator checking (==, !=, <, >, <=, >=)
       [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
@@ -65,23 +63,22 @@
       [(eq? (operator exp) '>=)  (>= (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
 
       ; oh no
-      [else                      (m-value exp s)])))
+      [else                      (error 'undefined "undefined expression")])))
 
 ;; implementing if statement
 (define m-if-statement
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
-      [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s)] ; run the loop of the body
-      [(not (null? (else-statement exp)))   (m-state (else-statement exp) s)]))) ; run the else of the body
+      [(m-condition (loop-condition exp) s) (m-what-type (loop-body exp) s)]
+      [(not (null? (else-statement exp)))  (m-what-type (else-statement exp) s)])))
 
-;; implementing while loop
-;; NEEDS 'm-state' TO USE!!!
+#|;; implementing while loop
 (define whileloop
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
-      [(m-condition (loop-condition exp) s) (whileloop exp (m-state loop-body s))])))
+      [(m-condition (loop-condition exp) s) (whileloop exp s #|TODO: SOMETHING TO UPDATE THE STATE IN HERE!!!|#)])))|#
 
 ;; Abstration
 ;; for if statements
@@ -123,7 +120,8 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-lookup
   (lambda (var s)
     (cond
-      [(or (null? s) (null? (vars s))) "error, does not exist"]
+      [(null? s) "error, does not exist"]
+      [(null? (vars s)) "error, does not exist"]
       [(and (equal? var (nextvar s)) (nextval s))]
       [else (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
 
@@ -132,19 +130,24 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-update
   (lambda (var update-val s)
     (cond
-      [(or (null? s) (null? (vars s))) "error"]
+      [(null? s) "error"]
       [(not (number? (locate var 0 s))) "error"]
-      [else (list (vars s) (update var update-val s))])))
+      [else (cons (vars s) (list (update update-val (locate var 0 s) (vals s))))])))
 
 
 ;;takes the value to be updated, the location of the value and the      
 ;;updates the variable at the location with the new value, returns the updated state
 (define update
-  (lambda (var update-val s)
+  (lambda (update-val loc values)
     (cond
-      [(eq? var (nextvar s)) (cons update-val (cdr (vals s)))]
-      [else (cons (nextval s) (update var update-val (list (cdr (vars s)) (cdr (vals s)))))])))
+      [(null? values)
+       "error"]
+      [(eq? loc 0) 
+       (cons update-val (cdr values))]
+      [else
+       (cons (car values) (update update-val (- loc 1) (cdr values)))])))
                                                                  
+
 ;(m-update 'v '4 '((f s a v x)(5 6 7 1 8)))
 
 ;;finds the location of the variable's value in the state
@@ -242,38 +245,36 @@ m-remove - removes a variable and it's value from state, returns updated state
   (newline)
   
   ;checks math opperations perform correctly
-  ;TODO: replace 'temp with an s state
   (display "Test #2 m-value") (newline)                                               ;Test m-value
-  (pass? (m-value '(+ 3 (/ 4 2)) 'temp) 5)                                                      ; 1/2
-  (pass? (m-value '(+ (* 3 2) (/ 4 (% 2 3))) 'temp) 8)                                          ; 2/2
+  (pass? (m-value '(+ 3 (/ 4 2)) 'empty) 5)                                                      ; 1/2
+  (pass? (m-value '(+ (* 3 2) (/ 4 (% 2 3))) 'empty) 8)                                          ; 2/2
   (newline)
 
   ;boolean ooporators for var assignments and conditions in if & while statements
-  ;TODO: replace 'temp with an s state
   (display "Test #3 m-condition") (newline)                                           ;Test m-condition
-  (pass? (m-condition '(== 1 1) 'temp) #t)                                                      ; 1/23
-  (pass? (m-condition '(== 1 0) 'temp) #f)                                                      ; 2/23
-  (pass? (m-condition '(!= 1 1) 'temp) #f)                                                      ; 3/23
-  (pass? (m-condition '(!= 1 0) 'temp) #t)                                                      ; 4/23
-  (pass? (m-condition '(> 1 1) 'temp) #f)                                                       ; 5/23
-  (pass? (m-condition '(> 1 0) 'temp) #t)                                                       ; 6/23
-  (pass? (m-condition '(> 0 1) 'temp) #f)                                                       ; 7/23
-  (pass? (m-condition '(< 1 1) 'temp) #f)                                                       ; 8/23
-  (pass? (m-condition '(< 1 0) 'temp) #f)                                                       ; 9/23
-  (pass? (m-condition '(< 0 1) 'temp) #t)                                                       ; 10/23
-  (pass? (m-condition '(>= 1 1) 'temp) #t)                                                      ; 11/23
-  (pass? (m-condition '(>= 1 0) 'temp) #t)                                                      ; 12/23
-  (pass? (m-condition '(>= 0 1) 'temp) #f)                                                      ; 13/23
-  (pass? (m-condition '(<= 1 1) 'temp) #t)                                                      ; 14/23
-  (pass? (m-condition '(<= 1 0) 'temp) #f)                                                      ; 15/23
-  (pass? (m-condition '(<= 0 1) 'temp) #t)                                                      ; 16/23
-  (pass? (m-condition '(&& #t #t) 'temp) #t)                                                    ; 17/23
-  (pass? (m-condition '(&& #t #f) 'temp) #f)                                                    ; 18/23
-  (pass? (m-condition '(|| #t #t) 'temp) #t)                                                    ; 19/23
-  (pass? (m-condition '(|| #t #f) 'temp) #t)                                                    ; 20/23
-  (pass? (m-condition '(|| #f #f) 'temp) #f)                                                    ; 21/23
-  (pass? (m-condition '(! #t) 'temp) #f)                                                        ; 22/23
-  (pass? (m-condition '(! #f) 'temp) #t)                                                        ; 23/23
+  (pass? (m-condition '(== 1 1) 'empty) #t)                                                      ; 1/23
+  (pass? (m-condition '(== 1 0) 'empty) #f)                                                      ; 2/23
+  (pass? (m-condition '(!= 1 1) 'empty) #f)                                                      ; 3/23
+  (pass? (m-condition '(!= 1 0) 'empty) #t)                                                      ; 4/23
+  (pass? (m-condition '(> 1 1) 'empty) #f)                                                       ; 5/23
+  (pass? (m-condition '(> 1 0) 'empty) #t)                                                       ; 6/23
+  (pass? (m-condition '(> 0 1) 'empty) #f)                                                       ; 7/23
+  (pass? (m-condition '(< 1 1) 'empty) #f)                                                       ; 8/23
+  (pass? (m-condition '(< 1 0) 'empty) #f)                                                       ; 9/23
+  (pass? (m-condition '(< 0 1) 'empty) #t)                                                       ; 10/23
+  (pass? (m-condition '(>= 1 1) 'empty) #t)                                                      ; 11/23
+  (pass? (m-condition '(>= 1 0) 'empty) #t)                                                      ; 12/23
+  (pass? (m-condition '(>= 0 1) 'empty) #f)                                                      ; 13/23
+  (pass? (m-condition '(<= 1 1) 'empty) #t)                                                      ; 14/23
+  (pass? (m-condition '(<= 1 0) 'empty) #f)                                                      ; 15/23
+  (pass? (m-condition '(<= 0 1) 'empty) #t)                                                      ; 16/23
+  (pass? (m-condition '(&& #t #t) 'empty) #t)                                                    ; 17/23
+  (pass? (m-condition '(&& #t #f) 'empty) #f)                                                    ; 18/23
+  (pass? (m-condition '(|| #t #t) 'empty) #t)                                                    ; 19/23
+  (pass? (m-condition '(|| #t #f) 'empty) #t)                                                    ; 20/23
+  (pass? (m-condition '(|| #f #f) 'empty) #f)                                                    ; 21/23
+  (pass? (m-condition '(! #t) 'empty) #f)                                                        ; 22/23
+  (pass? (m-condition '(! #f) 'empty) #t)                                                        ; 23/23
   (newline)
   
   ;lookup variable's value in the state
