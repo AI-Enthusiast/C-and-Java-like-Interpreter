@@ -18,9 +18,10 @@
 ;; executes code, returns updated state
 (define m-state
   (lambda (exp s)
-    (if (null? exp)
-        s
-        (m-state (cdr exp) (m-what-type (car exp) s)))))
+    (cond
+      [(null? exp) s]
+      [(null? (cdr exp)) (m-what-type (car exp) s)]
+      [else (m-state (cdr exp) (m-what-type (car exp) s))])))
 
 ;; figures out which method should be used to evaluate this, and evaluates this
 ;; returns updated state
@@ -106,8 +107,9 @@
 (define m-while-loop
   (lambda (exp s)
     (cond
-      [(null? exp) (error 'undefined "undefined expression")]
-      [(m-condition (loop-condition exp) s) (m-while-loop exp (m-state loop-body s))])))
+      [(null? exp)                          (error 'undefined "undefined expression")]
+      [(m-condition (loop-condition exp) s) (m-while-loop exp (m-state (loop-body exp) s))]
+      [else                                 s])))
 
 
 
