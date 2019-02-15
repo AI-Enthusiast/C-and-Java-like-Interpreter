@@ -3,10 +3,13 @@
 ;;;; EECS 345
 ;;;; Group #7: Shanti Polara, Catlin ...., Cormac Dacker
 
-;;TODO: Var decleration, assignment (after decleration, error otherwise), return
+;;TODO: Var decleration, assignment (after decleration, error otherwise)
 
 (require "simpleParser.rkt") ; loads simpleParser.rkt, which itself loads lex.rkt
 
+(define m-state
+  (lambda (list s)
+    (list)))
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define start
@@ -30,6 +33,7 @@
     (cond
       [(null? exp)             (error 'undefined "undefined expression")]
       [(number? exp)           exp]
+      [(not (pair? exp))       (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -44,15 +48,13 @@
     (cond
       ; null checking
       [(null? exp)                    (error 'undefined "undefined expression")]
-      [(not (pair? exp))              exp]
-      [(null? (operator exp))    (m-value exp s)]
-      [(null? (operator exp))    (m-value exp s)]
-      [(null? (operator exp))    (m-value exp s)]
+      [(not (pair? exp))              (m-value exp s)]
+      [(null? (operator exp))         (m-value exp s)]
 
       ; condition checking (&&, ||, !)
       [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
       [(eq? (operator exp) '&&)  (and (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (car exp) '!)             (not (m-condition (left-operand exp) s))]
+      [(eq? (car exp) '!)        (not (m-condition (left-operand exp) s))]
 
       ; equality/inequality operator checking (==, !=, <, >, <=, >=)
       [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
@@ -63,22 +65,23 @@
       [(eq? (operator exp) '>=)  (>= (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
 
       ; oh no
-      [else                      (error 'undefined "undefined expression")])))
+      [else                      (m-value exp s)])))
 
 ;; implementing if statement
 (define m-if-statement
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
-      [(m-condition (loop-condition exp) s) (m-what-type (loop-body exp) s)]
-      [(not (null? (else-statement exp)))  (m-what-type (else-statement exp) s)])))
+      [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s)] ; run the loop of the body
+      [(not (null? (else-statement exp)))   (m-state (else-statement exp) s)]))) ; run the else of the body
 
-#|;; implementing while loop
+;; implementing while loop
+;; NEEDS 'm-state' TO USE!!!
 (define whileloop
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
-      [(m-condition (loop-condition exp) s) (whileloop exp s #|TODO: SOMETHING TO UPDATE THE STATE IN HERE!!!|#)])))|#
+      [(m-condition (loop-condition exp) s) (whileloop exp (m-state loop-body s))])))
 
 ;; Abstration
 ;; for if statements
@@ -120,8 +123,7 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-lookup
   (lambda (var s)
     (cond
-      [(null? s) "error, does not exist"]
-      [(null? (vars s)) "error, does not exist"]
+      [(or (null? s) (null? (vars s))) "error, does not exist"]
       [(and (equal? var (nextvar s)) (nextval s))]
       [else (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
 
@@ -130,24 +132,19 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-update
   (lambda (var update-val s)
     (cond
-      [(null? s) "error"]
+      [(or (null? s) (null? (vars s))) "error"]
       [(not (number? (locate var 0 s))) "error"]
-      [else (cons (vars s) (list (update update-val (locate var 0 s) (vals s))))])))
+      [else (list (vars s) (update var update-val s))])))
 
 
 ;;takes the value to be updated, the location of the value and the      
 ;;updates the variable at the location with the new value, returns the updated state
 (define update
-  (lambda (update-val loc values)
+  (lambda (var update-val s)
     (cond
-      [(null? values)
-       "error"]
-      [(eq? loc 0) 
-       (cons update-val (cdr values))]
-      [else
-       (cons (car values) (update update-val (- loc 1) (cdr values)))])))
+      [(eq? var (nextvar s)) (cons update-val (cdr (vals s)))]
+      [else (cons (nextval s) (update var update-val (list (cdr (vars s)) (cdr (vals s)))))])))
                                                                  
-
 ;(m-update 'v '4 '((f s a v x)(5 6 7 1 8)))
 
 ;;finds the location of the variable's value in the state
