@@ -102,11 +102,11 @@
               (m-state (loop-body exp) s)]             ; run the loop of the body (body is multiple statements)
       [(m-condition (loop-condition exp) s)
               (m-what-type (loop-body exp) s)]         ; run the loop of the body (body is single statement)
-      
+
       [(and (not (null? (else-statement exp))) (pair? (car (loop-body exp))))
-              (m-state (else-statement exp) s)]        ; run the else of the body (body is multiple statements) 
+              (m-state (else-statement exp) s)]        ; run the else of the body (body is multiple statements)
       [(not (null? (else-statement exp)))
-              (m-what-type (else-statement exp) s)]))) ; run the else of the body (body is single statement) 
+              (m-what-type (else-statement exp) s)]))) ; run the else of the body (body is single statement)
 
 ;; implementing while loop
 ;; NEEDS 'm-state' TO USE!!!
@@ -135,7 +135,7 @@
         (m-add (variable dec) s)
         (m-update (variable dec) (m-value (expression dec) s) (m-add (variable dec) s))))) ;need to add value as well
 
-                
+
 #|
 define state with abstration as
 ((x, y, ...) (4, 6, ...))
@@ -168,14 +168,14 @@ m-remove - removes a variable and it's value from state, returns updated state
       [else (list (vars s) (update var update-val s))])))
 
 
-;;takes the value to be updated, the location of the value and the      
+;;takes the value to be updated, the location of the value and the
 ;;updates the variable at the location with the new value, returns the updated state
 (define update
   (lambda (var update-val s)
     (cond
       [(eq? var (nextvar s)) (cons update-val (cdr (vals s)))]
       [else (cons (nextval s) (update var update-val (list (cdr (vars s)) (cdr (vals s)))))])))
-                                                                 
+
 ;(m-update 'v '4 '((f s a v x)(5 6 7 1 8)))
 
 ;;finds the location of the variable's value in the state
@@ -216,7 +216,7 @@ m-remove - removes a variable and it's value from state, returns updated state
     (if (eq? var (nextvar s))
         (cdr (vals s))
         (cons (nextval s) (remove-val var (list (cdr (vars s)) (cdr (vals s))))))))
-                              
+
 ;;takes an atom and a list
 ;;returns the list with the first instance of the atom removed
 (define remove
@@ -226,7 +226,7 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(eq? a (car lis)) (cdr lis)]
       [else (cons (car lis) (remove a (cdr lis)))])))
 
-;; takes an expression and a state 
+;; takes an expression and a state
 ;; returns it as if it where in C/Java
 (define m-return
   (lambda (exp s)
@@ -293,7 +293,7 @@ m-remove - removes a variable and it's value from state, returns updated state
                                                (return (* x (+ x x)))
                                                (return (- y 1)))))))
   (newline)
-  
+
   ;checks math opperations perform correctly
   ;TODO: replace 'temp with an s state
   (display "Test #2 m-value") (newline)                                               ;Test m-value
@@ -328,7 +328,7 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (m-condition '(! #t) 'temp) #f)                                                        ; 22/23
   (pass? (m-condition '(! #f) 'temp) #t)                                                        ; 23/23
   (newline)
-  
+
   ;lookup variable's value in the state
   (display "Test #4 m-lookup") (newline)                                              ;Test m-lookup
   (pass? (m-lookup 'a '((a b c d)(2 5 6 7))) 2)                                                 ; 1/5
@@ -388,7 +388,7 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (m-var-dec '(var a (+ x 1)) '((c s a x)(2 3 5 7))) '((c s a x)(2 3 8 7)))
   (pass? (m-var-dec '(var a (+ a 1)) '((c s a x)(2 3 5 4))) '((c s a x)(2 3 6 4)))
 
-  
-  
+
+
 
   ) ;left hanging for easy test addition
