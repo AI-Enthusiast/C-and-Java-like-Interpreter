@@ -58,11 +58,10 @@
 (define m-value
   (lambda (exp s)
     (cond
-      [(null? exp)                          (error 'undefined "undefined expression")]
-      [(number? exp)                        exp] ; if it's a number, return a number
-      [(and (not (pair? exp)) (eq? exp #t)) #t]
-      [(and (not (pair? exp)) (eq? exp #f)) #f]
-      [(not (pair? exp))                    (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
+      [(null? exp)                            (error 'undefined "undefined expression")]
+      [(number? exp)                          exp] ; if it's a number, return a number
+      [(and (not (pair? exp)) (boolean? exp)) exp]
+      [(not (pair? exp))                      (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
 
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -107,6 +106,7 @@
               (m-state (loop-body exp) s)]             ; run the loop of the body (body is multiple statements)
       [(m-condition (loop-condition exp) s)
               (m-what-type (loop-body exp) s)]         ; run the loop of the body (body is single statement)
+      [(null? (cdddr exp)) #|DO NOTHING|#]
 
       [(and (not (null? (else-statement exp))) (pair? (car (loop-body exp))))
               (m-state (else-statement exp) s)]        ; run the else of the body (body is multiple statements)

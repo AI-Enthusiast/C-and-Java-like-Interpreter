@@ -5,6 +5,9 @@ var z = 15;
 var w = z * x;
 while (y % x != 3)
   y = y + 1;
-while ((z < w) && (z < y)) 
+while (z < w) 
   z = z * 2;
-return w % y;
+if (y > 1)
+  w = w * 2;
+x = - x;
+return x;
