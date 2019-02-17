@@ -15,14 +15,11 @@
 (define m-state
   (lambda (exp s)
     (cond
-<<<<<<< HEAD
       [(null? exp)             s]
       [(null? (cdr exp))       (m-what-type (car exp) s)]
       [(not (list? (car exp))) (m-what-type (car exp) s)]
-=======
       [(null? exp) s]
       [(null? (cdr exp)) (m-what-type (car exp) s)]
->>>>>>> parent of 9e994da... Moved abstraction to bottom, fixed while loop/if statements
       [else (m-state (cdr exp) (m-what-type (car exp) s))])))
 
 ;; figures out which method should be used to evaluate this, and evaluates this
@@ -45,13 +42,11 @@
       ; is it an assignment
       [(eq? (statement-type-id exp) '=)      (m-assign exp s)]
 
-<<<<<<< HEAD
       ; is it a return statement
       [(eq? (statement-type-id exp) 'return) (m-return (statement-body exp) s)]
-=======
+
       ;; is it a return statement
       [(eq? (statement-type-id exp) 'return) (m-return exp s)]
->>>>>>> parent of 9e994da... Moved abstraction to bottom, fixed while loop/if statements
 
       ; oh no
       [else                                  (error 'undefined "undefined expression")])))
@@ -110,7 +105,7 @@
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
-<<<<<<< HEAD
+
       ; run the loop of the body (body is multiple statements)
       [(and (m-condition (loop-condition exp) s) (pair? (car (loop-body exp))))
                    (m-state (loop-body exp) s)]
@@ -122,17 +117,16 @@
                    (m-state (else-statement exp) s)]
       ; run the else of the body (body is single statement) 
       [(not (null? (else-statement exp)))
-                   (m-what-type (else-statement exp) s)]))) 
-=======
+                   (m-what-type (else-statement exp) s)] 
+
       [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s)] ; run the loop of the body
       [(not (null? (else-statement exp)))   (m-state (else-statement exp) s)]))) ; run the else of the body
->>>>>>> parent of 9e994da... Moved abstraction to bottom, fixed while loop/if statements
 
 ;; implementing while loop
 (define m-while-loop
   (lambda (exp s)
     (cond
-<<<<<<< HEAD
+
       ; invalid expression
       [(null? exp)                          (error 'undefined "undefined expression")] 
       ; runs the while loop (body is multiple statements)
@@ -140,16 +134,8 @@
                                             (m-while-loop exp (m-state (loop-body exp) s))] 
       [(m-condition (loop-condition exp) s) (m-while-loop exp (m-what-type (loop-body exp) s))]
       [else                                  s])))
-=======
-      [(null? exp)                          (error 'undefined "undefined expression")]
-      [(m-condition (loop-condition exp) s) (m-while-loop exp (m-state (loop-body exp) s))]
-      [else                                 s])))
 
 
-
-(define variable cadr)
-(define expression caddr)
->>>>>>> parent of 9e994da... Moved abstraction to bottom, fixed while loop/if statements
 
 (define m-assign
   (lambda (lis s)
@@ -162,39 +148,12 @@
     (if (null? (cddr dec))
         ;just need to add variable, not value
         (m-add (variable dec) s)
-<<<<<<< HEAD
+
         ;need to add value as well
         (m-update (variable dec) (m-value (expression dec) s) (m-add (variable dec) s))))) 
                 
-=======
-        (m-update (variable dec) (m-value (expression dec) s) (m-add (variable dec) s))))) ;need to add value as well
 
-                  
-;; Abstration
-(define statement-type-id car) ; e.g. if, while, var, etc.
-(define statement-body cadr) ; e.g. the body of a return statement
-
-;; for if statements
-(define else-statement cadddr) ; else statement, if it exists
-(define loop-condition cadr)
-(define loop-body caddr)
-
-;; for value operations
-(define left-operand cadr)
-; for m-value
-(define operator car)
-(define right-operand caddr)
-
-; (5 + 2 <= 7) ;can we remove these? or test for them?
-; ((5 + 2) <= 7)
-
-(define vars car)
-(define vals cadr)
-(define nextvar caar)
-(define nextval caadr)
-
-
->>>>>>> parent of 9e994da... Moved abstraction to bottom, fixed while loop/if statements
+            
 #|
 define state with abstration as
 ((x, y, ...) (4, 6, ...))
@@ -292,11 +251,11 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-return
   (lambda (exp s)
     (cond
-<<<<<<< HEAD
-      [(eq?   exp #t) "True"]
-      [(eq?   exp #f) "False"]
-      [(pair? exp)    (m-return (m-value exp s) s)]
-      [else           exp])))
+
+      [(eq?   (statement-body exp) #t) "True"]
+      [(eq?   (statement-body exp) #f) "False"]
+      [(pair? (statement-body exp))    (m-return (m-value (statement-body exp) s) s)]
+      [else                            (statement-body exp)])))
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
@@ -320,12 +279,8 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define vals cadr)
 (define nextvar caar)
 (define nextval caadr)
-=======
-      [(eq?   (statement-body exp) #t) "True"]
-      [(eq?   (statement-body exp) #f) "False"]
-      [(pair? (statement-body exp))    (m-return (m-value (statement-body exp) s) s)]
-      [else                            (statement-body exp)])))
->>>>>>> parent of 9e994da... Moved abstraction to bottom, fixed while loop/if statements
+
+      
 
 
 ;;;;**********TESTING**********
