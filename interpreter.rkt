@@ -20,7 +20,7 @@
 (define m-state
   (lambda (exp s)
     (cond
-      [(null? exp)             s]
+      [(null? exp)              s]
       [(null? (cdr exp))       (m-what-type (car exp) s)]
       [(not (list? (car exp))) (m-what-type (car exp) s)]
       [else (m-state (cdr exp) (m-what-type (car exp) s))])))
@@ -57,10 +57,8 @@
   (lambda (exp s)
     (cond
       [(null? exp)                          (error 'undefined "undefined expression")]
-      [(number? exp)                        exp] ; if it's a number, return a number
-      [(and (not (pair? exp)) (eq? exp #t)) #t]
-      [(and (not (pair? exp)) (eq? exp #f)) #f]
-      [(not (pair? exp))                    (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
+      [(or (number? exp) (boolean? exp))     exp] ; if it's a number or bool, return
+      [(not (pair? exp))                    (m-lookup exp s)] ; it's a variable
 
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -89,7 +87,8 @@
 
       ; equality/inequality operator checking (==, !=, <, >, <=, >=)
       [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '!=)  (not (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s)))]
+      [(eq? (operator exp) '!=)  (not (eq? (m-condition (left-operand exp) s)
+                                           (m-condition (right-operand exp) s)))]
       [(eq? (operator exp) '<)   (< (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
       [(eq? (operator exp) '>)   (> (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
       [(eq? (operator exp) '<=)  (<= (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
@@ -180,7 +179,8 @@ m-remove - removes a variable and it's value from state, returns updated state
   (lambda (var update-val s)
     (cond
       [(eq? var (nextvar s))  (cons update-val (cdr (vals s)))]
-      [else                   (cons (nextval s) (update var update-val (list (cdr (vars s)) (cdr (vals s)))))])))
+      [else                   (cons (nextval s) (update var update-val (list (cdr (vars s))
+                                                                             (cdr (vals s)))))])))
 
 ;; Finds the location of the variable's value in the state
 ;; Takes the variable it is locating, a counter and a state
@@ -197,7 +197,7 @@ m-remove - removes a variable and it's value from state, returns updated state
 ;; Takes a varaiable and a state, adds it to a state with non number uninitilized value "init"
 ;; (does not take value, to update value, use m-update)
 ;; Returns the updated state, if used before assigned, should result in error
-;; Will accept an empty state '(), a state formated '(()()) or a state formated '((var1 var2 ...)(val1 val2 ...))
+;; Will accept an empty state '(), a state formated '(()()) or a state formated '((var1 ...)(val1 ...))
 (define m-add
   (lambda (var s)
       (cond
