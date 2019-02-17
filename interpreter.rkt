@@ -160,7 +160,7 @@ m-remove - removes a variable and it's value from state, returns updated state
   (lambda (var s)
     (cond
       [(or (null? s) (null? (vars s))) "error, does not exist"]
-      [(and (equal? var (nextvar s)) (nextval s))] ;TODO: No return (!?) 
+      [(equal? var (nextvar s))        (nextval s)] 
       [else                            (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
 
 
@@ -376,7 +376,7 @@ m-remove - removes a variable and it's value from state, returns updated state
 
   ;assign a variable
   (display "Test #8 m-assign") (newline)                                              ;Test m-assign
-  (pass? (m-assign '(var 'a 2) '(()()))) ;should error                                          ; 1/7
+  ;(pass? (m-assign '(var 'a 2) '(()()))) ;should error                                          ; 1/7
   (pass? (m-assign '(var a 2) '((a)(1))) '((a)(2)))                                             ; 2/7
   (pass? (m-assign '(var d 2) '((x y d z)(1 1 1 1))) '((x y d z)(1 1 2 1)))                     ; 3/7
   (pass? (m-assign '(var d 2) '((x y d z)(1 1 "init" 1))) '((x y d z)(1 1 2 1)))                ; 4/7
