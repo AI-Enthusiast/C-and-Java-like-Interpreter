@@ -301,7 +301,7 @@ m-remove - removes a variable and it's value from state, returns updated state
 
   ;checks the code is parsed into a tree as exprected
   (display "Test #1 parse-tree") (newline)                                                 ;Test parse-tree
-  (pass? (parse-tree "Test1.txt") '((var x) (= x 10) (var y (+ (* 3 x) 5))                      ; 1/1
+  (pass? (parse-tree "Tests/Test1.txt") '((var x) (= x 10) (var y (+ (* 3 x) 5))                      ; 1/1
                                    (while (!= (% y x) 3) (= y (+ y 1)))
                                    (if (> x y) (return x)
                                        (if (> (* x x) y) (return (* x x))
@@ -407,9 +407,9 @@ m-remove - removes a variable and it's value from state, returns updated state
   (newline)
   
   (display "Test #10 run") (newline)
-  (pass? (run "Test1.txt") 100)
-  (pass? (run "Test2.txt") 21)
-  (pass? (run "Test3.txt") 4)
+  (pass? (run "Tests/Test1.txt") 100)
+  (pass? (run "Tests/Test2.txt") 21)
+  (pass? (run "Tests/Test3.txt") 4)
   (newline)
 
   ) ;left hanging for easy test addition
