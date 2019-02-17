@@ -56,6 +56,7 @@
 (define m-value
   (lambda (exp s)
     (cond
+      ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
       [(number? exp)                          exp] ; if it's a number, return a number
       [(and (not (pair? exp)) (boolean? exp)) exp]
@@ -133,16 +134,16 @@
       [else s])))
 
 
-;;takes a variable assignment and a state
-;;returns the updated state
+;; Takes an assinment and a state
+;; Returns the updated state
 (define m-assign
   (lambda (assign s)
       (if (not (number? (locate (variable assign) 0 s)))
           (error "use before declaration")
           (m-update (variable assign) (m-value (expression assign) s) s))))
 
-;;takes a variable declaration and a state
-;;returns the updated state
+;; Takes a variable declaration and a state
+;; Returns the updated state
 (define m-var-dec
   (lambda (dec s)
     (cond
@@ -411,7 +412,8 @@ m-remove - removes a variable and it's value from state, returns updated state
   ;(pass? (m-var-dec '(var a (+ x 1)) '((c s a x)(2 3 5 7))) "error") ;;should error            ; 8/9
   ;(pass? (m-var-dec '(var a (+ a 1)) '((c s a x)(2 3 5 4))) "error") ;;should error            ; 9/9
   (newline)
-  
+
+  ;tests interpreter functionality
   (display "Test #10 run") (newline)
   (pass? (run "Tests/Test1.txt") 100)
   (pass? (run "Tests/Test2.txt") 21)
@@ -424,12 +426,18 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (run "Tests/p1.Test6.txt") 5)
   (pass? (run "Tests/p1.Test7.txt") 6)
   (pass? (run "Tests/p1.Test8.txt") 10)
-  (pass? (run "Tests/p1.Test9.txt") 5)
-  (pass? (run "Tests/p1.Test10.txt") -39)
+  ;(pass? (run "Tests/p1.Test9.txt") 5)
+  ;(pass? (run "Tests/p1.Test10.txt") -39)
   ;;(pass? (run "Tests/p1.Test11.txt") "error" ) ;should error
   ;;(pass? (run "Tests/p1.Test12.txt") "error") ;should error
   ;;(pass? (run "Tests/p1.Test13.txt") "error") ;should error
   ;;(pass? (run "Tests/p1.Test14.txt") "error") ;should error
+  ;(pass? (run "Tests/p1.Test15.txt") "True")
+  (pass? (run "Tests/p1.Test16.txt") 100)
+  ;(pass? (run "Tests/p1.Test17.txt") "False")
+  ;(pass? (run "Tests/p1.Test18.txt") "True")
+  (pass? (run "Tests/p1.Test19.txt") 128)
+  (pass? (run "Tests/p1.Test20.txt") 12)
   (newline)
 
   
