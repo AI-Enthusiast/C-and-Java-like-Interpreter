@@ -410,6 +410,20 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (run "Tests/Test1.txt") 100)
   (pass? (run "Tests/Test2.txt") 21)
   (pass? (run "Tests/Test3.txt") 4)
+  (pass? (run "Tests/p1.Test1.txt") 150)
+  (pass? (run "Tests/p1.Test2.txt") -4)
+  (pass? (run "Tests/p1.Test3.txt") 10)
+  (pass? (run "Tests/p1.Test4.txt") 16)
+  (pass? (run "Tests/p1.Test5.txt") 220)
+  (pass? (run "Tests/p1.Test6.txt") 5)
+  (pass? (run "Tests/p1.Test7.txt") 6)
+  (pass? (run "Tests/p1.Test8.txt") 10)
+  (pass? (run "Tests/p1.Test9.txt") 5)
+  (pass? (run "Tests/p1.Test10.txt") -39)
+  ;;(pass? (run "Tests/p1.Test11.txt") "error" ) ;should error
+  ;;(pass? (run "Tests/p1.Test12.txt") "error") ;should error
+  ;;(pass? (run "Tests/p1.Test13.txt") "error") ;should error
+  ;;(pass? (run "Tests/p1.Test14.txt") "error") ;should error
   (newline)
 
   ) ;left hanging for easy test addition
