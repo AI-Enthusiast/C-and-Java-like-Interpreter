@@ -261,7 +261,7 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define operator car)
 (define right-operand caddr)
 
-; for everything else
+;for maintaining state
 (define vars car)
 (define vals cadr)
 (define nextvar caar)
