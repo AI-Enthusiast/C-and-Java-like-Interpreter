@@ -58,11 +58,11 @@
 (define m-value
   (lambda (exp s)
     (cond
-      [(null? exp)             (error 'undefined "undefined expression")]
-      [(number? exp)           exp] ; if it's a number, return a number
-      [(and (not (pair? exp))  (eq? exp #t)) #t]
-      [(and (not (pair? exp))  (eq? exp #f)) #f]
-      [(not (pair? exp))       (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
+      [(null? exp)                          (error 'undefined "undefined expression")]
+      [(number? exp)                        exp] ; if it's a number, return a number
+      [(and (not (pair? exp)) (eq? exp #t)) #t]
+      [(and (not (pair? exp)) (eq? exp #f)) #f]
+      [(not (pair? exp))                    (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
 
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -159,8 +159,8 @@ m-remove - removes a variable and it's value from state, returns updated state
   (lambda (var s)
     (cond
       [(or (null? s) (null? (vars s))) "error, does not exist"]
-      [(and (equal? var (nextvar s))) (nextval s)]
-      [else (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
+      [(eq? var (nextvar s))  (nextval s)]
+      [else                            (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
 
 
 ;;takes a variable, the value it is to be updated to, and the state, returns the updated state
@@ -177,8 +177,8 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define update
   (lambda (var update-val s)
     (cond
-      [(eq? var (nextvar s)) (cons update-val (cdr (vals s)))]
-      [else (cons (nextval s) (update var update-val (list (cdr (vars s)) (cdr (vals s)))))])))
+      [(eq? var (nextvar s))  (cons update-val (cdr (vals s)))]
+      [else                   (cons (nextval s) (update var update-val (list (cdr (vars s)) (cdr (vals s)))))])))
 
 ;(m-update 'v '4 '((f s a v x)(5 6 7 1 8)))
 
@@ -238,7 +238,7 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(eq?   exp #t) "True"]
       [(eq?   exp #f) "False"]
       [(pair? exp)    (m-return (m-value exp s) s)]
-      [else           exp])))
+      [else           (m-value exp s)])))
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.

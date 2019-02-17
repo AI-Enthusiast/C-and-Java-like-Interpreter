@@ -1,0 +1,10 @@
+var x;
+x = 10;
+var y = 3 * x + 5;
+var z = 15;
+var w = z * x;
+while (y % x != 3)
+  y = y + 1;
+while (z < w) 
+  z = z * 2;
+return w % y;
