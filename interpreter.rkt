@@ -6,8 +6,13 @@
 (require "simpleParser.rkt") ; loads simpleParser.rkt, which itself loads lex.rkt
 (require racket/trace)
 
+;; Runs the filename
+(define run
+  (lambda (filename)
+    (m-state (parse-tree filename) '(()()))))
+
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
-(define start
+(define parse-tree
   (lambda (filename)
     (parser filename)))
 
@@ -25,22 +30,22 @@
 (define m-what-type
   (lambda (exp s)
     (cond
-      ;; null checking
+      ; null checking
       [(null? exp) s]
       ; if exp is not a list, then it's either just a variable or a number, which wouldn't change the state
       [(not (pair? exp))                     s] 
 
-      ;; conditional statement checking (if/while/etc.)
+      ; conditional statement checking (if/while/etc.)
       [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s)]
       [(eq? (statement-type-id exp) 'while)  (m-while-loop exp s)]
 
-      ;; is it a declaration
+      ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
 
-      ;; is it an assignment
+      ; is it an assignment
       [(eq? (statement-type-id exp) '=)      (m-assign exp s)]
 
-      ;; is it a return statement
+      ; is it a return statement
       [(eq? (statement-type-id exp) 'return) (m-return (statement-body exp) s)]
 
       ; oh no
@@ -59,7 +64,7 @@
       [(and (not (pair? exp))  (eq? exp #f)) #f]
       [(not (pair? exp))       (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
 
-      ;;operators
+      ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -294,8 +299,8 @@ m-remove - removes a variable and it's value from state, returns updated state
   ;(newline)
 
   ;checks the code is parsed into a tree as exprected
-  (display "Test #1 Start") (newline)                                                 ;Test start
-  (pass? (start "Test1.txt") '((var x) (= x 10) (var y (+ (* 3 x) 5))                           ; 1/1
+  (display "Test #1 parse-tree") (newline)                                                 ;Test parse-tree
+  (pass? (parse-tree "Test1.txt") '((var x) (= x 10) (var y (+ (* 3 x) 5))                           ; 1/1
                                    (while (!= (% y x) 3) (= y (+ y 1)))
                                    (if (> x y) (return x)
                                        (if (> (* x x) y) (return (* x x))
