@@ -56,6 +56,7 @@
 (define m-value
   (lambda (exp s)
     (cond
+      ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
       [(number? exp)                          exp] ; if it's a number, return a number
       [(and (not (pair? exp)) (boolean? exp)) exp]
@@ -132,15 +133,16 @@
            (m-while-loop exp (m-what-type (loop-body exp) s))]
       [else s])))
 
-
+;; Takes an assinment and a state
+;; Returns the updated state
 (define m-assign
   (lambda (assign s)
       (if (eq? (m-lookup (variable assign) s) "error, does not exist")
           (error "assigning before declared")
           (m-update (variable assign) (m-value (expression assign) s) s))))
 
-;;takes a variable declaration and a state
-;;returns the updated state
+;; Takes a variable declaration and a state
+;; Returns the updated state
 (define m-var-dec
   (lambda (dec s)
     (if (null? (assignment dec)) 
