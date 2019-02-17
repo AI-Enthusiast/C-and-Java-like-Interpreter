@@ -78,8 +78,6 @@
       [(null? exp)               (error 'undefined "undefined expression")]
       [(not (pair? exp))         exp]
       [(null? (operator exp))    (m-value exp s)]
-      [(null? (operator exp))    (m-value exp s)]
-      [(null? (operator exp))    (m-value exp s)]
 
       ; condition checking (&&, ||, !)
       [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
@@ -88,15 +86,14 @@
 
       ; equality/inequality operator checking (==, !=, <, >, <=, >=)
       [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '!=)  (not (eq? (m-condition (left-operand exp) s)
-                                           (m-condition (right-operand exp) s)))]
+      [(eq? (operator exp) '!=)  (not (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s)))]
       [(eq? (operator exp) '<)   (< (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
       [(eq? (operator exp) '>)   (> (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
       [(eq? (operator exp) '<=)  (<= (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
       [(eq? (operator exp) '>=)  (>= (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
 
       ; oh no
-      [else                      (error 'undefined "undefined expression")])))
+      [else                      ((m-value exp s))])))
 
 ;; implementing if statement
 (define m-if-statement
