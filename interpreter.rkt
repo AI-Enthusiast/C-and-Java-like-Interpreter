@@ -63,6 +63,7 @@
 
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
+      [(and (eq? (operator exp) '-) (null? (cddr exp))) (* -1 (left-operand exp))] ;handle negitive numbers
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -131,19 +132,21 @@
            (m-while-loop exp (m-what-type (loop-body exp) s))]
       [else s])))
 
-(define m-assign
-  (lambda (lis s)
-      (if (eq? (m-lookup (variable lis) s) "error, does not exist")
-          (error "assigning before declared")
-          (m-update (variable lis) (m-value (expression lis) s) s))))
 
+(define m-assign
+  (lambda (assign s)
+      (if (eq? (m-lookup (variable assign) s) "error, does not exist")
+          (error "assigning before declared")
+          (m-update (variable assign) (m-value (expression assign) s) s))))
+
+;;takes a variable declaration and a state
+;;returns the updated state
 (define m-var-dec
   (lambda (dec s)
-    (if (null? (cddr dec))
-        ;just need to add variable, not value
-        (m-add (variable dec) s)
+    (if (null? (assignment dec)) 
+        (m-add (variable dec) s) ;just need to add variable, not value
         ;need to add value as well
-        (m-update (variable dec) (m-value (expression dec) s) (m-add (variable dec) s)))))
+        (m-update (variable dec) (m-value (expression dec) s) (m-add (variable dec) s))))) 
 
 #|
 define state with abstration as
@@ -253,13 +256,14 @@ m-remove - removes a variable and it's value from state, returns updated state
 
 ; for value operations
 (define left-operand cadr)
+
 ; for m-value
 (define operator car)
 (define right-operand caddr)
 
-;for decleration
+;for m-var-dec
+(define assignment cddr)
 (define variable cadr)
-;for assignment
 (define expression caddr)
 
 ; for state computation
@@ -400,6 +404,12 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (m-var-dec '(var a (+ x (* c 3))) '((c s x)(2 3 4))) '((a c s x)(10 2 3 4)))           ; 7/9
   (pass? (m-var-dec '(var a (+ x 1)) '((c s a x)(2 3 5 7))) '((c s a x)(2 3 8 7)))              ; 8/9
   (pass? (m-var-dec '(var a (+ a 1)) '((c s a x)(2 3 5 4))) '((c s a x)(2 3 6 4)))              ; 9/9
+  (newline)
+  
+  (display "Test #10 run") (newline)
+  (pass? (run "Test1.txt") 100)
+  (pass? (run "Test2.txt") 21)
+  (pass? (run "Test3.txt") 4)
   (newline)
 
   ) ;left hanging for easy test addition
