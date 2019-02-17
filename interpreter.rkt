@@ -133,20 +133,25 @@
       [else s])))
 
 
+;;takes a variable assignment and a state
+;;returns the updated state
 (define m-assign
   (lambda (assign s)
-      (if (eq? (m-lookup (variable assign) s) "error, does not exist")
-          (error "assigning before declared")
+      (if (not (number? (locate (variable assign) 0 s)))
+          (error "use before declaration")
           (m-update (variable assign) (m-value (expression assign) s) s))))
 
 ;;takes a variable declaration and a state
 ;;returns the updated state
 (define m-var-dec
   (lambda (dec s)
-    (if (null? (assignment dec)) 
-        (m-add (variable dec) s) ;just need to add variable, not value
-        ;need to add value as well
-        (m-update (variable dec) (m-value (expression dec) s) (m-add (variable dec) s))))) 
+    (cond
+      ;check variable not already declared
+      [(number? (locate (variable dec) 0 s)) (error "redefining")]
+      ;just need to add variable, not value
+      [(null? (assignment dec)) (m-add (variable dec) s)]
+      ;need to add value as well
+      [else (m-update (variable dec) (m-value (expression dec) s) (m-add (variable dec) s))])))
 
 #|
 define state with abstration as
@@ -165,7 +170,8 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-lookup
   (lambda (var s)
     (cond
-      [(or (null? s) (null? (vars s))) "error, does not exist"]
+      [(or (null? s) (null? (vars s))) (error "use before assignment")]
+      [(and (equal? var (nextvar s)) (eq? "init" (nextval s))) (error "use before assignment")]
       [(equal? var (nextvar s)) (nextval s)]
       [else                     (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
 
@@ -206,8 +212,8 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-add
   (lambda (var s)
       (cond
-        [(null? s)                       (list (list var) (list "init"))]
-        [(number? (locate var 0 s))      (m-update var "init" s)]
+        [(or (null? s) (null? (vars s)))   (list (list var) (list "init"))]
+        [(eq? (locate var 0 s) "init")     (m-update var "init" s)]
         [else (list (cons  var (vars s)) (cons "init" (vals s)))])))
 
 ;; Takes a variable and a state
@@ -350,8 +356,8 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (m-lookup 'a '((a b c d)(2 5 6 7))) 2)                                                 ; 1/5
   (pass? (m-lookup 'c '((a b c d)(2 5 6 7))) 6)                                                 ; 2/5
   (pass? (m-lookup 'd '((a b c d)(2 5 6 7))) 7)                                                 ; 3/5
-  (pass? (m-lookup 'd '()) "error, does not exist")                                             ; 4/5
-  (pass? (m-lookup 's '(()())) "error, does not exist")                                         ; 5/5
+  ;(pass? (m-lookup 'd '()) "error) ;should error                                               ; 4/5
+  ;(pass? (m-lookup 's '(()())) "error) ;should error                                           ; 5/5
   (newline)
 
   ;update variable's value in the state
@@ -396,14 +402,14 @@ m-remove - removes a variable and it's value from state, returns updated state
   ;declares a variable
   (display "Test #9 m-var-dec") (newline)                                             ;Test m-var-dec
   (pass? (m-var-dec '(var a) '((q)(1))) '((a q) ("init" 1)))                                    ; 1/9
-  (pass? (m-var-dec '(var a) '((d a s)(1 2 3))) '((d a s)(1 "init" 3)))                         ; 2/9
+  ;(pass? (m-var-dec '(var a) '((d a s)(1 2 3))) "error") ;should error                         ; 2/9
   (pass? (m-var-dec '(var a) '(()())) '((a)("init")))                                           ; 3/9
-  (pass? (m-var-dec '(var a 1) '((d a s)(1 2 3))) '((d a s)(1 1 3)))                            ; 4/9
+  ;(pass? (m-var-dec '(var a 1) '((d a s)(1 2 3))) "error") ;;should error                      ; 4/9
   (pass? (m-var-dec '(var a 1) '((d s)(2 3))) '((a d s)(1 2 3)))                                ; 5/9
   (pass? (m-var-dec '(var a (+ x 1)) '((c s x)(2 3 4))) '((a c s x)(5 2 3 4)))                  ; 6/9
   (pass? (m-var-dec '(var a (+ x (* c 3))) '((c s x)(2 3 4))) '((a c s x)(10 2 3 4)))           ; 7/9
-  (pass? (m-var-dec '(var a (+ x 1)) '((c s a x)(2 3 5 7))) '((c s a x)(2 3 8 7)))              ; 8/9
-  (pass? (m-var-dec '(var a (+ a 1)) '((c s a x)(2 3 5 4))) '((c s a x)(2 3 6 4)))              ; 9/9
+  ;(pass? (m-var-dec '(var a (+ x 1)) '((c s a x)(2 3 5 7))) "error") ;;should error            ; 8/9
+  ;(pass? (m-var-dec '(var a (+ a 1)) '((c s a x)(2 3 5 4))) "error") ;;should error            ; 9/9
   (newline)
   
   (display "Test #10 run") (newline)
@@ -426,4 +432,7 @@ m-remove - removes a variable and it's value from state, returns updated state
   ;;(pass? (run "Tests/p1.Test14.txt") "error") ;should error
   (newline)
 
+  
+
   ) ;left hanging for easy test addition
+
