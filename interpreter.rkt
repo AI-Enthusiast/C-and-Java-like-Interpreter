@@ -17,8 +17,8 @@
 (define m-state
   (lambda (exp s)
     (cond
-      [(null? exp) s]
-      [(null? (cdr exp)) (m-what-type (car exp) s)]
+      [(null? exp)             s]
+      [(null? (cdr exp))       (m-what-type (car exp) s)]
       [(not (list? (car exp))) (m-what-type (car exp) s)]
       [else (m-state (cdr exp) (m-what-type (car exp) s))])))
 
@@ -55,8 +55,8 @@
     (cond
       [(null? exp)             (error 'undefined "undefined expression")]
       [(number? exp)           exp] ; if it's a number, return a number
-      [(and (not (pair? exp)) (eq? exp #t)) #t]
-      [(and (not (pair? exp)) (eq? exp #f)) #f]
+      [(and (not (pair? exp))  (eq? exp #t)) #t]
+      [(and (not (pair? exp))  (eq? exp #f)) #f]
       [(not (pair? exp))       (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
 
       ;;operators
@@ -119,7 +119,6 @@
       [else                                                                     s])))
 
 
-
 (define variable cadr)
 (define expression caddr)
 
@@ -163,9 +162,9 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-update
   (lambda (var update-val s)
     (cond
-      [(or (null? s) (null? (vars s))) "error"]
+      [(or (null? s) (null? (vars s)))  "error"]
       [(not (number? (locate var 0 s))) "error"]
-      [else (list (vars s) (update var update-val s))])))
+      [else                             (list (vars s) (update var update-val s))])))
 
 
 ;;takes the value to be updated, the location of the value and the
