@@ -59,7 +59,7 @@
       [(null? exp)                            (error 'undefined "undefined expression")]
       [(number? exp)                          exp] ; if it's a number, return a number
       [(and (not (pair? exp)) (boolean? exp)) exp]
-      [(not (pair? exp))                      (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
+      [(not (pair? exp))                      (m-lookup exp s)] ; it's a variable
 
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -108,7 +108,7 @@
               (m-state (loop-body exp) s)]
       ; run the loop of the body (body is single statement)
       [(m-condition (loop-condition exp) s)
-              (m-what-type (loop-body exp) s)]         ; run the loop of the body (body is single statement)
+              (m-what-type (loop-body exp) s)]
       [(null? (cdddr exp)) #|DO NOTHING|#]
 
       [(and (not (null? (else-statement exp))) (pair? (car (loop-body exp))))
@@ -389,6 +389,7 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (m-assign '(var d (+ x (* y 2))) '((x y d z)(2 3 7 1))) '((x y d z)(2 3 8 1)))         ; 6/6
   (newline)
 
+  ;declares a variable
   (display "Test #9 m-var-dec") (newline)                                             ;Test m-var-dec
   (pass? (m-var-dec '(var a) '((q)(1))) '((a q) ("init" 1)))                                    ; 1/9
   (pass? (m-var-dec '(var a) '((d a s)(1 2 3))) '((d a s)(1 "init" 3)))                         ; 2/9
@@ -400,7 +401,5 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (m-var-dec '(var a (+ x 1)) '((c s a x)(2 3 5 7))) '((c s a x)(2 3 8 7)))              ; 8/9
   (pass? (m-var-dec '(var a (+ a 1)) '((c s a x)(2 3 5 4))) '((c s a x)(2 3 6 4)))              ; 9/9
   (newline)
-
-
 
   ) ;left hanging for easy test addition
