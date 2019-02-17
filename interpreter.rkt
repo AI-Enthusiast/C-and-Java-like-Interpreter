@@ -25,22 +25,22 @@
 (define m-what-type
   (lambda (exp s)
     (cond
-      ;; null checking
+      ; null checking
       [(null? exp) s]
       ; if exp is not a list, then it's either just a variable or a number, which wouldn't change the state
       [(not (pair? exp))                     s] 
 
-      ;; conditional statement checking (if/while/etc.)
+      ; conditional statement checking (if/while/etc.)
       [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s)]
       [(eq? (statement-type-id exp) 'while)  (m-while-loop exp s)]
 
-      ;; is it a declaration
+      ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
 
-      ;; is it an assignment
+      ; is it an assignment
       [(eq? (statement-type-id exp) '=)      (m-assign exp s)]
 
-      ;; is it a return statement
+      ; is it a return statement
       [(eq? (statement-type-id exp) 'return) (m-return (statement-body exp) s)]
 
       ; oh no
@@ -59,7 +59,7 @@
       [(and (not (pair? exp))  (eq? exp #f)) #f]
       [(not (pair? exp))       (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
 
-      ;;operators
+      ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
