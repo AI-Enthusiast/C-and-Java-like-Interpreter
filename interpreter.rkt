@@ -1,25 +1,25 @@
 #lang racket
 ;;;; A Java/C (ish) interpreter
 ;;;; EECS 345
-;;;; Group #7: Shanti Polara, Catlin Campbell, Cormac Dacker
+;;;; Group #7: Shanti Polara, Catlin ...., Cormac Dacker
 
 (require "simpleParser.rkt") ; loads simpleParser.rkt, which itself loads lex.rkt
-(require racket/trace)
+
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define start
   (lambda (filename)
     (parser filename)))
 
+(require racket/trace)
+
 ;; executes code, returns updated state
 (define m-state
   (lambda (exp s)
     (cond
-      [(null? exp)             s]
-      [(null? (cdr exp))       (m-what-type (car exp) s)]
-      [(not (list? (car exp))) (m-what-type (car exp) s)]
       [(null? exp) s]
       [(null? (cdr exp)) (m-what-type (car exp) s)]
+      [(not (list? (car exp))) (m-what-type (car exp) s)]
       [else (m-state (cdr exp) (m-what-type (car exp) s))])))
 
 ;; figures out which method should be used to evaluate this, and evaluates this
@@ -27,28 +27,23 @@
 (define m-what-type
   (lambda (exp s)
     (cond
-      ; null checking
+      ;; null checking
       [(null? exp) s]
-      ; if exp is not a list, then it's either just a variable or a number, which wouldn't change the state
-      [(not (pair? exp))                     s] 
+      [(not (pair? exp)) s] ; if exp is not a list, then it's either just a variable or a number, which wouldn't change the state
 
-      ; conditional statement checking (if/while/etc.)
+      ;; conditional statement checking (if/while/etc.)
       [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s)]
       [(eq? (statement-type-id exp) 'while)  (m-while-loop exp s)]
 
-      ; is it a declaration
+      ;; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
 
-      ; is it an assignment
+      ;; is it an assignment
       [(eq? (statement-type-id exp) '=)      (m-assign exp s)]
 
-      ; is it a return statement
+      ;; is it a return statement
       [(eq? (statement-type-id exp) 'return) (m-return (statement-body exp) s)]
 
-      ;; is it a return statement
-      [(eq? (statement-type-id exp) 'return) (m-return exp s)]
-
-      ; oh no
       [else                                  (error 'undefined "undefined expression")])))
 
 ;; Code a function that can take in expression of numbers and operators and return the value
@@ -60,18 +55,16 @@
     (cond
       [(null? exp)             (error 'undefined "undefined expression")]
       [(number? exp)           exp] ; if it's a number, return a number
-      [(and (not (pair? exp))  (eq? exp #t)) #t]
-      [(and (not (pair? exp))  (eq? exp #f)) #f]
+      [(and (not (pair? exp)) (eq? exp #t)) #t]
+      [(and (not (pair? exp)) (eq? exp #f)) #f]
       [(not (pair? exp))       (m-lookup exp s)] ; if it's not a number, and it's not a list, it's a variable
 
-      ;operators
+      ;;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '%) (remainder (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-
-      ; oh no
       [else                    (error 'undefined "undefined expression")])))
 
 ;; Code a function that can take in an expression such as (< 5 2) and return true/false
@@ -80,14 +73,14 @@
   (lambda (exp s) ; exp = expression, s = state
     (cond
       ; null checking
-      [(null? exp)               (error 'undefined "undefined expression")]
-      [(not (pair? exp))         exp]
-      [(null? (operator exp))    (m-value exp s)]
+      [(null? exp)                    (error 'undefined "undefined expression")]
+      [(not (pair? exp))              (m-value exp s)]
+      [(null? (operator exp))         (m-value exp s)]
 
       ; condition checking (&&, ||, !)
       [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
       [(eq? (operator exp) '&&)  (and (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (car exp) '!)             (not (m-condition (left-operand exp) s))]
+      [(eq? (car exp) '!)        (not (m-condition (left-operand exp) s))]
 
       ; equality/inequality operator checking (==, !=, <, >, <=, >=)
       [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
@@ -98,44 +91,37 @@
       [(eq? (operator exp) '>=)  (>= (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
 
       ; oh no
-      [else                      ((m-value exp s))])))
+      [else                      (m-value exp s)])))
 
 ;; implementing if statement
 (define m-if-statement
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
-
-      ; run the loop of the body (body is multiple statements)
       [(and (m-condition (loop-condition exp) s) (pair? (car (loop-body exp))))
-                   (m-state (loop-body exp) s)]
-      ; run the loop of the body (body is single statement)
+              (m-state (loop-body exp) s)]             ; run the loop of the body (body is multiple statements)
       [(m-condition (loop-condition exp) s)
-                   (m-what-type (loop-body exp) s)]         
-      ; run the else of the body (body is multiple statements) 
+              (m-what-type (loop-body exp) s)]         ; run the loop of the body (body is single statement)
+      
       [(and (not (null? (else-statement exp))) (pair? (car (loop-body exp))))
-                   (m-state (else-statement exp) s)]
-      ; run the else of the body (body is single statement) 
+              (m-state (else-statement exp) s)]        ; run the else of the body (body is multiple statements) 
       [(not (null? (else-statement exp)))
-                   (m-what-type (else-statement exp) s)] 
-
-      [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s)] ; run the loop of the body
-      [(not (null? (else-statement exp)))   (m-state (else-statement exp) s)]))) ; run the else of the body
+              (m-what-type (else-statement exp) s)]))) ; run the else of the body (body is single statement) 
 
 ;; implementing while loop
+;; NEEDS 'm-state' TO USE!!!
 (define m-while-loop
   (lambda (exp s)
     (cond
-
-      ; invalid expression
-      [(null? exp)                          (error 'undefined "undefined expression")] 
-      ; runs the while loop (body is multiple statements)
-      [(and (m-condition (loop-condition exp) s) (pair? (car (loop-body exp))))
-                                            (m-while-loop exp (m-state (loop-body exp) s))] 
-      [(m-condition (loop-condition exp) s) (m-while-loop exp (m-what-type (loop-body exp) s))]
-      [else                                  s])))
+      [(null? exp)                                                              (error 'undefined "undefined expression")] ; invalid expression
+      [(and (m-condition (loop-condition exp) s) (pair? (car (loop-body exp)))) (m-while-loop exp (m-state (loop-body exp) s))] ; runs the while loop (body is multiple statements)
+      [(m-condition (loop-condition exp) s)                                     (m-while-loop exp (m-what-type (loop-body exp) s))]
+      [else                                                                     s])))
 
 
+
+(define variable cadr)
+(define expression caddr)
 
 (define m-assign
   (lambda (lis s)
@@ -145,15 +131,11 @@
 
 (define m-var-dec
   (lambda (dec s)
-    (if (null? (cddr dec))
-        ;just need to add variable, not value
+    (if (null? (cddr dec)) ;just need to add variable, not value
         (m-add (variable dec) s)
+        (m-update (variable dec) (m-value (expression dec) s) (m-add (variable dec) s))))) ;need to add value as well
 
-        ;need to add value as well
-        (m-update (variable dec) (m-value (expression dec) s) (m-add (variable dec) s))))) 
                 
-
-            
 #|
 define state with abstration as
 ((x, y, ...) (4, 6, ...))
@@ -165,6 +147,7 @@ m-add - adds uninitilized variable to state, returns updated state
 m-remove - removes a variable and it's value from state, returns updated state
 |#
 
+
 ;;takes a variable and a state
 ;;returns the value of the variable, or error message if it does not exist
 ;;will return "init" if not yet initilized
@@ -172,32 +155,29 @@ m-remove - removes a variable and it's value from state, returns updated state
   (lambda (var s)
     (cond
       [(or (null? s) (null? (vars s))) "error, does not exist"]
-      [(equal? var (nextvar s))        (nextval s)] 
-      [else                            (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
+      [(and (equal? var (nextvar s))) (nextval s)]
+      [else (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
 
 
 ;;takes a variable, the value it is to be updated to, and the state, returns the updated state
 (define m-update
   (lambda (var update-val s)
     (cond
-      [(null? s)                        "error"] ;TODO: Specify
+      [(or (null? s) (null? (vars s))) "error"]
       [(not (number? (locate var 0 s))) "error"]
-      [else                             (cons (vars s)
-                                              (list (update update-val (locate var 0 s) (vals s))))])))
+      [else (list (vars s) (update var update-val s))])))
 
 
 ;;takes the value to be updated, the location of the value and the      
 ;;updates the variable at the location with the new value, returns the updated state
 (define update
-  (lambda (update-val loc values)
+  (lambda (var update-val s)
     (cond
-      [(null? values)
-       "error"]
-      [(eq? loc 0) 
-       (cons update-val (cdr values))]
-      [else
-       (cons (car values) (update update-val (- loc 1) (cdr values)))])))
+      [(eq? var (nextvar s)) (cons update-val (cdr (vals s)))]
+      [else (cons (nextval s) (update var update-val (list (cdr (vars s)) (cdr (vals s)))))])))
                                                                  
+;(m-update 'v '4 '((f s a v x)(5 6 7 1 8)))
+
 ;;finds the location of the variable's value in the state
 ;;takes the variable it is locating, a counter and a state
 (define locate
@@ -213,13 +193,13 @@ m-remove - removes a variable and it's value from state, returns updated state
 ;;takes a varaiable and a state, adds it to a state with non number uninitilized value "init"
 ;;(does not take value, to update value, use m-update)
 ;;returns the updated state, if used before assigned, should result in error
-;;will accept an empty state (), a state formated (()()) / a state formated ((var1 var2 ...)(val1 val2 ...))
+;;will accept an empty state '(), a state formated '(()()) or a state formated '((var1 var2 ...)(val1 val2 ...))
 (define m-add
   (lambda (var s)
       (cond
-        [(null? s)                  (list (list var) (list "init"))]
+        [(null? s)  (list (list var) (list "init"))]
         [(number? (locate var 0 s)) (m-update var "init" s)]
-        [else                       (list (cons  var (vars s)) (cons "init" (vals s)))])))
+        [else (list (cons  var (vars s)) (cons "init" (vals s)))])))
 
 ;;takes a variable and a state
 ;;returns the updated state with the variable and assosiated value removed
@@ -242,45 +222,39 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define remove
   (lambda (a lis)
     (cond
-      [(null? lis)       '()]
+      [(null? lis) '()]
       [(eq? a (car lis)) (cdr lis)]
-      [else              (cons (car lis) (remove a (cdr lis)))])))
+      [else (cons (car lis) (remove a (cdr lis)))])))
 
-;; takes an expression
+;; takes an expression and a state 
 ;; returns it as if it where in C/Java
 (define m-return
   (lambda (exp s)
     (cond
-
-      [(eq?   (statement-body exp) #t) "True"]
-      [(eq?   (statement-body exp) #f) "False"]
-      [(pair? (statement-body exp))    (m-return (m-value (statement-body exp) s) s)]
-      [else                            (statement-body exp)])))
+      [(eq?   exp #t) "True"]
+      [(eq?   exp #f) "False"]
+      [(pair? exp)    (m-return (m-value exp s) s)]
+      [else           exp])))
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
-(define statement-body cadr)   ; e.g. the body of a return statement
+(define statement-body cadr) ; e.g. the body of a return statement
 
-; for if statements
+;; for if statements
 (define else-statement cadddr) ; else statement, if it exists
 (define loop-condition cadr)
 (define loop-body caddr)
 
-(define variable cadr)         ; for decleration
-(define expression caddr)      ; for assignment
-(define left-operand cadr)     ; for value operations
-
+;; for value operations
+(define left-operand cadr)
 ; for m-value
 (define operator car)
 (define right-operand caddr)
 
-; for everything else
 (define vars car)
 (define vals cadr)
 (define nextvar caar)
 (define nextval caadr)
-
-      
 
 
 ;;;;**********TESTING**********
@@ -298,6 +272,7 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define donothing ; there is probably a better way to do this but  ̄\_(ツ)_/̄
   (lambda (a b c d)
     '())) ; literly does nothing (like what I wish I was doing)
+
 
 ; TODO: Test (m-what-type, m-if-statment, whileloop
 ;; Performs all the tests needed to prove the validity of the functions, I love this function
@@ -320,36 +295,38 @@ m-remove - removes a variable and it's value from state, returns updated state
   (newline)
   
   ;checks math opperations perform correctly
+  ;TODO: replace 'temp with an s state
   (display "Test #2 m-value") (newline)                                               ;Test m-value
-  (pass? (m-value '(+ 3 (/ 4 2)) 'empty) 5)                                                      ; 1/2
-  (pass? (m-value '(+ (* 3 2) (/ 4 (% 2 3))) 'empty) 8)                                          ; 2/2
+  (pass? (m-value '(+ 3 (/ 4 2)) 'temp) 5)                                                      ; 1/2
+  (pass? (m-value '(+ (* 3 2) (/ 4 (% 2 3))) 'temp) 8)                                          ; 2/2
   (newline)
 
   ;boolean ooporators for var assignments and conditions in if & while statements
+  ;TODO: replace 'temp with an s state
   (display "Test #3 m-condition") (newline)                                           ;Test m-condition
-  (pass? (m-condition '(== 1 1) 'empty) #t)                                                      ; 1/23
-  (pass? (m-condition '(== 1 0) 'empty) #f)                                                      ; 2/23
-  (pass? (m-condition '(!= 1 1) 'empty) #f)                                                      ; 3/23
-  (pass? (m-condition '(!= 1 0) 'empty) #t)                                                      ; 4/23
-  (pass? (m-condition '(> 1 1) 'empty) #f)                                                       ; 5/23
-  (pass? (m-condition '(> 1 0) 'empty) #t)                                                       ; 6/23
-  (pass? (m-condition '(> 0 1) 'empty) #f)                                                       ; 7/23
-  (pass? (m-condition '(< 1 1) 'empty) #f)                                                       ; 8/23
-  (pass? (m-condition '(< 1 0) 'empty) #f)                                                       ; 9/23
-  (pass? (m-condition '(< 0 1) 'empty) #t)                                                       ; 10/23
-  (pass? (m-condition '(>= 1 1) 'empty) #t)                                                      ; 11/23
-  (pass? (m-condition '(>= 1 0) 'empty) #t)                                                      ; 12/23
-  (pass? (m-condition '(>= 0 1) 'empty) #f)                                                      ; 13/23
-  (pass? (m-condition '(<= 1 1) 'empty) #t)                                                      ; 14/23
-  (pass? (m-condition '(<= 1 0) 'empty) #f)                                                      ; 15/23
-  (pass? (m-condition '(<= 0 1) 'empty) #t)                                                      ; 16/23
-  (pass? (m-condition '(&& #t #t) 'empty) #t)                                                    ; 17/23
-  (pass? (m-condition '(&& #t #f) 'empty) #f)                                                    ; 18/23
-  (pass? (m-condition '(|| #t #t) 'empty) #t)                                                    ; 19/23
-  (pass? (m-condition '(|| #t #f) 'empty) #t)                                                    ; 20/23
-  (pass? (m-condition '(|| #f #f) 'empty) #f)                                                    ; 21/23
-  (pass? (m-condition '(! #t) 'empty) #f)                                                        ; 22/23
-  (pass? (m-condition '(! #f) 'empty) #t)                                                        ; 23/23
+  (pass? (m-condition '(== 1 1) 'temp) #t)                                                      ; 1/23
+  (pass? (m-condition '(== 1 0) 'temp) #f)                                                      ; 2/23
+  (pass? (m-condition '(!= 1 1) 'temp) #f)                                                      ; 3/23
+  (pass? (m-condition '(!= 1 0) 'temp) #t)                                                      ; 4/23
+  (pass? (m-condition '(> 1 1) 'temp) #f)                                                       ; 5/23
+  (pass? (m-condition '(> 1 0) 'temp) #t)                                                       ; 6/23
+  (pass? (m-condition '(> 0 1) 'temp) #f)                                                       ; 7/23
+  (pass? (m-condition '(< 1 1) 'temp) #f)                                                       ; 8/23
+  (pass? (m-condition '(< 1 0) 'temp) #f)                                                       ; 9/23
+  (pass? (m-condition '(< 0 1) 'temp) #t)                                                       ; 10/23
+  (pass? (m-condition '(>= 1 1) 'temp) #t)                                                      ; 11/23
+  (pass? (m-condition '(>= 1 0) 'temp) #t)                                                      ; 12/23
+  (pass? (m-condition '(>= 0 1) 'temp) #f)                                                      ; 13/23
+  (pass? (m-condition '(<= 1 1) 'temp) #t)                                                      ; 14/23
+  (pass? (m-condition '(<= 1 0) 'temp) #f)                                                      ; 15/23
+  (pass? (m-condition '(<= 0 1) 'temp) #t)                                                      ; 16/23
+  (pass? (m-condition '(&& #t #t) 'temp) #t)                                                    ; 17/23
+  (pass? (m-condition '(&& #t #f) 'temp) #f)                                                    ; 18/23
+  (pass? (m-condition '(|| #t #t) 'temp) #t)                                                    ; 19/23
+  (pass? (m-condition '(|| #t #f) 'temp) #t)                                                    ; 20/23
+  (pass? (m-condition '(|| #f #f) 'temp) #f)                                                    ; 21/23
+  (pass? (m-condition '(! #t) 'temp) #f)                                                        ; 22/23
+  (pass? (m-condition '(! #f) 'temp) #t)                                                        ; 23/23
   (newline)
   
   ;lookup variable's value in the state
@@ -390,26 +367,28 @@ m-remove - removes a variable and it's value from state, returns updated state
   (newline)
 
   ;assign a variable
-  (display "Test #8 m-assign") (newline)                                              ;Test m-assign
-  ;(pass? (m-assign '(var 'a 2) '(()()))) ;should error                                          ; 1/7
-  (pass? (m-assign '(var a 2) '((a)(1))) '((a)(2)))                                             ; 2/7
-  (pass? (m-assign '(var d 2) '((x y d z)(1 1 1 1))) '((x y d z)(1 1 2 1)))                     ; 3/7
-  (pass? (m-assign '(var d 2) '((x y d z)(1 1 "init" 1))) '((x y d z)(1 1 2 1)))                ; 4/7
-  (pass? (m-assign '(var d (+ 2 4)) '((x y d z)(1 1 1 1))) '((x y d z)(1 1 6 1)))               ; 5/7
-  (pass? (m-assign '(var d (+ x 4)) '((x y d z)(2 3 7 1))) '((x y d z)(2 3 6 1)))               ; 6/7
-  (pass? (m-assign '(var d (+ x (* y 2))) '((x y d z)(2 3 7 1))) '((x y d z)(2 3 8 1)))         ; 7/7
+  (display "Test #8 m-assign") (newline)
+  ;(pass? (m-assign '(var 'a 2) '(()()) ;should error
+  (pass? (m-assign '(var a 2) '((a)(1))) '((a)(2)))
+  (pass? (m-assign '(var d 2) '((x y d z)(1 1 1 1))) '((x y d z)(1 1 2 1)))
+  (pass? (m-assign '(var d 2) '((x y d z)(1 1 "init" 1))) '((x y d z)(1 1 2 1)))
+  (pass? (m-assign '(var d (+ 2 4)) '((x y d z)(1 1 1 1))) '((x y d z)(1 1 6 1)))
+  (pass? (m-assign '(var d (+ x 4)) '((x y d z)(2 3 7 1))) '((x y d z)(2 3 6 1)))
+  (pass? (m-assign '(var d (+ x (* y 2))) '((x y d z)(2 3 7 1))) '((x y d z)(2 3 8 1)))
   (newline)
 
-  ;for var decleration
-  (display "Test #9 m-var-dec") (newline)                                             ;Test m-var-dec
-  (pass? (m-var-dec '(var a) '((q)(1))) '((a q) ("init" 1)))                                    ; 1/9
-  (pass? (m-var-dec '(var a) '((d a s)(1 2 3))) '((d a s)(1 "init" 3)))                         ; 2/9
-  (pass? (m-var-dec '(var a) '(()())) '((a)("init")))                                           ; 3/9
-  (pass? (m-var-dec '(var a 1) '((d a s)(1 2 3))) '((d a s)(1 1 3)))                            ; 4/9
-  (pass? (m-var-dec '(var a 1) '((d s)(2 3))) '((a d s)(1 2 3)))                                ; 5/9
-  (pass? (m-var-dec '(var a (+ x 1)) '((c s x)(2 3 4))) '((a c s x)(5 2 3 4)))                  ; 6/9
-  (pass? (m-var-dec '(var a (+ x (* c 3))) '((c s x)(2 3 4))) '((a c s x)(10 2 3 4)))           ; 7/9
-  (pass? (m-var-dec '(var a (+ x 1)) '((c s a x)(2 3 5 7))) '((c s a x)(2 3 8 7)))              ; 8/9
-  (pass? (m-var-dec '(var a (+ a 1)) '((c s a x)(2 3 5 4))) '((c s a x)(2 3 6 4)))              ; 9/9
+  (display "Test #9 m-var-dec") (newline)
+  (pass? (m-var-dec '(var a) '((q)(1))) '((a q) ("init" 1)))
+  (pass? (m-var-dec '(var a) '((d a s)(1 2 3))) '((d a s)(1 "init" 3)))
+  (pass? (m-var-dec '(var a) '(()())) '((a)("init")))
+  (pass? (m-var-dec '(var a 1) '((d a s)(1 2 3))) '((d a s)(1 1 3)))
+  (pass? (m-var-dec '(var a 1) '((d s)(2 3))) '((a d s)(1 2 3)))
+  (pass? (m-var-dec '(var a (+ x 1)) '((c s x)(2 3 4))) '((a c s x)(5 2 3 4)))
+  (pass? (m-var-dec '(var a (+ x (* c 3))) '((c s x)(2 3 4))) '((a c s x)(10 2 3 4)))
+  (pass? (m-var-dec '(var a (+ x 1)) '((c s a x)(2 3 5 7))) '((c s a x)(2 3 8 7)))
+  (pass? (m-var-dec '(var a (+ a 1)) '((c s a x)(2 3 5 4))) '((c s a x)(2 3 6 4)))
+
+  
+  
 
   ) ;left hanging for easy test addition
