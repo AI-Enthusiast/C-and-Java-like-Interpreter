@@ -405,7 +405,8 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (m-var-dec '(var a (+ x 1)) '((c s a x)(2 3 5 7))) '((c s a x)(2 3 8 7)))              ; 8/9
   (pass? (m-var-dec '(var a (+ a 1)) '((c s a x)(2 3 5 4))) '((c s a x)(2 3 6 4)))              ; 9/9
   (newline)
-  
+
+  ;tests interpreter functionality
   (display "Test #10 run") (newline)
   (pass? (run "Tests/Test1.txt") 100)
   (pass? (run "Tests/Test2.txt") 21)
@@ -418,12 +419,18 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (run "Tests/p1.Test6.txt") 5)
   (pass? (run "Tests/p1.Test7.txt") 6)
   (pass? (run "Tests/p1.Test8.txt") 10)
-  (pass? (run "Tests/p1.Test9.txt") 5)
-  (pass? (run "Tests/p1.Test10.txt") -39)
+  ;(pass? (run "Tests/p1.Test9.txt") 5)
+  ;(pass? (run "Tests/p1.Test10.txt") -39)
   ;;(pass? (run "Tests/p1.Test11.txt") "error" ) ;should error
   ;;(pass? (run "Tests/p1.Test12.txt") "error") ;should error
   ;;(pass? (run "Tests/p1.Test13.txt") "error") ;should error
   ;;(pass? (run "Tests/p1.Test14.txt") "error") ;should error
+  ;(pass? (run "Tests/p1.Test15.txt") "True")
+  (pass? (run "Tests/p1.Test16.txt") 100)
+  ;(pass? (run "Tests/p1.Test17.txt") "False")
+  ;(pass? (run "Tests/p1.Test18.txt") "True")
+  (pass? (run "Tests/p1.Test19.txt") 128)
+  (pass? (run "Tests/p1.Test20.txt") 12)
   (newline)
 
   ) ;left hanging for easy test addition
