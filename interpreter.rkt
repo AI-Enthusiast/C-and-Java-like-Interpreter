@@ -119,7 +119,7 @@
       ; run the loop of the body (body is single statement)
       [(m-condition (loop-condition exp) s)
               (m-what-type (loop-body exp) s)]
-      [(null? (cdddr exp)) s]
+      [(null? (cdddr exp)) s] ; if there's no else statement, return the state 
       [(and (not (null? (else-statement exp))) (pair? (car (loop-body exp))))
               (m-state (else-statement exp) s)]
       ; run the else of the body (body is single statement)
@@ -259,7 +259,7 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(eq?   exp #t) "True"]
       [(eq?   exp #f) "False"]
       [(pair? exp)    (m-return (m-value exp s) s)]
-      [else           (m-value exp s)])))
+      [else           (m-return (m-value exp s) s)])))
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
@@ -447,10 +447,10 @@ m-remove - removes a variable and it's value from state, returns updated state
 
   ) ;left hanging for easy test addition
 
-(trace m-state)
+#|(trace m-state)
 (trace m-assign)
 (trace m-value)
 (trace m-lookup)
 (trace m-return)
-(trace m-if-statement)
+(trace m-if-statement)|#
 (run "Tests/Test6.txt")

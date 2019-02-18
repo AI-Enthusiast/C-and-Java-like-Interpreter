@@ -2,6 +2,6 @@ var x;
 x = true;
 var y = false;
 var w = false;
-if(x || y)
+if(y || x)
   return x;
 return y;
