@@ -266,7 +266,7 @@ m-remove - removes a variable and it's value from state, returns updated state
     (cond
       [(eq?   exp #t) "True"]
       [(eq?   exp #f) "False"]
-      [(and (pair? exp) (hasbool exp)) (m-return (m-condition exp s))]
+      [(and (pair? exp) (hasbool exp)) (m-return (m-condition exp s) s)]
       [(pair? exp)    (m-return (m-value exp s) s)]
       [else           (m-return (m-value exp s) s)])))
 
