@@ -195,7 +195,7 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-lookup
   (lambda (var s)
     (cond
-      [(or (null? s) (null? (vars s)))                         (error "use before assignment")]
+      [(or (null? s) (null? (vars s)))                         (error "use before declared")]
       [(and (equal? var (nextvar s)) (eq? "init" (nextval s))) (error "use before assignment")]
       [(equal? var (nextvar s))                                (nextval s)]
       [else                                                    (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
@@ -459,7 +459,7 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (run "Tests/Test3.txt") 4)                                                             ; 3/27
   (pass? (run "Tests/Test4.txt") -10)                                                           ; 4/27
   (pass? (run "Tests/Test5.txt") 240)                                                           ; 5/27
-  (pass? (run "Tests/Test6.txt") "false")                                                       ; 6/27
+  (pass? (run "Tests/Test6.txt") "true")                                                       ; 6/27
   (pass? (run "Tests/p1.Test1.txt") 150)                                                        ; 7/27
   (pass? (run "Tests/p1.Test2.txt") -4)                                                         ; 8/27
   (pass? (run "Tests/p1.Test3.txt") 10)                                                         ; 9/27
@@ -470,10 +470,15 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (run "Tests/p1.Test8.txt") 10)                                                         ; 15/27
   (pass? (run "Tests/p1.Test9.txt") 5)                                                          ; 16/27
   (pass? (run "Tests/p1.Test10.txt") -39)                                                       ; 17/27
-  ;(pass? (run "Tests/p1.Test11.txt") "error" ) ;should error                                   ; 18/27
-  ;(pass? (run "Tests/p1.Test12.txt") "error")  ;should error                                   ; 19/27
-  ;(pass? (run "Tests/p1.Test13.txt") "error")  ;should error                                   ; 20/27
-  ;(pass? (run "Tests/p1.Test14.txt") "error")  ;should error                                   ; 21/27
+
+  ;The following tests are commented out beacuse they are supposed to throw errors,
+  ;which halts the rest of the testing
+  
+  ;(pass? (run "Tests/p1.Test11.txt") "error" ) ;should error "use before declaring"            ; 18/27
+  ;(pass? (run "Tests/p1.Test12.txt") "error")  ;should error "use before declaring"            ; 19/27
+  ;(pass? (run "Tests/p1.Test13.txt") "error")  ;should error "use before assigning"            ; 20/27
+  ;(pass? (run "Tests/p1.Test14.txt") "error")  ;should error "redefining"                      ; 21/27
+
   (pass? (run "Tests/p1.Test15.txt") "true")                                                    ; 22/27
   (pass? (run "Tests/p1.Test16.txt") 100)                                                       ; 23/27
   (pass? (run "Tests/p1.Test17.txt") "false")                                                   ; 24/27
