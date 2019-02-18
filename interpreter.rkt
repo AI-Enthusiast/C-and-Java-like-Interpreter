@@ -23,7 +23,7 @@
 (define m-state
   (lambda (exp s)
     (cond
-      [(null? exp)              s]
+      [(null? exp)             s]
       [(null? (cdr exp))       (m-what-type (car exp) s)]
       [(not (list? (car exp))) (m-what-type (car exp) s)]
       [else                    (m-state (cdr exp) (m-what-type (car exp) s))])))
@@ -61,15 +61,15 @@
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
-      [(number? exp)                          exp] ; if it's a number, return a number
-      [(and (not (pair? exp)) (boolean? exp)) exp]
+      [(number? exp)                          exp] ; if it's a number, return that number
+      [(and (not (pair? exp)) (boolean? exp)) exp] ; if it's a boolean, return the boolean
 
       ; boolean checking
-      [(eq? exp 'true)  #t] ; true
-      [(eq? exp 'false) #f] ; false
-      [(and (pair? exp) (am-i-boolean exp)) (m-condition exp s)]
+      [(eq? exp 'true)                      #t] ; true
+      [(eq? exp 'false)                     #f] ; false
+      [(and (pair? exp) (am-i-boolean exp)) (m-condition exp s)] ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
 
-      ; variable
+      ; variable checking
       [(not (pair? exp))                      (m-lookup exp s)]
 
       ;operators
@@ -116,15 +116,22 @@
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
+
       ; run the loop of the body (body is multiple statements)
       [(and (m-condition (loop-condition exp) s) (pair? (car (loop-body exp))))
               (m-state (loop-body exp) s)]
+
       ; run the loop of the body (body is single statement)
       [(m-condition (loop-condition exp) s)
               (m-what-type (loop-body exp) s)]
-      [(null? (cdddr exp)) s] ; if there's no else statement, return the state
+      
+      ; if there's no else statement, return the state
+      [(null? (cdddr exp)) s] 
+
+      ; run the else of the body (body is multiple statements)
       [(and (not (null? (else-statement exp))) (pair? (car (loop-body exp))))
               (m-state (else-statement exp) s)]
+
       ; run the else of the body (body is single statement)
       [(not (null? (else-statement exp)))
               (m-what-type (else-statement exp) s)])))
@@ -136,11 +143,16 @@
       ; invalid expression
       [(null? exp)
            (error 'undefined "undefined expression")]
+
+      ; runs the while loop (body is multiple statements)
       [(and (m-condition (loop-condition exp) s) (pair? (car (loop-body exp))))
-       ; runs the while loop (body is multiple statements)
            (m-while-loop exp (m-state (loop-body exp) s))]
+
+      ; runs the while loop (body is single statement)
       [(m-condition (loop-condition exp) s)
            (m-while-loop exp (m-what-type (loop-body exp) s))]
+
+      ; otherwise, returns initial state
       [else s])))
 
 
@@ -183,10 +195,10 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-lookup
   (lambda (var s)
     (cond
-      [(or (null? s) (null? (vars s))) (error "use before assignment")]
-      [(and (equal? var (nextvar s))   (eq? "init" (nextval s))) (error "use before assignment")]
-      [(equal? var (nextvar s))        (nextval s)]
-      [else                            (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
+      [(or (null? s) (null? (vars s)))                         (error "use before assignment")]
+      [(and (equal? var (nextvar s)) (eq? "init" (nextval s))) (error "use before assignment")]
+      [(equal? var (nextvar s))                                (nextval s)]
+      [else                                                    (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
 
 ;; Takes a variable, the value it is to be updated to, and the state, returns the updated state
 (define m-update
@@ -274,12 +286,12 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-return
   (lambda (exp s)
     (cond
-      [(eq?   exp #t) "True"]
-      [(eq?   exp #f) "False"]
+      [(eq?   exp #t) "true"]
+      [(eq?   exp #f) "false"]
       [(and (pair? exp) (am-i-boolean exp)) (m-return (m-condition exp s) s)]
       [(pair? exp)    (m-value exp s)]
-      [(eq? (m-value exp s) #t) "True"]
-      [(eq? (m-value exp s) #f) "False"]
+      [(eq? (m-value exp s) #t) "true"]
+      [(eq? (m-value exp s) #f) "false"]
       [else           (m-value exp s)])))
 
 ;;;;**********ABSTRACTION**********
@@ -430,9 +442,9 @@ m-remove - removes a variable and it's value from state, returns updated state
   ; declares a variable
   (display "Test #9 m-var-dec") (newline)                                             ;Test m-var-dec
   (pass? (m-var-dec '(var a) '((q)(1))) '((a q) ("init" 1)))                                    ; 1/9
-  ;(pass? (m-var-dec '(var a) '((d a s)(1 2 3))) "error") ;should error                         ; 2/9
+  ;(pass? (m-var-dec '(var a) '((d a s)(1 2 3))) "error")             ;should error             ; 2/9
   (pass? (m-var-dec '(var a) '(()())) '((a)("init")))                                           ; 3/9
-  ;(pass? (m-var-dec '(var a 1) '((d a s)(1 2 3))) "error") ;should error                       ; 4/9
+  ;(pass? (m-var-dec '(var a 1) '((d a s)(1 2 3))) "error")           ;should error             ; 4/9
   (pass? (m-var-dec '(var a 1) '((d s)(2 3))) '((a d s)(1 2 3)))                                ; 5/9
   (pass? (m-var-dec '(var a (+ x 1)) '((c s x)(2 3 4))) '((a c s x)(5 2 3 4)))                  ; 6/9
   (pass? (m-var-dec '(var a (+ x (* c 3))) '((c s x)(2 3 4))) '((a c s x)(10 2 3 4)))           ; 7/9
@@ -442,29 +454,32 @@ m-remove - removes a variable and it's value from state, returns updated state
 
   ; tests interpreter functionality
   (display "Test #10 run") (newline)                                                  ;Test run
-  (pass? (run "Tests/Test1.txt") 100)                                                           ; 1/23
-  (pass? (run "Tests/Test2.txt") 21)                                                            ; 2/23
-  (pass? (run "Tests/Test3.txt") 4)                                                             ; 3/23
-  (pass? (run "Tests/p1.Test1.txt") 150)                                                        ; 4/23
-  (pass? (run "Tests/p1.Test2.txt") -4)                                                         ; 5/23
-  (pass? (run "Tests/p1.Test3.txt") 10)                                                         ; 6/23
-  (pass? (run "Tests/p1.Test4.txt") 16)                                                         ; 7/23
-  (pass? (run "Tests/p1.Test5.txt") 220)                                                        ; 8/23
-  (pass? (run "Tests/p1.Test6.txt") 5)                                                          ; 9/23
-  (pass? (run "Tests/p1.Test7.txt") 6)                                                          ; 10/23
-  (pass? (run "Tests/p1.Test8.txt") 10)                                                         ; 11/23
-  (pass? (run "Tests/p1.Test9.txt") 5)                                                          ; 12/23
-  (pass? (run "Tests/p1.Test10.txt") -39)                                                       ; 13/23
-  ;;(pass? (run "Tests/p1.Test11.txt") "error" ) ;should error                                    ; 14/23
-  ;;(pass? (run "Tests/p1.Test12.txt") "error") ;should error                                     ; 15/23
-  ;;(pass? (run "Tests/p1.Test13.txt") "error") ;should error                                     ; 16/23
-  ;;(pass? (run "Tests/p1.Test14.txt") "error") ;should error                                     ; 17/23
-  (pass? (run "Tests/p1.Test15.txt") "True")                                                    ; 18/23
-  (pass? (run "Tests/p1.Test16.txt") 100)                                                       ; 19/23
-  (pass? (run "Tests/p1.Test17.txt") "False")                                                   ; 20/23
-  (pass? (run "Tests/p1.Test18.txt") "True")                                                    ; 21/23
-  (pass? (run "Tests/p1.Test19.txt") 128)                                                       ; 22/23
-  (pass? (run "Tests/p1.Test20.txt") 12)                                                        ; 23/23
+  (pass? (run "Tests/Test1.txt") 100)                                                           ; 1/27
+  (pass? (run "Tests/Test2.txt") 21)                                                            ; 2/27
+  (pass? (run "Tests/Test3.txt") 4)                                                             ; 3/27
+  (pass? (run "Tests/Test4.txt") -10)                                                           ; 4/27
+  (pass? (run "Tests/Test5.txt") 240)                                                           ; 5/27
+  (pass? (run "Tests/Test6.txt") "false")                                                       ; 6/27
+  (pass? (run "Tests/p1.Test1.txt") 150)                                                        ; 7/27
+  (pass? (run "Tests/p1.Test2.txt") -4)                                                         ; 8/27
+  (pass? (run "Tests/p1.Test3.txt") 10)                                                         ; 9/27
+  (pass? (run "Tests/p1.Test4.txt") 16)                                                         ; 10/27
+  (pass? (run "Tests/p1.Test5.txt") 220)                                                        ; 12/27
+  (pass? (run "Tests/p1.Test6.txt") 5)                                                          ; 13/27
+  (pass? (run "Tests/p1.Test7.txt") 6)                                                          ; 14/27
+  (pass? (run "Tests/p1.Test8.txt") 10)                                                         ; 15/27
+  (pass? (run "Tests/p1.Test9.txt") 5)                                                          ; 16/27
+  (pass? (run "Tests/p1.Test10.txt") -39)                                                       ; 17/27
+  ;(pass? (run "Tests/p1.Test11.txt") "error" ) ;should error                                   ; 18/27
+  ;(pass? (run "Tests/p1.Test12.txt") "error")  ;should error                                   ; 19/27
+  ;(pass? (run "Tests/p1.Test13.txt") "error")  ;should error                                   ; 20/27
+  ;(pass? (run "Tests/p1.Test14.txt") "error")  ;should error                                   ; 21/27
+  (pass? (run "Tests/p1.Test15.txt") "true")                                                    ; 22/27
+  (pass? (run "Tests/p1.Test16.txt") 100)                                                       ; 23/27
+  (pass? (run "Tests/p1.Test17.txt") "false")                                                   ; 24/27
+  (pass? (run "Tests/p1.Test18.txt") "true")                                                    ; 25/27
+  (pass? (run "Tests/p1.Test19.txt") 128)                                                       ; 26/27
+  (pass? (run "Tests/p1.Test20.txt") 12)                                                        ; 27/27
   (newline)
 
   ) ;left hanging for easy test addition

@@ -3,5 +3,5 @@ x = true;
 var y = false;
 var w = false;
 if(y || x)
-  return x;
+  y = true;
 return y;
