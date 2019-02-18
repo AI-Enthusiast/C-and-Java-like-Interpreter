@@ -26,7 +26,8 @@
       [(null? exp)                         s]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s)]
       [(not (list? (first-statement exp))) (m-what-type (first-statement exp) s)]
-      [else                                (m-state (rest-of-body exp) (m-what-type (first-statement exp) s))])))
+      [else                                (m-state (rest-of-body exp)
+                                                    (m-what-type (first-statement exp) s))])))
 
 ;; Figures out which method should be used to evaluate this, and evaluates this
 ;; Returns updated state
@@ -67,7 +68,9 @@
       ; boolean checking
       [(eq? exp 'true)                      #t] ; true
       [(eq? exp 'false)                     #f] ; false
-      [(and (pair? exp) (am-i-boolean exp)) (m-condition exp s)] ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
+      
+      ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
+      [(and (pair? exp) (am-i-boolean exp)) (m-condition exp s)] 
 
       ; variable checking
       [(not (pair? exp))                      (m-lookup exp s)]
@@ -198,7 +201,9 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(or (null? s) (null? (vars s)))                         (error "use before assignment")]
       [(and (equal? var (nextvar s)) (eq? "init" (nextval s))) (error "use before assignment")]
       [(equal? var (nextvar s))                                (nextval s)]
-      [else                                                    (m-lookup var (list (rest-of-vals (vars s)) (rest-of-vals (vals s))))])))
+      [else                                                    (m-lookup var
+                                                                         (list (rest-of-vals (vars s))
+                                                                               (rest-of-vals (vals s))))])))
 
 ;; Takes a variable, the value it is to be updated to, and the state, returns the updated state
 (define m-update
@@ -207,7 +212,6 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(or (null? s) (null? (vars s)))  "error"]
       [(not (number? (locate var 0 s))) "error"]
       [else                             (list (vars s) (update var update-val s))])))
-
 
 ;; Takes the value to be updated, the location of the value and the
 ;; Updates the variable at the location with the new value, returns the updated state
@@ -266,7 +270,7 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(eq? a (first-val lis))    (rest-of-vals lis)]
       [else                       (cons (first-val lis) (remove a (rest-of-vals lis)))])))
 
-;; determines if an expression is boolean
+;; Determines if an expression is boolean
 (define am-i-boolean
   (lambda (exp)
     (cond
