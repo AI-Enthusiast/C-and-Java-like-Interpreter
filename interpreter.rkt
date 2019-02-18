@@ -251,6 +251,14 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(eq? a (car lis))    (cdr lis)]
       [else (cons (car lis) (remove a (cdr lis)))])))
 
+(define hasbool
+  (lambda (exp)
+    (cond
+      [(eq? (operator exp) '||)  #t]
+      [(eq? (operator exp) '&&)  #t]
+      [(eq? (car exp) '!)        #t]
+      [else #f])))
+
 ;; Takes an expression and a state
 ;; Returns it as if it where in C/Java
 (define m-return
@@ -258,6 +266,7 @@ m-remove - removes a variable and it's value from state, returns updated state
     (cond
       [(eq?   exp #t) "True"]
       [(eq?   exp #f) "False"]
+      [(and (pair? exp) (hasbool exp)) (m-return (m-condition exp s))]
       [(pair? exp)    (m-return (m-value exp s) s)]
       [else           (m-return (m-value exp s) s)])))
 
@@ -456,4 +465,4 @@ m-remove - removes a variable and it's value from state, returns updated state
 (trace m-lookup)
 (trace m-return)
 (trace m-if-statement)|#
-(run "Tests/Test6.txt")
+;; (run "Tests/Test6.txt")
