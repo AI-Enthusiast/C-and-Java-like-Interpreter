@@ -62,8 +62,12 @@
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
       [(number? exp)                          exp] ; if it's a number, return a number
-      [(and (not (pair? exp)) (boolean? exp)) exp] ; if it's a scheme bool
+      [(and (not (pair? exp)) (boolean? exp)) exp]
+      [(eq? exp 'true)  #t] ; true
+      [(eq? exp 'false) #f] ; false
       [(not (pair? exp))                      (m-lookup exp s)] ; it's a variable
+
+
 
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -115,7 +119,7 @@
       ; run the loop of the body (body is single statement)
       [(m-condition (loop-condition exp) s)
               (m-what-type (loop-body exp) s)]
-      [(null? (cdddr exp)) s]
+      [(null? (cdddr exp)) s] ; if there's no else statement, return the state
       [(and (not (null? (else-statement exp))) (pair? (car (loop-body exp))))
               (m-state (else-statement exp) s)]
       ; run the else of the body (body is single statement)
@@ -142,7 +146,7 @@
 (define m-assign
   (lambda (assign s)
       (if (not (number? (locate (variable assign) 0 s)))
-          (error "use before declaration")
+                           (error "use before declaration")
           (m-update (variable assign) (m-value (expression assign) s) s))))
 
 ;; Takes a variable declaration and a state
@@ -255,7 +259,7 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(eq?   exp #t) "True"]
       [(eq?   exp #f) "False"]
       [(pair? exp)    (m-return (m-value exp s) s)]
-      [else           (m-value exp s)])))
+      [else           (m-return (m-value exp s) s)])))
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
@@ -445,3 +449,11 @@ m-remove - removes a variable and it's value from state, returns updated state
   (newline)
 
   ) ;left hanging for easy test addition
+
+#|(trace m-state)
+(trace m-assign)
+(trace m-value)
+(trace m-lookup)
+(trace m-return)
+(trace m-if-statement)|#
+(run "Tests/Test6.txt")
