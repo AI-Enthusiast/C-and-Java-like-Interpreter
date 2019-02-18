@@ -26,7 +26,7 @@
       [(null? exp)              s]
       [(null? (cdr exp))       (m-what-type (car exp) s)]
       [(not (list? (car exp))) (m-what-type (car exp) s)]
-      [else (m-state (cdr exp) (m-what-type (car exp) s))])))
+      [else                    (m-state (cdr exp) (m-what-type (car exp) s))])))
 
 ;; Figures out which method should be used to evaluate this, and evaluates this
 ;; Returns updated state
@@ -115,7 +115,7 @@
       ; run the loop of the body (body is single statement)
       [(m-condition (loop-condition exp) s)
               (m-what-type (loop-body exp) s)]
-      [(null? (cdddr exp)) #|DO NOTHING|#]
+      [(null? (cdddr exp)) s]
       [(and (not (null? (else-statement exp))) (pair? (car (loop-body exp))))
               (m-state (else-statement exp) s)]
       ; run the else of the body (body is single statement)
