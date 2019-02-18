@@ -23,7 +23,7 @@
 (define m-state
   (lambda (exp s)
     (cond
-      [(null? exp)              s]
+      [(null? exp)             s]
       [(null? (cdr exp))       (m-what-type (car exp) s)]
       [(not (list? (car exp))) (m-what-type (car exp) s)]
       [else                    (m-state (cdr exp) (m-what-type (car exp) s))])))
@@ -61,15 +61,15 @@
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
-      [(number? exp)                          exp] ; if it's a number, return a number
-      [(and (not (pair? exp)) (boolean? exp)) exp]
+      [(number? exp)                          exp] ; if it's a number, return that number
+      [(and (not (pair? exp)) (boolean? exp)) exp] ; if it's a boolean, return the boolean
 
       ; boolean checking
-      [(eq? exp 'true)  #t] ; true
-      [(eq? exp 'false) #f] ; false
-      [(and (pair? exp) (am-i-boolean exp)) (m-condition exp s)]
+      [(eq? exp 'true)                      #t] ; true
+      [(eq? exp 'false)                     #f] ; false
+      [(and (pair? exp) (am-i-boolean exp)) (m-condition exp s)] ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
 
-      ; variable
+      ; variable checking
       [(not (pair? exp))                      (m-lookup exp s)]
 
       ;operators
@@ -116,15 +116,22 @@
   (lambda (exp s)
     (cond
       [(null? exp) (error 'undefined "undefined expression")]
+
       ; run the loop of the body (body is multiple statements)
       [(and (m-condition (loop-condition exp) s) (pair? (car (loop-body exp))))
               (m-state (loop-body exp) s)]
+
       ; run the loop of the body (body is single statement)
       [(m-condition (loop-condition exp) s)
               (m-what-type (loop-body exp) s)]
-      [(null? (cdddr exp)) s] ; if there's no else statement, return the state
+      
+      ; if there's no else statement, return the state
+      [(null? (cdddr exp)) s] 
+
+      ; run the else of the body (body is multiple statements)
       [(and (not (null? (else-statement exp))) (pair? (car (loop-body exp))))
               (m-state (else-statement exp) s)]
+
       ; run the else of the body (body is single statement)
       [(not (null? (else-statement exp)))
               (m-what-type (else-statement exp) s)])))
@@ -136,11 +143,16 @@
       ; invalid expression
       [(null? exp)
            (error 'undefined "undefined expression")]
+
+      ; runs the while loop (body is multiple statements)
       [(and (m-condition (loop-condition exp) s) (pair? (car (loop-body exp))))
-       ; runs the while loop (body is multiple statements)
            (m-while-loop exp (m-state (loop-body exp) s))]
+
+      ; runs the while loop (body is single statement)
       [(m-condition (loop-condition exp) s)
            (m-while-loop exp (m-what-type (loop-body exp) s))]
+
+      ; otherwise, returns initial state
       [else s])))
 
 
