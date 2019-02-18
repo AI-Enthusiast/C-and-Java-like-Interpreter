@@ -259,7 +259,7 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(eq?   exp #t) "True"]
       [(eq?   exp #f) "False"]
       [(pair? exp)    (m-return (m-value exp s) s)]
-      [else           (m-return (m-value exp s) s)])))
+      [else           (m-value exp s)])))
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
@@ -456,4 +456,4 @@ m-remove - removes a variable and it's value from state, returns updated state
 (trace m-lookup)
 (trace m-return)
 (trace m-if-statement)|#
-(run "Tests/Test6.txt")
+;(run "Tests/Test6.txt")
