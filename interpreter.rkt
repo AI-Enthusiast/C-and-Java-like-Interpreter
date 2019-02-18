@@ -12,7 +12,7 @@
 ;; e.g. (run "Tests/Test1.txt")
 (define run
   (lambda (filename)
-    (m-state (parse-tree filename) '(()()))))
+    (m-state (parse-tree filename) empty-state)))
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define parse-tree
@@ -261,6 +261,9 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define statement-type-id car) ; e.g. if, while, var, etc.
 (define statement-body cadr)   ; e.g. the body of a return statement
 
+;defines the new state
+(define empty-state '(()()))
+
 ; for if statements
 (define else-statement cadddr) ; else statement, if it exists
 (define loop-condition cadr)
@@ -427,7 +430,7 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (run "Tests/p1.Test6.txt") 5)                                                          ; 9/23
   (pass? (run "Tests/p1.Test7.txt") 6)                                                          ; 10/23
   (pass? (run "Tests/p1.Test8.txt") 10)                                                         ; 11/23
-  ;(pass? (run "Tests/p1.Test9.txt") 5)                                                          ; 12/23
+  (pass? (run "Tests/p1.Test9.txt") 5)                                                          ; 12/23
   ;(pass? (run "Tests/p1.Test10.txt") -39)                                                       ; 13/23
   ;;(pass? (run "Tests/p1.Test11.txt") "error" ) ;should error                                    ; 14/23
   ;;(pass? (run "Tests/p1.Test12.txt") "error") ;should error                                     ; 15/23
