@@ -68,7 +68,7 @@
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(and (eq? (operator exp) '-) (null? (cddr exp))) ; handle negitive numbers
-                               (* -1 (left-operand exp))] 
+                               (* -1 (m-value (left-operand exp) s))] 
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -427,8 +427,8 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (run "Tests/p1.Test6.txt") 5)                                                          ; 9/23
   (pass? (run "Tests/p1.Test7.txt") 6)                                                          ; 10/23
   (pass? (run "Tests/p1.Test8.txt") 10)                                                         ; 11/23
-  ;(pass? (run "Tests/p1.Test9.txt") 5)                                                          ; 12/23
-  ;(pass? (run "Tests/p1.Test10.txt") -39)                                                       ; 13/23
+  (pass? (run "Tests/p1.Test9.txt") 5)                                                          ; 12/23
+  (pass? (run "Tests/p1.Test10.txt") -39)                                                       ; 13/23
   ;;(pass? (run "Tests/p1.Test11.txt") "error" ) ;should error                                    ; 14/23
   ;;(pass? (run "Tests/p1.Test12.txt") "error") ;should error                                     ; 15/23
   ;;(pass? (run "Tests/p1.Test13.txt") "error") ;should error                                     ; 16/23
