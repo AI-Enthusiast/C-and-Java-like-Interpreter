@@ -448,7 +448,7 @@ m-remove - removes a variable and it's value from state, returns updated state
   ;;(pass? (run "Tests/p1.Test12.txt") "error") ;should error                                     ; 15/23
   ;;(pass? (run "Tests/p1.Test13.txt") "error") ;should error                                     ; 16/23
   ;;(pass? (run "Tests/p1.Test14.txt") "error") ;should error                                     ; 17/23
-  ;(pass? (run "Tests/p1.Test15.txt") "True")                                                    ; 18/23
+  (pass? (run "Tests/p1.Test15.txt") "True")                                                    ; 18/23
   (pass? (run "Tests/p1.Test16.txt") 100)                                                       ; 19/23
   ;(pass? (run "Tests/p1.Test17.txt") "False")                                                   ; 20/23
   ;(pass? (run "Tests/p1.Test18.txt") "True")                                                    ; 21/23
