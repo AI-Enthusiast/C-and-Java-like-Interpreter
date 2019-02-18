@@ -23,10 +23,10 @@
 (define m-state
   (lambda (exp s)
     (cond
-      [(null? exp)             s]
-      [(null? (cdr exp))       (m-what-type (car exp) s)]
-      [(not (list? (car exp))) (m-what-type (car exp) s)]
-      [else                    (m-state (cdr exp) (m-what-type (car exp) s))])))
+      [(null? exp)                         s]
+      [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s)]
+      [(not (list? (first-statement exp))) (m-what-type (first-statement exp) s)]
+      [else                                (m-state (rest-of-body exp) (m-what-type (first-statement exp) s))])))
 
 ;; Figures out which method should be used to evaluate this, and evaluates this
 ;; Returns updated state
@@ -97,7 +97,7 @@
       ; condition checking (&&, ||, !)
       [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
       [(eq? (operator exp) '&&)  (and (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (car exp) '!)        (not (m-condition (left-operand exp) s))]
+      [(eq? (operator exp) '!)   (not (m-condition (left-operand exp) s))]
 
       ; equality/inequality operator checking (==, !=, <, >, <=, >=)
       [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
@@ -118,7 +118,7 @@
       [(null? exp) (error 'undefined "undefined expression")]
 
       ; run the loop of the body (body is multiple statements)
-      [(and (m-condition (loop-condition exp) s) (pair? (car (loop-body exp))))
+      [(and (m-condition (loop-condition exp) s) (pair? (first-statement (loop-body exp))))
               (m-state (loop-body exp) s)]
 
       ; run the loop of the body (body is single statement)
@@ -129,7 +129,7 @@
       [(null? (cdddr exp)) s] 
 
       ; run the else of the body (body is multiple statements)
-      [(and (not (null? (else-statement exp))) (pair? (car (loop-body exp))))
+      [(and (not (null? (else-statement exp))) (pair? (first-statement (else-statement exp))))
               (m-state (else-statement exp) s)]
 
       ; run the else of the body (body is single statement)
@@ -145,7 +145,7 @@
            (error 'undefined "undefined expression")]
 
       ; runs the while loop (body is multiple statements)
-      [(and (m-condition (loop-condition exp) s) (pair? (car (loop-body exp))))
+      [(and (m-condition (loop-condition exp) s) (pair? (first-statement (loop-body exp))))
            (m-while-loop exp (m-state (loop-body exp) s))]
 
       ; runs the while loop (body is single statement)
@@ -198,7 +198,7 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(or (null? s) (null? (vars s)))                         (error "use before assignment")]
       [(and (equal? var (nextvar s)) (eq? "init" (nextval s))) (error "use before assignment")]
       [(equal? var (nextvar s))                                (nextval s)]
-      [else                                                    (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
+      [else                                                    (m-lookup var (list (rest-of-vals (vars s)) (rest-of-vals (vals s))))])))
 
 ;; Takes a variable, the value it is to be updated to, and the state, returns the updated state
 (define m-update
@@ -214,9 +214,9 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define update
   (lambda (var update-val s)
     (cond
-      [(eq? var (nextvar s))  (cons update-val (cdr (vals s)))]
-      [else                   (cons (nextval s) (update var update-val (list (cdr (vars s))
-                                                                             (cdr (vals s)))))])))
+      [(eq? var (nextvar s))  (cons update-val (rest-of-vals (vals s)))]
+      [else                   (cons (nextval s) (update var update-val (list (rest-of-vals (vars s))
+                                                                             (rest-of-vals (vals s)))))])))
 
 ;; Finds the location of the variable's value in the state
 ;; Takes the variable it is locating, a counter and a state
@@ -228,7 +228,7 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(eq? var (nextvar s))
        counter]
       [else
-       (locate var (+ counter 1) (cons (cdr (vars s)) (cons (cdr (vals s)) '())))])))
+       (locate var (+ counter 1) (cons (rest-of-vals (vars s)) (cons (rest-of-vals (vals s)) '())))])))
 
 ;; Takes a varaiable and a state, adds it to a state with non number uninitilized value "init"
 ;; (does not take value, to update value, use m-update)
@@ -254,17 +254,17 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define remove-val
   (lambda (var s)
     (if (eq? var (nextvar s))
-        (cdr (vals s))
-        (cons (nextval s) (remove-val var (list (cdr (vars s)) (cdr (vals s))))))))
+        (rest-of-vals (vals s))
+        (cons (nextval s) (remove-val var (list (rest-of-vals (vars s)) (rest-of-vals (vals s))))))))
 
 ;; Takes an atom and a list
 ;; Returns the list with the first instance of the atom removed
 (define remove
   (lambda (a lis)
     (cond
-      [(null? lis)          '()]
-      [(eq? a (car lis))    (cdr lis)]
-      [else (cons (car lis) (remove a (cdr lis)))])))
+      [(null? lis)                '()]
+      [(eq? a (first-val lis))    (rest-of-vals lis)]
+      [else                       (cons (first-val lis) (remove a (rest-of-vals lis)))])))
 
 ;; determines if an expression is boolean
 (define am-i-boolean
@@ -272,7 +272,7 @@ m-remove - removes a variable and it's value from state, returns updated state
     (cond
       [(eq? (operator exp) '||)  #t]
       [(eq? (operator exp) '&&)  #t]
-      [(eq? (car exp) '!)        #t]
+      [(eq? (operator exp) '!)   #t]
       [(eq? (operator exp) '==)  #t]
       [(eq? (operator exp) '!=)  #t]
       [(eq? (operator exp) '<)   #t]
@@ -315,13 +315,21 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define variable cadr)
 (define expression caddr)
 
+; for remove
+(define first-val car)
+
+
 ; for state computation
 (define vars car)
 (define vals cadr)
 (define nextvar caar)
+(define rest-of-vals cdr)
 (define nextval caadr)
 
+; for running/state
 (define empty-state '(() ()))
+(define first-statement car)
+(define rest-of-body cdr)
 
 ;;;;**********TESTING**********
 
@@ -459,7 +467,7 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (run "Tests/Test3.txt") 4)                                                             ; 3/27
   (pass? (run "Tests/Test4.txt") -10)                                                           ; 4/27
   (pass? (run "Tests/Test5.txt") 240)                                                           ; 5/27
-  (pass? (run "Tests/Test6.txt") "false")                                                       ; 6/27
+  (pass? (run "Tests/Test6.txt") "true")                                                        ; 6/27
   (pass? (run "Tests/p1.Test1.txt") 150)                                                        ; 7/27
   (pass? (run "Tests/p1.Test2.txt") -4)                                                         ; 8/27
   (pass? (run "Tests/p1.Test3.txt") 10)                                                         ; 9/27
