@@ -322,7 +322,6 @@ m-remove - removes a variable and it's value from state, returns updated state
 ; for remove
 (define first-val car)
 
-
 ; for state computation
 (define vars car)
 (define vals cadr)
