@@ -183,10 +183,10 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-lookup
   (lambda (var s)
     (cond
-      [(or (null? s) (null? (vars s))) (error "use before assignment")]
-      [(and (equal? var (nextvar s))   (eq? "init" (nextval s))) (error "use before assignment")]
-      [(equal? var (nextvar s))        (nextval s)]
-      [else                            (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
+      [(or (null? s) (null? (vars s)))                         (error "use before assignment")]
+      [(and (equal? var (nextvar s)) (eq? "init" (nextval s))) (error "use before assignment")]
+      [(equal? var (nextvar s))                                (nextval s)]
+      [else                                                    (m-lookup var (list (cdr (vars s)) (cdr (vals s))))])))
 
 ;; Takes a variable, the value it is to be updated to, and the state, returns the updated state
 (define m-update
