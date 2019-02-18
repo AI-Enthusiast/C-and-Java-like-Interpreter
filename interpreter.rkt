@@ -67,12 +67,12 @@
       [(eq? exp 'false) #f] ; false
       [(not (pair? exp))                      (m-lookup exp s)] ; it's a variable
 
-
+      
 
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(and (eq? (operator exp) '-) (null? (cddr exp))) ; handle negitive numbers
-                               (* -1  (m-value (left-operand exp) s))] 
+                               (* -1 (m-value (left-operand exp) s))] 
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -119,7 +119,7 @@
       ; run the loop of the body (body is single statement)
       [(m-condition (loop-condition exp) s)
               (m-what-type (loop-body exp) s)]
-      [(null? (cdddr exp)) s] ; if there's no else statement, return the state
+      [(null? (cdddr exp)) s] ; if there's no else statement, return the state 
       [(and (not (null? (else-statement exp))) (pair? (car (loop-body exp))))
               (m-state (else-statement exp) s)]
       ; run the else of the body (body is single statement)
@@ -251,6 +251,7 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(eq? a (car lis))    (cdr lis)]
       [else (cons (car lis) (remove a (cdr lis)))])))
 
+;; determines if an expression is boolean
 (define hasbool
   (lambda (exp)
     (cond
@@ -267,15 +268,12 @@ m-remove - removes a variable and it's value from state, returns updated state
       [(eq?   exp #t) "True"]
       [(eq?   exp #f) "False"]
       [(and (pair? exp) (hasbool exp)) (m-return (m-condition exp s) s)]
-      [(pair? exp)    (m-return (m-value exp s) s)]
-      [else           (m-return (m-value exp s) s)])))
+      [(pair? exp)    (m-value exp s)]
+      [else           (m-value exp s)])))
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
 (define statement-body cadr)   ; e.g. the body of a return statement
-
-;defines the new state
-(define empty-state '(()()))
 
 ; for if statements
 (define else-statement cadddr) ; else statement, if it exists
@@ -300,6 +298,7 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define nextvar caar)
 (define nextval caadr)
 
+(define empty-state '(() ()))
 
 ;;;;**********TESTING**********
 
@@ -445,10 +444,10 @@ m-remove - removes a variable and it's value from state, returns updated state
   (pass? (run "Tests/p1.Test8.txt") 10)                                                         ; 11/23
   (pass? (run "Tests/p1.Test9.txt") 5)                                                          ; 12/23
   (pass? (run "Tests/p1.Test10.txt") -39)                                                       ; 13/23
-  ;(pass? (run "Tests/p1.Test11.txt") "error" ) ;should error                                    ; 14/23
-  ;(pass? (run "Tests/p1.Test12.txt") "error")  ;should error                                    ; 15/23
-  ;(pass? (run "Tests/p1.Test13.txt") "error")  ;should error                                    ; 16/23
-  ;(pass? (run "Tests/p1.Test14.txt") "error")  ;should error                                    ; 17/23
+  ;;(pass? (run "Tests/p1.Test11.txt") "error" ) ;should error                                    ; 14/23
+  ;;(pass? (run "Tests/p1.Test12.txt") "error") ;should error                                     ; 15/23
+  ;;(pass? (run "Tests/p1.Test13.txt") "error") ;should error                                     ; 16/23
+  ;;(pass? (run "Tests/p1.Test14.txt") "error") ;should error                                     ; 17/23
   ;(pass? (run "Tests/p1.Test15.txt") "True")                                                    ; 18/23
   (pass? (run "Tests/p1.Test16.txt") 100)                                                       ; 19/23
   ;(pass? (run "Tests/p1.Test17.txt") "False")                                                   ; 20/23
@@ -458,11 +457,3 @@ m-remove - removes a variable and it's value from state, returns updated state
   (newline)
 
   ) ;left hanging for easy test addition
-
-#|(trace m-state)
-(trace m-assign)
-(trace m-value)
-(trace m-lookup)
-(trace m-return)
-(trace m-if-statement)|#
-;; (run "Tests/Test6.txt")
