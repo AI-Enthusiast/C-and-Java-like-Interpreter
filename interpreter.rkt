@@ -66,11 +66,11 @@
       [(and (not (pair? exp)) (boolean? exp)) exp] ; if it's a boolean, return the boolean
 
       ; boolean checking
-      [(eq? exp 'true)                      #t] ; true
-      [(eq? exp 'false)                     #f] ; false
+      [(eq? exp 'true)                        #t] ; true
+      [(eq? exp 'false)                       #f] ; false
       
       ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
-      [(and (pair? exp) (am-i-boolean exp)) (m-condition exp s)] 
+      [(and (pair? exp) (am-i-boolean exp))   (m-condition exp s)] 
 
       ; variable checking
       [(not (pair? exp))                      (m-lookup exp s)]
@@ -106,10 +106,10 @@
       [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
       [(eq? (operator exp) '!=)  (not (eq? (m-condition (left-operand exp) s)
                                            (m-condition (right-operand exp) s)))]
-      [(eq? (operator exp) '<)   (< (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '>)   (> (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '<=)  (<= (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '>=)  (>= (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
+      [(eq? (operator exp) '<)   (<   (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
+      [(eq? (operator exp) '>)   (>   (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
+      [(eq? (operator exp) '<=)  (<=  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
+      [(eq? (operator exp) '>=)  (>=  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
 
       ; oh no
       [else                      (m-value exp s)])))
@@ -118,26 +118,27 @@
 (define m-if-statement
   (lambda (exp s)
     (cond
-      [(null? exp) (error 'undefined "undefined expression")]
+      ; invalid expression
+      [(null? exp)         (error 'undefined "undefined expression")]
 
       ; run the loop of the body (body is multiple statements)
       [(and (m-condition (loop-condition exp) s) (pair? (first-statement (loop-body exp))))
-              (m-state (loop-body exp) s)]
+                           (m-state (loop-body exp) s)]
 
       ; run the loop of the body (body is single statement)
       [(m-condition (loop-condition exp) s)
-              (m-what-type (loop-body exp) s)]
+                           (m-what-type (loop-body exp) s)]
       
       ; if there's no else statement, return the state
       [(null? (cdddr exp)) s] 
 
       ; run the else of the body (body is multiple statements)
       [(and (not (null? (else-statement exp))) (pair? (first-statement (else-statement exp))))
-              (m-state (else-statement exp) s)]
+                           (m-state (else-statement exp) s)]
 
       ; run the else of the body (body is single statement)
       [(not (null? (else-statement exp)))
-              (m-what-type (else-statement exp) s)])))
+                           (m-what-type (else-statement exp) s)])))
 
 ;; Implementing while loop
 (define m-while-loop
@@ -157,7 +158,6 @@
 
       ; otherwise, returns initial state
       [else s])))
-
 
 ;; Takes an assinment and a state
 ;; Returns the updated state
@@ -333,3 +333,5 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define empty-state '(() ()))
 (define first-statement car)
 (define rest-of-body cdr)
+
+;; Thank you, sleep well :)
