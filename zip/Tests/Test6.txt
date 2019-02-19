@@ -1,7 +1,0 @@
-var x;
-x = true;
-var y = false;
-var w = false;
-if(y || x)
-  y = true;
-return y;
