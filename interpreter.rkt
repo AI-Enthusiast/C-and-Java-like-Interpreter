@@ -29,6 +29,16 @@
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s))])))
 
+;; Returns state with most recent state popped off
+(define m-pop
+  (lambda (s)
+    (popped-state s)))
+
+;; Returns state with new empty state pushed on
+(define m-push
+  (lambda (s)
+    (cons empty-state s)))
+
 ;; Figures out which method should be used to evaluate this, and evaluates this
 ;; Returns updated state
 (define m-what-type
@@ -333,5 +343,6 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define empty-state '(() ()))
 (define first-statement car)
 (define rest-of-body cdr)
+(define popped-state cdr)
 
 ;; Thank you, sleep well :)
