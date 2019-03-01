@@ -133,14 +133,14 @@
       ; invalid expression
       [(null? exp)         (error 'undefined "undefined expression")]
 
-      ; run the loop of the body (body is multiple statements)
+      ; run the loop of the body
       [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s)]
 
       ; if there's no else statement, return the state
       [(null? (cdddr exp)) s] 
 
       ; run the else of the body
-      [(not (null? (else-statement exp))) (m-state (else-statement exp) s)])))
+      [else (m-state (else-statement exp) s)])))
 
 ;; Implementing while loop
 (define m-while-loop
