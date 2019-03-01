@@ -1,8 +1,0 @@
-var x = 0;
-while (x < 50)
-	x = x + 1;
-	if (x == 25)
-		break;
-	else
-		continue;
-return x
