@@ -1,5 +1,6 @@
 #lang racket
 <<<<<<< HEAD
+<<<<<<< HEAD
 ;;;; A Java/C (ish) interpreter
 ;;;; EECS 345
 ;;;; Group #21: Shanti Polara, Catlin Campbell, Cormac Dacker
@@ -83,11 +84,17 @@
 (define m-value
 =======
 
+=======
+
+>>>>>>> parent of 8ea8dae... Began Break & Continue
 ; Code a function that can take in expression of numbers and operators and return the value
 ; e.g. (3 + (4 / 2))
 ;      (1 + 2)
 ; The operators are +, -, *, /, %, and division is integer division
 (define mvalue
+<<<<<<< HEAD
+>>>>>>> parent of 8ea8dae... Began Break & Continue
+=======
 >>>>>>> parent of 8ea8dae... Began Break & Continue
   (lambda (exp s)
     (cond
@@ -105,6 +112,7 @@
 (define mcondition
   (lambda (exp s) ; exp = expression, s = state
     (cond
+<<<<<<< HEAD
 <<<<<<< HEAD
       ; null checking
       [(null? exp)               (error 'undefined "undefined expression")]
@@ -335,6 +343,13 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define first-statement car)
 (define rest-of-body cdr)
 (define popped-state cdr)
+=======
+      [(null? exp) (error 'undefined "undefined expression")]
+      [(eq? (bool_operator exp) '||) (or (mcondition ()])))
+
+; for mcondition
+(define bool_operator caddr)
+>>>>>>> parent of 8ea8dae... Began Break & Continue
 =======
       [(null? exp) (error 'undefined "undefined expression")]
       [(eq? (bool_operator exp) '||) (or (mcondition ()])))
