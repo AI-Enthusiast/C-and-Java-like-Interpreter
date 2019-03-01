@@ -165,4 +165,27 @@
   ;(pass? (run "Tests/p1.Test14.txt") "error")  ;should error "redefining"                      ; 26/26
   (newline)
 
+  (display "P2 Test run") (newline) 
+  (pass? (run "Tests/p2.Test1.txt") 20)                                                       
+  (pass? (run "Tests/p2.Test2.txt") 164)                                                      
+  (pass? (run "Tests/p2.Test3.txt") 32)                                                         
+  (pass? (run "Tests/p2.Test4.txt") 4)                                                        
+  (pass? (run "Tests/p2.Test5.txt") 5)                                                        
+  (pass? (run "Tests/p2.Test6.txt") 25)                                                        
+  (pass? (run "Tests/p2.Test7.txt") 21)                                                        
+  (pass? (run "Tests/p2.Test8.txt") 6)                                                       
+  (pass? (run "Tests/p2.Test9.txt") -1)
+   (pass? (run "Tests/p2.Test10.txt") 789)                                                       
+  ;(pass? (run "Tests/p2.Test11.txt") "error")   ;should give error                                                   
+  ;(pass? (run "Tests/p2.Test12.txt") "error")   ;should give error 
+  ;(pass? (run "Tests/p2.Test13.txt") "error")   ;should give error
+  (pass? (run "Tests/p2.Test14.txt") 12)                                                        
+  (pass? (run "Tests/p2.Test15.txt") 125)                                                        
+  (pass? (run "Tests/p2.Test16.txt") 110)                                                        
+  (pass? (run "Tests/p2.Test17.txt") 2000400)                                                        
+  (pass? (run "Tests/p2.Test18.txt") 101)                                                       
+  ;(pass? (run "Tests/p2.Test19.txt") "error")   ;should give error 
+  (newline)
+
+
   ) ;left hanging for easy test addition
