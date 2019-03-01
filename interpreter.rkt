@@ -1,7 +1,7 @@
 #lang racket
 ;;;; A Java/C (ish) interpreter
 ;;;; EECS 345
-;;;; Group #7: Shanti Polara, Catlin Campbell, Cormac Dacker
+;;;; Group #21: Shanti Polara, Catlin Campbell, Cormac Dacker
 ;;;; Will run a txt file containing code by using the run function (run "Filename.txt")
 
 (provide (all-defined-out))         ; allows for testing to be done in interpreter-testing.rkt
@@ -33,6 +33,12 @@
 ;; Returns updated state
 (define m-what-type
   (lambda (exp s)
+    (call/cc
+     (lambda (k)
+       (m-what-type-cc exp s k)))))
+
+(define m-what-type-cc
+  (lambda (exp s break)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(or (null? exp) (not (pair? exp)))    s]
@@ -41,6 +47,12 @@
       [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s)]
       [(eq? (statement-type-id exp) 'while)  (m-while-loop exp s)]
 
+      ; is it a break
+      [(eq? (statement-type-id exp) 'break)  (break #| DO SOMETHING |#)]
+
+      ;is it a continue
+      [(eq? (statement-type-id exp) 'continue) (break #| DO NOTHING |#)]
+      
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
 
@@ -290,8 +302,8 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-return
   (lambda (exp s)
     (cond
-      [(eq?   exp #t) "true"]
-      [(eq?   exp #f) "false"]
+      [(eq?   exp #t) 'true]
+      [(eq?   exp #f) 'false]
       [(and (pair? exp) (am-i-boolean exp)) (m-return (m-condition exp s) s)]
       [(pair? exp)    (m-value exp s)]
       [(eq? (m-value exp s) #t) "true"]
