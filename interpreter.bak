@@ -1,7 +1,7 @@
 #lang racket
 ;;;; A Java/C (ish) interpreter
 ;;;; EECS 345
-;;;; Group #7: Shanti Polara, Catlin Campbell, Cormac Dacker
+;;;; Group #21: Shanti Polara, Catlin Campbell, Cormac Dacker
 ;;;; Will run a txt file containing code by using the run function (run "Filename.txt")
 
 (provide (all-defined-out))         ; allows for testing to be done in interpreter-testing.rkt
@@ -24,15 +24,31 @@
   (lambda (exp s)
     (cond
       [(null? exp)                         s]
+      [(not (list? (first-statement exp))) (m-what-type exp s)]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s)]
-      [(not (list? (first-statement exp))) (m-what-type (first-statement exp) s)]
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s))])))
+
+;; Returns state with most recent state popped off
+(define m-pop
+  (lambda (s)
+    (popped-state s)))
+
+;; Returns state with new empty state pushed on
+(define m-push
+  (lambda (s)
+    (cons empty-state s)))
 
 ;; Figures out which method should be used to evaluate this, and evaluates this
 ;; Returns updated state
 (define m-what-type
   (lambda (exp s)
+    (call/cc
+     (lambda (k)
+       (m-what-type-cc exp s k)))))
+
+(define m-what-type-cc
+  (lambda (exp s break)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(or (null? exp) (not (pair? exp)))    s]
@@ -41,6 +57,12 @@
       [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s)]
       [(eq? (statement-type-id exp) 'while)  (m-while-loop exp s)]
 
+      ; is it a break
+      [(eq? (statement-type-id exp) 'break)  (break #| DO SOMETHING |#)]
+
+      ;is it a continue
+      [(eq? (statement-type-id exp) 'continue) (break #| DO NOTHING |#)]
+      
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
 
@@ -114,6 +136,8 @@
       ; oh no
       [else                      (m-value exp s)])))
 
+
+
 ;; Implementing if statement
 (define m-if-statement
   (lambda (exp s)
@@ -122,23 +146,13 @@
       [(null? exp)         (error 'undefined "undefined expression")]
 
       ; run the loop of the body (body is multiple statements)
-      [(and (m-condition (loop-condition exp) s) (pair? (first-statement (loop-body exp))))
-                           (m-state (loop-body exp) s)]
+      [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s)]
 
-      ; run the loop of the body (body is single statement)
-      [(m-condition (loop-condition exp) s)
-                           (m-what-type (loop-body exp) s)]
-      
       ; if there's no else statement, return the state
       [(null? (cdddr exp)) s] 
 
-      ; run the else of the body (body is multiple statements)
-      [(and (not (null? (else-statement exp))) (pair? (first-statement (else-statement exp))))
-                           (m-state (else-statement exp) s)]
-
-      ; run the else of the body (body is single statement)
-      [(not (null? (else-statement exp)))
-                           (m-what-type (else-statement exp) s)])))
+      ; run the else of the body
+      [(not (null? (else-statement exp))) (m-state (else-statement exp) s)])))
 
 ;; Implementing while loop
 (define m-while-loop
@@ -148,13 +162,8 @@
       [(null? exp)
            (error 'undefined "undefined expression")]
 
-      ; runs the while loop (body is multiple statements)
-      [(and (m-condition (loop-condition exp) s) (pair? (first-statement (loop-body exp))))
-           (m-while-loop exp (m-state (loop-body exp) s))]
-
-      ; runs the while loop (body is single statement)
-      [(m-condition (loop-condition exp) s)
-           (m-while-loop exp (m-what-type (loop-body exp) s))]
+      ; runs the while loop
+      [(m-condition (loop-condition exp) s) (m-while-loop exp (m-state (loop-body exp) s))]
 
       ; otherwise, returns initial state
       [else s])))
@@ -290,8 +299,8 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-return
   (lambda (exp s)
     (cond
-      [(eq?   exp #t) "true"]
-      [(eq?   exp #f) "false"]
+      [(eq?   exp #t) 'true]
+      [(eq?   exp #f) 'false]
       [(and (pair? exp) (am-i-boolean exp)) (m-return (m-condition exp s) s)]
       [(pair? exp)    (m-value exp s)]
       [(eq? (m-value exp s) #t) "true"]
@@ -333,5 +342,6 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define empty-state '(() ()))
 (define first-statement car)
 (define rest-of-body cdr)
+(define popped-state cdr)
 
 ;; Thank you, sleep well :)
