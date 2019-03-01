@@ -3,6 +3,8 @@
 ;;;; EECS 345
 ;;;; Group #7: Shanti Polara, Catlin Campbell, Cormac Dacker
 ;;;; Will run a txt file containing code by using the run function (run "Filename.txt")
+;;;; Order of inputs for ALL m-state and m-state like things
+;;;; m-state(exp, s, return, break, continue, try, catch, finally) 
 
 (provide (all-defined-out))         ; allows for testing to be done in interpreter-testing.rkt
 (require "simpleParser.rkt")        ; loads simpleParser.rkt, which itself loads lex.rkt
