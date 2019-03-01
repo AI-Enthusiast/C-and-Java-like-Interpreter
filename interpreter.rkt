@@ -47,6 +47,9 @@
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(or (null? exp) (not (pair? exp)))    s]
 
+      ; is it a new block
+      [(eq? (first-statement exp) 'begin)    (m-pop (m-state (rest-of-body exp) (m-push s)))]
+
       ; conditional statement checking (if/while/etc.)
       [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s)]
       [(eq? (statement-type-id exp) 'while)  (m-while-loop exp s)]
