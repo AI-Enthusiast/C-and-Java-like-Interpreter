@@ -24,8 +24,8 @@
   (lambda (exp s)
     (cond
       [(null? exp)                         s]
+      [(not (list? (first-statement exp))) (m-what-type exp s)]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s)]
-      [(not (list? (first-statement exp))) (m-what-type (first-statement exp) s)]
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s))])))
 
@@ -124,6 +124,8 @@
       ; oh no
       [else                      (m-value exp s)])))
 
+
+
 ;; Implementing if statement
 (define m-if-statement
   (lambda (exp s)
@@ -132,23 +134,13 @@
       [(null? exp)         (error 'undefined "undefined expression")]
 
       ; run the loop of the body (body is multiple statements)
-      [(and (m-condition (loop-condition exp) s) (pair? (first-statement (loop-body exp))))
-                           (m-state (loop-body exp) s)]
+      [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s)]
 
-      ; run the loop of the body (body is single statement)
-      [(m-condition (loop-condition exp) s)
-                           (m-what-type (loop-body exp) s)]
-      
       ; if there's no else statement, return the state
       [(null? (cdddr exp)) s] 
 
-      ; run the else of the body (body is multiple statements)
-      [(and (not (null? (else-statement exp))) (pair? (first-statement (else-statement exp))))
-                           (m-state (else-statement exp) s)]
-
-      ; run the else of the body (body is single statement)
-      [(not (null? (else-statement exp)))
-                           (m-what-type (else-statement exp) s)])))
+      ; run the else of the body
+      [(not (null? (else-statement exp))) (m-state (else-statement exp) s)])))
 
 ;; Implementing while loop
 (define m-while-loop
@@ -158,13 +150,8 @@
       [(null? exp)
            (error 'undefined "undefined expression")]
 
-      ; runs the while loop (body is multiple statements)
-      [(and (m-condition (loop-condition exp) s) (pair? (first-statement (loop-body exp))))
-           (m-while-loop exp (m-state (loop-body exp) s))]
-
-      ; runs the while loop (body is single statement)
-      [(m-condition (loop-condition exp) s)
-           (m-while-loop exp (m-what-type (loop-body exp) s))]
+      ; runs the while loop
+      [(m-condition (loop-condition exp) s) (m-while-loop exp (m-state (loop-body exp) s))]
 
       ; otherwise, returns initial state
       [else s])))
