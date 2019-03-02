@@ -37,7 +37,7 @@
 ;; Returns state with new empty state pushed on
 (define m-push
   (lambda (s)
-    (cons empty-state s)))
+    (cons new-layer s)))
 
 ;; Figures out which method should be used to evaluate this, and evaluates this
 ;; Returns updated state
