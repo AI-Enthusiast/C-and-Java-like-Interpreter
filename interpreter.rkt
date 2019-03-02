@@ -177,7 +177,7 @@
       [else                                  (m-update (variable dec)
                                                        (m-value (expression dec) s)
                                                        (m-add (variable dec) s))])))
-(trace m-var-dec)
+
 #|
 define state with abstration as one of the following
 '()
