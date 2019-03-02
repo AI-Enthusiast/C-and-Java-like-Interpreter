@@ -79,6 +79,10 @@
   (pass? (m-lookup 'a '(((a b c d)(2 5 6 7)))) 2)                                                 ; 1/5
   (pass? (m-lookup 'c '(((a b c d)(2 5 6 7)))) 6)                                                 ; 2/5
   (pass? (m-lookup 'd '(((a b c d)(2 5 6 7)))) 7)                                                 ; 3/5
+  (pass? (m-lookup 'd '(((a b c d)(2 5 6 7))((s d e w)(1 8 9 0)))) 7)
+  (pass? (m-lookup 'b '(((a b c d)(2 5 6 7))((s d e w)(1 8 9 0)))) 5)
+  (pass? (m-lookup 'e '(((a b c d)(2 5 6 7))((s d e w)(1 8 9 0)))) 9)
+  ;(pass? (m-lookup 'q '(((a b c d)(2 5 6 7))((s d e w)(1 8 9 0)))) "error) ;should error
   ;(pass? (m-lookup 'd '()) "error)     ;should error                                           ; 4/5
   ;(pass? (m-lookup 's '(()())) "error) ;should error                                           ; 5/5
   (newline)
@@ -89,23 +93,29 @@
   (pass? (m-update 'a 3 '(((a b c d)(2 5 6 7)))) '(((a b c d)(3 5 6 7))))                           ; 2/6
   (pass? (m-update 'b 21 '(((a b c d)(2 5 6 7)))) '(((a b c d)(2 21 6 7))))                         ; 3/6
   (pass? (m-update 'd 1 '(((a b c d)(2 5 6 7))))  '(((a b c d)(2 5 6 1))))                          ; 4/6
-  (pass? (m-update 'a 0 '()) "error")                                                           ; 5/6
-  (pass? (m-update 'a 0 '((()()))) "error")                                                       ; 6/6
+  (pass? (m-update 'd 1 '(((a b c d)(2 5 6 7))((f g h)(1 9 10)))) '(((a b c d)(2 5 6 1))((f g h)(1 9 10))))
+  (pass? (m-update 'g 23 '(((a b c d)(2 5 6 7))((f g h)(1 9 10)))) '(((a b c d)(2 5 6 7))((f g h)(1 23 10))))
+  (pass? (m-update 'd 1 '(((a b c d)(2 5 6 7))((f d h)(1 9 10)))) '(((a b c d)(2 5 6 1))((f d h)(1 9 10))))
+  (pass? (m-update 'a 0 '()) "error")                                                               ; 5/6
+  (pass? (m-update 'a 0 '((()()))) "error")                                                         ; 6/6
   (newline)
 
   ; add a variable to the state
   (display "Test #6 m-add") (newline)                                                 ;Test m-add
-  (pass? (m-add 's '()) '(((s)("init"))))                                                         ; 1/4
+  (pass? (m-add 's '()) '(((s)("init"))))                                                           ; 1/4
   (pass? (m-add 's '((()()))) '(((s)("init"))))                                                     ; 2/4
   (pass? (m-add 's '(((a)(2)))) '(((s a)("init" 2))))                                               ; 3/4
   (pass? (m-add 's '(((a b c)(3 4 5)))) '(((s a b c)("init" 3 4 5))))                               ; 4/4
+  (pass? (m-add 's '(((a b c)(3 4 5))((d e f)(7 8 9)))) '(((s a b c)("init" 3 4 5))((d e f)(7 8 9))))
   (newline)
 
   ; remove a variable from a state
   (display "Test #7 m-remove") (newline)                                              ;Test m-remove
   (pass? (m-remove 'a '(((a b c d)(2 5 6 7)))) '(((b c d)(5 6 7))))                                 ; 1/6
   (pass? (m-remove 'b '(((a b c d)(2 5 6 7)))) '(((a c d)(2 6 7))))                                 ; 2/6
-  (pass? (m-remove 'd '(((a b c d)(2 5 6 7)))) '(((a b c)(2 5 6))))                                 ; 3/6
+  (pass? (m-remove 'd '(((a b c d)(2 5 6 7))((x d w)(3 8 9))))  '(((a b c)(2 5 6))((x d w)(3 8 9)))); 3/6
+  (pass? (m-remove 'w '(((a b c d)(2 5 6 7))((x d w)(3 8 9))))  '(((a b c d)(2 5 6 7))((x d)(3 8))))
+  (pass? (m-remove 'x '(((a b c d)(2 5 6 7))((x d w)(3 8 9))))  '(((a b c d)(2 5 6 7))((d w)(8 9))))     ; 3/6
   (pass? (m-remove 'a '(((b c d)(5 6 7)))) "error")                                               ; 4/6
   (pass? (m-remove 'a '((()()))) "error")                                                         ; 5/6
   (pass? (m-remove 'a '()) "error")                                                             ; 6/6
@@ -119,6 +129,7 @@
   (pass? (m-assign '(var d (+ 2 4)) '(((x y d z)(1 1 1 1)))) '(((x y d z)(1 1 6 1))))               ; 4/7
   (pass? (m-assign '(var d (+ x 4)) '(((x y d z)(2 3 7 1)))) '(((x y d z)(2 3 6 1))))               ; 5/7
   (pass? (m-assign '(var d (+ x (* y 2))) '(((x y d z)(2 3 7 1)))) '(((x y d z)(2 3 8 1))))         ; 6/7
+  (pass? (m-assign '(var g (+ x (* y 2))) '(((x y d z)(2 3 7 1))((h g)(5 6)))) '(((x y d z)(2 3 7 1))((h g)(5 8))))
   ;(pass? (m-assign '(var 'a 2) '((()()))) ;should error                                           ; 7/7
   (newline)
 
@@ -129,6 +140,8 @@
   (pass? (m-var-dec '(var a 1) '(((d s)(2 3)))) '(((a d s)(1 2 3))))                                ; 3/9
   (pass? (m-var-dec '(var a (+ x 1)) '(((c s x)(2 3 4)))) '(((a c s x)(5 2 3 4))))                  ; 4/9
   (pass? (m-var-dec '(var a (+ x (* c 3))) '(((c s x)(2 3 4)))) '(((a c s x)(10 2 3 4))))           ; 5/9
+  (pass? (m-var-dec '(var a 1) '(((d s)(2 3))((g h)(4 5)))) '(((a d s)(1 2 3))((g h)(4 5))))
+  (pass? (m-var-dec '(var y) '(((d s)(2 3))((g h)(4 5)))) '(((y d s)("init" 2 3))((g h)(4 5))))
   ;(pass? (m-var-dec '(var a) '(((d a s)(1 2 3)))) "error")             ;should error             ; 6/9
   ;(pass? (m-var-dec '(var a 1) '(((d a s)(1 2 3)))) "error")           ;should error             ; 7/9
   ;(pass? (m-var-dec '(var a (+ x 1)) '(((c s a x)(2 3 5 7)))) "error") ;should error             ; 8/9
