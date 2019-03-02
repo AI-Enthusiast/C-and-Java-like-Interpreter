@@ -76,63 +76,63 @@
 
   ; lookup variable's value in the state
   (display "Test #4 m-lookup") (newline)                                              ;Test m-lookup
-  (pass? (m-lookup 'a '((a b c d)(2 5 6 7))) 2)                                                 ; 1/5
-  (pass? (m-lookup 'c '((a b c d)(2 5 6 7))) 6)                                                 ; 2/5
-  (pass? (m-lookup 'd '((a b c d)(2 5 6 7))) 7)                                                 ; 3/5
+  (pass? (m-lookup 'a '(((a b c d)(2 5 6 7)))) 2)                                                 ; 1/5
+  (pass? (m-lookup 'c '(((a b c d)(2 5 6 7)))) 6)                                                 ; 2/5
+  (pass? (m-lookup 'd '(((a b c d)(2 5 6 7)))) 7)                                                 ; 3/5
   ;(pass? (m-lookup 'd '()) "error)     ;should error                                           ; 4/5
   ;(pass? (m-lookup 's '(()())) "error) ;should error                                           ; 5/5
   (newline)
 
   ; update variable's value in the state
   (display "Test #5 m-update") (newline)                                              ;Test m-update
-  (pass? (m-update 's 3 '((a b c d)(2 5 6 7))) "error")                                         ; 1/6
-  (pass? (m-update 'a 3 '((a b c d)(2 5 6 7))) '((a b c d)(3 5 6 7)))                           ; 2/6
-  (pass? (m-update 'b 21 '((a b c d)(2 5 6 7))) '((a b c d)(2 21 6 7)))                         ; 3/6
-  (pass? (m-update 'd 1 '((a b c d)(2 5 6 7)))  '((a b c d)(2 5 6 1)))                          ; 4/6
+  (pass? (m-update 's 3 '(((a b c d)(2 5 6 7)))) "error")                                         ; 1/6
+  (pass? (m-update 'a 3 '(((a b c d)(2 5 6 7)))) '(((a b c d)(3 5 6 7))))                           ; 2/6
+  (pass? (m-update 'b 21 '(((a b c d)(2 5 6 7)))) '(((a b c d)(2 21 6 7))))                         ; 3/6
+  (pass? (m-update 'd 1 '(((a b c d)(2 5 6 7))))  '(((a b c d)(2 5 6 1))))                          ; 4/6
   (pass? (m-update 'a 0 '()) "error")                                                           ; 5/6
-  (pass? (m-update 'a 0 '(()())) "error")                                                       ; 6/6
+  (pass? (m-update 'a 0 '((()()))) "error")                                                       ; 6/6
   (newline)
 
   ; add a variable to the state
   (display "Test #6 m-add") (newline)                                                 ;Test m-add
-  (pass? (m-add 's '()) '((s)("init")))                                                         ; 1/4
-  (pass? (m-add 's '(()())) '((s)("init")))                                                     ; 2/4
-  (pass? (m-add 's '((a)(2))) '((s a)("init" 2)))                                               ; 3/4
-  (pass? (m-add 's '((a b c)(3 4 5))) '((s a b c)("init" 3 4 5)))                               ; 4/4
+  (pass? (m-add 's '()) '(((s)("init"))))                                                         ; 1/4
+  (pass? (m-add 's '((()()))) '(((s)("init"))))                                                     ; 2/4
+  (pass? (m-add 's '(((a)(2)))) '(((s a)("init" 2))))                                               ; 3/4
+  (pass? (m-add 's '(((a b c)(3 4 5)))) '(((s a b c)("init" 3 4 5))))                               ; 4/4
   (newline)
 
   ; remove a variable from a state
   (display "Test #7 m-remove") (newline)                                              ;Test m-remove
-  (pass? (m-remove 'a '((a b c d)(2 5 6 7))) '((b c d)(5 6 7)))                                 ; 1/6
-  (pass? (m-remove 'b '((a b c d)(2 5 6 7))) '((a c d)(2 6 7)))                                 ; 2/6
-  (pass? (m-remove 'd '((a b c d)(2 5 6 7))) '((a b c)(2 5 6)))                                 ; 3/6
-  (pass? (m-remove 'a '((b c d)(5 6 7))) "error")                                               ; 4/6
-  (pass? (m-remove 'a '(()())) "error")                                                         ; 5/6
+  (pass? (m-remove 'a '(((a b c d)(2 5 6 7)))) '(((b c d)(5 6 7))))                                 ; 1/6
+  (pass? (m-remove 'b '(((a b c d)(2 5 6 7)))) '(((a c d)(2 6 7))))                                 ; 2/6
+  (pass? (m-remove 'd '(((a b c d)(2 5 6 7)))) '(((a b c)(2 5 6))))                                 ; 3/6
+  (pass? (m-remove 'a '(((b c d)(5 6 7)))) "error")                                               ; 4/6
+  (pass? (m-remove 'a '((()()))) "error")                                                         ; 5/6
   (pass? (m-remove 'a '()) "error")                                                             ; 6/6
   (newline)
 
   ; assign a variable
   (display "Test #8 m-assign") (newline)                                              ;Test m-assign
-  (pass? (m-assign '(var a 2) '((a)(1))) '((a)(2)))                                             ; 1/7
-  (pass? (m-assign '(var d 2) '((x y d z)(1 1 1 1))) '((x y d z)(1 1 2 1)))                     ; 2/7
-  (pass? (m-assign '(var d 2) '((x y d z)(1 1 "init" 1))) '((x y d z)(1 1 2 1)))                ; 3/7
-  (pass? (m-assign '(var d (+ 2 4)) '((x y d z)(1 1 1 1))) '((x y d z)(1 1 6 1)))               ; 4/7
-  (pass? (m-assign '(var d (+ x 4)) '((x y d z)(2 3 7 1))) '((x y d z)(2 3 6 1)))               ; 5/7
-  (pass? (m-assign '(var d (+ x (* y 2))) '((x y d z)(2 3 7 1))) '((x y d z)(2 3 8 1)))         ; 6/7
-  ;(pass? (m-assign '(var 'a 2) '(()()) ;should error                                           ; 7/7
+  (pass? (m-assign '(var a 2) '(((a)(1)))) '(((a)(2))))                                             ; 1/7
+  (pass? (m-assign '(var d 2) '(((x y d z)(1 1 1 1)))) '(((x y d z)(1 1 2 1))))                     ; 2/7
+  (pass? (m-assign '(var d 2) '(((x y d z)(1 1 "init" 1)))) '(((x y d z)(1 1 2 1))))                ; 3/7
+  (pass? (m-assign '(var d (+ 2 4)) '(((x y d z)(1 1 1 1)))) '(((x y d z)(1 1 6 1))))               ; 4/7
+  (pass? (m-assign '(var d (+ x 4)) '(((x y d z)(2 3 7 1)))) '(((x y d z)(2 3 6 1))))               ; 5/7
+  (pass? (m-assign '(var d (+ x (* y 2))) '(((x y d z)(2 3 7 1)))) '(((x y d z)(2 3 8 1))))         ; 6/7
+  ;(pass? (m-assign '(var 'a 2) '((()()))) ;should error                                           ; 7/7
   (newline)
 
   ; declares a variable
   (display "Test #9 m-var-dec") (newline)                                             ;Test m-var-dec
-  (pass? (m-var-dec '(var a) '((q)(1))) '((a q) ("init" 1)))                                    ; 1/9
-  (pass? (m-var-dec '(var a) '(()())) '((a)("init")))                                           ; 2/9
-  (pass? (m-var-dec '(var a 1) '((d s)(2 3))) '((a d s)(1 2 3)))                                ; 3/9
-  (pass? (m-var-dec '(var a (+ x 1)) '((c s x)(2 3 4))) '((a c s x)(5 2 3 4)))                  ; 4/9
-  (pass? (m-var-dec '(var a (+ x (* c 3))) '((c s x)(2 3 4))) '((a c s x)(10 2 3 4)))           ; 5/9
-  ;(pass? (m-var-dec '(var a) '((d a s)(1 2 3))) "error")             ;should error             ; 6/9
-  ;(pass? (m-var-dec '(var a 1) '((d a s)(1 2 3))) "error")           ;should error             ; 7/9
-  ;(pass? (m-var-dec '(var a (+ x 1)) '((c s a x)(2 3 5 7))) "error") ;should error             ; 8/9
-  ;(pass? (m-var-dec '(var a (+ a 1)) '((c s a x)(2 3 5 4))) "error") ;should error             ; 9/9
+  (pass? (m-var-dec '(var a) '(((q)(1)))) '(((a q) ("init" 1))))                                    ; 1/9
+  (pass? (m-var-dec '(var a) '((()()))) '(((a)("init"))))                                           ; 2/9
+  (pass? (m-var-dec '(var a 1) '(((d s)(2 3)))) '(((a d s)(1 2 3))))                                ; 3/9
+  (pass? (m-var-dec '(var a (+ x 1)) '(((c s x)(2 3 4)))) '(((a c s x)(5 2 3 4))))                  ; 4/9
+  (pass? (m-var-dec '(var a (+ x (* c 3))) '(((c s x)(2 3 4)))) '(((a c s x)(10 2 3 4))))           ; 5/9
+  ;(pass? (m-var-dec '(var a) '(((d a s)(1 2 3)))) "error")             ;should error             ; 6/9
+  ;(pass? (m-var-dec '(var a 1) '(((d a s)(1 2 3)))) "error")           ;should error             ; 7/9
+  ;(pass? (m-var-dec '(var a (+ x 1)) '(((c s a x)(2 3 5 7)))) "error") ;should error             ; 8/9
+  ;(pass? (m-var-dec '(var a (+ a 1)) '(((c s a x)(2 3 5 4)))) "error") ;should error             ; 9/9
   (newline)
 
   ; tests interpreter functionality
@@ -163,8 +163,9 @@
   ;(pass? (run "Tests/p1.Test12.txt") "error")  ;should error "use before declaring"            ; 24/26
   ;(pass? (run "Tests/p1.Test13.txt") "error")  ;should error "use before assigning"            ; 25/26
   ;(pass? (run "Tests/p1.Test14.txt") "error")  ;should error "redefining"                      ; 26/26
+  (display "End P1 Test run")
   (newline)
-
+#|
   (display "P2 Test run") (newline) 
   (pass? (run "Tests/p2.Test1.txt") 20)                                                       
   (pass? (run "Tests/p2.Test2.txt") 164)                                                      
@@ -184,7 +185,9 @@
   (pass? (run "Tests/p2.Test16.txt") 110)                                                        
   (pass? (run "Tests/p2.Test17.txt") 2000400)                                                        
   (pass? (run "Tests/p2.Test18.txt") 101)                                                       
-  ;(pass? (run "Tests/p2.Test19.txt") "error")   ;should give error 
+  ;(pass? (run "Tests/p2.Test19.txt") "error")   ;should give error
+
+|#
   (newline)
 
 
