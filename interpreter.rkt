@@ -259,7 +259,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define m-add
   (lambda (var s)
       (cond
-        [(null? s)    (list (list var) (list "init"))]
+        [(null? s)    (list (list (list var) (list "init")))]
         [(null? (vars s)) (cons (list (list var) (list "init")) (nextlayer s))]
         [else                              (cons (list (cons  var (vars s)) (cons "init" (vals s))) (nextlayer s))])))
 
