@@ -28,16 +28,17 @@
       [(not (list? (first-statement exp))) (m-what-type (first-statement exp) s)]
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s))])))
-
+#|
 ;; Returns state with most recent state popped off
 (define m-pop
   (lambda (s)
-    (popped-state s)))
+    (popped-state s))) ; TODO popped state does not exist
 
 ;; Returns state with new empty state pushed on
 (define m-push
   (lambda (s)
     (cons new-layer s)))
+|#
 
 ;; Figures out which method should be used to evaluate this, and evaluates this
 ;; Returns updated state
