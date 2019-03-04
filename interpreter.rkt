@@ -247,7 +247,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
   (lambda (var update-val s)
     (cond
       [(null? s) '()]
-      [(null? (vars s)) (update var update-val (nextlayer s))]
+      [(null? (vars s)) (cons new-layer (update var update-val (nextlayer s)))]
       [(local-locate var s) (cons (list (vars s) (local-update var update-val s)) (nextlayer s))]
       [else (cons (layer s) (update var update-val (nextlayer s)))])))
 
@@ -356,6 +356,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
       [(eq? (m-value exp s) #t)             (return 'true)]
       [(eq? (m-value exp s) #f)             (return 'false)]
       [else                                 (return (m-value exp s))])))
+
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
