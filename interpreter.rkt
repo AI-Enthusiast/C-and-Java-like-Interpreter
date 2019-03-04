@@ -23,13 +23,13 @@
 
 ;; Executes code, returns updated state
 (define m-state
-  (lambda (exp s)
+  (lambda (exp s return break continue try catch finally)
     (cond
       [(null? exp)                         s]
-      [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s)]
-      [(not (list? (first-statement exp))) (m-what-type (first-statement exp) s)]
+      [(null? (rest-of-body exp))          (m-what-type-cc (first-statement exp) s)]
+      [(not (list? (first-statement exp))) (m-what-type-cc (first-statement exp) s)]
       [else                                (m-state (rest-of-body exp)
-                                                    (m-what-type (first-statement exp) s))])))
+                                                    (m-what-type-cc (first-statement exp) s return break continue try catch finally)  return break continue try catch finally)])))
 
 ;; Returns state with most recent state popped off
 (define m-pop
@@ -52,7 +52,7 @@
 
 ;TODO add break and continue
 (define m-what-type-cc
-  (lambda (exp s break)
+  (lambda (exp s return break continue try catch finally)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(or (null? exp) (not (pair? exp)))    s]
