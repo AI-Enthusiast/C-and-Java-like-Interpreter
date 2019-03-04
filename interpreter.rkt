@@ -14,7 +14,13 @@
 ;; e.g. (run "Tests/Test1.txt")
 (define run
   (lambda (filename)
-    (m-state (parse-t filename) empty-state)))
+    (m-state (parse-t filename) empty-state
+             (lambda (v) v)
+             (lambda (v) v)
+             (lambda (v) v)
+             (lambda (v) v)
+             (lambda (v) v)
+             (lambda (v) v))))
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define parse-t
@@ -26,10 +32,10 @@
   (lambda (exp s return break continue try catch finally)
     (cond
       [(null? exp)                         s]
-      [(not (list? (first-statement exp))) (m-what-type-cc exp s)]
-      [(null? (rest-of-body exp))          (m-what-type-cc (first-statement exp) s)]
+      [(not (list? (first-statement exp))) (m-what-type                  exp  s return break continue try catch finally)]
+      [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s return break continue try catch finally)]
       [else                                (m-state (rest-of-body exp)
-                                                    (m-what-type-cc (first-statement exp) s return break continue try catch finally)  return break continue try catch finally)])))
+                                                    (m-what-type (first-statement exp) s return break continue try catch finally) return break continue try catch finally)])))
 
 ;; Returns state with most recent state popped off
 (define m-pop
@@ -44,25 +50,25 @@
 
 ;; Figures out which method should be used to evaluate this, and evaluates this
 ;; Returns updated state
-(define m-what-type
-  (lambda (exp s)
-    (call/cc
-     (lambda (a b c d e f)
-       (m-what-type-cc exp s a b c d e f)))))
+;(define m-what-type
+;  (lambda (exp s)
+;    (call/cc
+;     (lambda (k)
+;       (m-what-type-cc exp s k)))))
 
 ;TODO add break and continue
-(define m-what-type-cc
+(define m-what-type
   (lambda (exp s return break continue try catch finally)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(or (null? exp) (not (pair? exp)))    s]
 
       ; is it a new block
-      [(eq? (first-statement exp) 'begin)    (m-pop (m-state (rest-of-body exp) (m-push s)))]
+      [(eq? (first-statement exp) 'begin)    (m-pop (m-state (rest-of-body exp) (m-push s) return break continue try catch finally))]
 
       ; conditional statement checking (if/while/etc.)
-      [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s)]
-      [(eq? (statement-type-id exp) 'while)  (m-while-loop exp s)]
+      [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s return break continue try catch finally)]
+      [(eq? (statement-type-id exp) 'while)  (m-while-loop   exp s return break continue try catch finally)]
 
       ; is it a break
       [(eq? (statement-type-id exp) 'break)  (break #| DO SOMETHING |#)]
@@ -145,27 +151,23 @@
 
 ;; Implementing if statement
 (define m-if-statement
-  (lambda (exp s)
+  (lambda (exp s return break continue try catch finally)
     (cond
       ; invalid expression
       [(null? exp)         (error 'undefined "undefined expression")]
 
       ; run the loop of the body
-      [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s)]
-
-      ; run the loop of the body (body is single statement)
-      [(m-condition (loop-condition exp) s)
-                           (m-what-type (loop-body exp) s)]
+      [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s return break continue try catch finally)]
 
       ; if there's no else statement, return the state
       [(null? (cdddr exp)) s]
 
       ; run the else of the body
-      [else (m-state (else-statement exp) s)])))
+      [else (m-state (else-statement exp) s return break continue try catch finally)])))
 
 ;; Implementing while loop
 (define m-while-loop
-  (lambda (exp s)
+  (lambda (exp s return break continue try catch finally)
     (cond
       ; invalid expression
       [(null? exp)
@@ -173,11 +175,11 @@
 
       ; runs the while loop (body is multiple statements)
       [(and (m-condition (loop-condition exp) s) (pair? (first-statement (loop-body exp))))
-           (m-while-loop exp (m-state (loop-body exp) s))]
+           (m-while-loop exp (m-state (loop-body exp) s return break continue try catch finally) return break continue try catch finally)]
 
       ; runs the while loop (body is single statement)
       [(m-condition (loop-condition exp) s)
-           (m-while-loop exp (m-what-type (loop-body exp) s))]
+           (m-while-loop exp (m-what-type (loop-body exp) s return break continue try catch finally) return break continue try catch finally)]
 
       ; otherwise, returns initial state
       [else s])))
