@@ -15,7 +15,7 @@
 (define run
   (lambda (filename)
     (m-state (parse-t filename) empty-state
-             (lambda (v) v)
+             (lambda (v) v) ;; CPS
              (lambda (v) v)
              (lambda (v) v)
              (lambda (v) v)
@@ -83,7 +83,7 @@
       [(eq? (statement-type-id exp) '=)      (m-assign exp s)]
 
       ; is it a return statement
-      [(eq? (statement-type-id exp) 'return) (m-return (statement-body exp) s)]
+      [(eq? (statement-type-id exp) 'return) (m-return (statement-body exp) s return finally)]
 
       ; oh no
       [else                                  (error 'undefined "undefined expression")])))
@@ -347,15 +347,15 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; Takes an expression and a state
 ;; Returns it as if it where in C/Java
 (define m-return
-  (lambda (exp s)
+  (lambda (exp s return finally)
     (cond
-      [(eq?   exp #t) 'true]
-      [(eq?   exp #f) 'false]
-      [(and (pair? exp) (am-i-boolean exp)) (m-return (m-condition exp s) s)]
-      [(pair? exp)    (m-value exp s)]
-      [(eq? (m-value exp s) #t) 'true]
-      [(eq? (m-value exp s) #f) 'false]
-      [else           (m-value exp s)])))
+      [(eq?   exp #t)                       (return 'true)]
+      [(eq?   exp #f)                       (return 'false)]
+      [(and (pair? exp) (am-i-boolean exp)) (m-return (m-condition exp s) s return finally)]
+      [(pair? exp)                          (return (m-value exp s))]
+      [(eq? (m-value exp s) #t)             (return 'true)]
+      [(eq? (m-value exp s) #f)             (return 'false)]
+      [else                                 (return (m-value exp s))])))
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
