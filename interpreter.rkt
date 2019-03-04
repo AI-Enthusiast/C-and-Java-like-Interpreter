@@ -47,8 +47,8 @@
 (define m-what-type
   (lambda (exp s)
     (call/cc
-     (lambda (k)
-       (m-what-type-cc exp s k)))))
+     (lambda (a b c d e f)
+       (m-what-type-cc exp s a b c d e f)))))
 
 ;TODO add break and continue
 (define m-what-type-cc
@@ -68,7 +68,7 @@
       [(eq? (statement-type-id exp) 'break)  (break #| DO SOMETHING |#)]
 
       ;is it a continue
-      [(eq? (statement-type-id exp) 'continue) (break #| DO NOTHING |#)]
+      [(eq? (statement-type-id exp) 'continue) (continue #| DO NOTHING |#)]
 
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]

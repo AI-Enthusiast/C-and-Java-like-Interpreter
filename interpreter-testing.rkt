@@ -213,7 +213,7 @@
 
 ;; Tests interpreter functionality P2
 (define (test-p2-test-scripts)
-  (display "Test P2 test scripts") (newline)                                       ; Test P2
+  (display "Test P2 test scripts") (newline)                                       ;Test P2
   (pass? (run "Tests/p2.Test1.txt") 20)                                                         ; 1/
   (pass? (run "Tests/p2.Test2.txt") 164)                                                        ; 2/
   (pass? (run "Tests/p2.Test3.txt") 32)                                                         ; 3/
