@@ -218,7 +218,7 @@
   (pass? (run "Tests/p2.Test2.txt") 164)                                                        ; 2/
   (pass? (run "Tests/p2.Test3.txt") 32)                                                         ; 3/
   (pass? (run "Tests/p2.Test4.txt") 4)                                                          ; 4/
-  (pass? (run "Tests/p2.Test5.txt") 5)                                                          ; 5/
+  ;(pass? (run "Tests/p2.Test5.txt") "error") ;should give error                                                        ; 5/
   (pass? (run "Tests/p2.Test6.txt") 25)                                                         ; 6/                                           
   ;(pass? (run "Tests/p2.Test7.txt") 21)                                                         ; 7/
   ;(pass? (run "Tests/p2.Test8.txt") 6)                                                          ; 8/
