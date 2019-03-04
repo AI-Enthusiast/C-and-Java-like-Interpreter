@@ -57,7 +57,7 @@
 ;       (m-what-type-cc exp s return break continue try catch finally)))))
 
 ;TODO add break and continue
-(define m-what-type-cc
+(define m-what-type
   (lambda (exp s return break continue try catch finally)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
