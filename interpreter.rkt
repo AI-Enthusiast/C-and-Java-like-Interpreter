@@ -1,10 +1,10 @@
 #lang racket
 ;;;; A Java/C (ish) interpreter
 ;;;; EECS 345
-;;;; Group #7: Shanti Polara, Catlin Campbell, Cormac Dacker
+;;;; Group #21: Shanti Polara, Catlin Campbell, Cormac Dacker
 ;;;; Will run a txt file containing code by using the run function (run "Filename.txt")
 ;;;; Order of inputs for ALL m-state and m-state like things
-;;;; m-state(exp, s, return, break, continue, try, catch, finally) 
+;;;; m-state(exp, s, return, break, continue, try, catch, finally)
 
 (provide (all-defined-out))         ; allows for testing to be done in interpreter-testing.rkt
 (require "simpleParser.rkt")        ; loads simpleParser.rkt, which itself loads lex.rkt
@@ -26,25 +26,33 @@
   (lambda (exp s)
     (cond
       [(null? exp)                         s]
-      [(not (list? (first-statement exp))) (m-what-type exp s)]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s)]
+      [(not (list? (first-statement exp))) (m-what-type (first-statement exp) s)]
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s))])))
 
 ;; Returns state with most recent state popped off
 (define m-pop
   (lambda (s)
-    (popped-state s)))
+    (nextlayer s))) ; TODO popped state does not exist
 
 ;; Returns state with new empty state pushed on
 (define m-push
   (lambda (s)
-    (cons empty-state s)))
+    (cons new-layer s)))
+
 
 ;; Figures out which method should be used to evaluate this, and evaluates this
 ;; Returns updated state
 (define m-what-type
   (lambda (exp s)
+    (call/cc
+     (lambda (k)
+       (m-what-type-cc exp s k)))))
+
+;TODO add break and continue
+(define m-what-type-cc
+  (lambda (exp s break)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(or (null? exp) (not (pair? exp)))    s]
@@ -55,6 +63,12 @@
       ; conditional statement checking (if/while/etc.)
       [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s)]
       [(eq? (statement-type-id exp) 'while)  (m-while-loop exp s)]
+
+      ; is it a break
+      [(eq? (statement-type-id exp) 'break)  (break #| DO SOMETHING |#)]
+
+      ;is it a continue
+      [(eq? (statement-type-id exp) 'continue) (break #| DO NOTHING |#)]
 
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
@@ -83,9 +97,9 @@
       ; boolean checking
       [(eq? exp 'true)                        #t] ; true
       [(eq? exp 'false)                       #f] ; false
-      
+
       ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
-      [(and (pair? exp) (am-i-boolean exp))   (m-condition exp s)] 
+      [(and (pair? exp) (am-i-boolean exp))   (m-condition exp s)]
 
       ; variable checking
       [(not (pair? exp))                      (m-lookup exp s)]
@@ -129,8 +143,6 @@
       ; oh no
       [else                      (m-value exp s)])))
 
-
-
 ;; Implementing if statement
 (define m-if-statement
   (lambda (exp s)
@@ -141,8 +153,12 @@
       ; run the loop of the body
       [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s)]
 
+      ; run the loop of the body (body is single statement)
+      [(m-condition (loop-condition exp) s)
+                           (m-what-type (loop-body exp) s)]
+
       ; if there's no else statement, return the state
-      [(null? (cdddr exp)) s] 
+      [(null? (cdddr exp)) s]
 
       ; run the else of the body
       [else (m-state (else-statement exp) s)])))
@@ -155,8 +171,13 @@
       [(null? exp)
            (error 'undefined "undefined expression")]
 
-      ; runs the while loop
-      [(m-condition (loop-condition exp) s) (m-while-loop exp (m-state (loop-body exp) s))]
+      ; runs the while loop (body is multiple statements)
+      [(and (m-condition (loop-condition exp) s) (pair? (first-statement (loop-body exp))))
+           (m-while-loop exp (m-state (loop-body exp) s))]
+
+      ; runs the while loop (body is single statement)
+      [(m-condition (loop-condition exp) s)
+           (m-while-loop exp (m-what-type (loop-body exp) s))]
 
       ; otherwise, returns initial state
       [else s])))
@@ -165,7 +186,7 @@
 ;; Returns the updated state
 (define m-assign
   (lambda (assign s)
-      (if (not (number? (locate (variable assign) 0 s)))
+      (if (not (locate (variable assign) s))
                            (error "use before declaration")
           (m-update (variable assign) (m-value (expression assign) s) s))))
 
@@ -175,7 +196,7 @@
   (lambda (dec s)
     (cond
       ; check variable not already declared
-      [(number? (locate (variable dec) 0 s)) (error "redefining")]
+      [(locate (variable dec) s) (error "redefining")]
       ; just need to add variable, not value
       [(null? (assignment dec))              (m-add (variable dec) s)]
       ; need to add value as well
@@ -184,93 +205,127 @@
                                                        (m-add (variable dec) s))])))
 
 #|
-define state with abstration as
-((x, y, ...) (4, 6, ...))
+define state with abstration as one of the following
+'()
+'((()()))
+'(((x, y, ...) (4, 6, ...)))
+'(((x, y, ...) (4, 6, ...))((a, b, ...)(1, 2, ...))((...)(...)))
 state is s
 methods for state
-m-lookup - looks up variable's value, returns value
-m-update - updates variable's value, returns updated state
-m-add - adds uninitilized variable to state, returns updated state
-m-remove - removes a variable and it's value from state, returns updated state
+m-lookup - looks up variable's value, returns value found at highest layer
+m-update - updates variable's value on the first location the variable is found, returns updated state
+m-add - adds uninitilized variable to state (on topmost layer), returns updated state
+m-remove - removes a variable and it's value from the first layer it is found at, returns updated state
 |#
 
 ;; Takes a variable and a state
-;; Returns the value of the variable, or error message if it does not exist
+;; Returns the value of the variable at the first instance it is found, or error message if it does not exist
 ;; Will return "init" if not yet initilized
 (define m-lookup
   (lambda (var s)
     (cond
-      [(or (null? s) (null? (vars s)))                         (error "use before declared")]
+      [(null? s) (error "use before declared")]
+      [(null? (vars s)) (m-lookup var (nextlayer s))]
       [(and (equal? var (nextvar s)) (eq? "init" (nextval s))) (error "use before assignment")]
       [(equal? var (nextvar s))                                (nextval s)]
-      [else                                                    (m-lookup var
-                                                                         (list (rest-of-vals (vars s))
-                                                                               (rest-of-vals (vals s))))])))
+      [else                                                    (m-lookup var (next-part s))])))
+
 
 ;; Takes a variable, the value it is to be updated to, and the state, returns the updated state
 (define m-update
   (lambda (var update-val s)
     (cond
-      [(or (null? s) (null? (vars s)))  "error"]
-      [(not (number? (locate var 0 s))) "error"]
-      [else                             (list (vars s) (update var update-val s))])))
+      [(null? s) "error"]
+      [(not (locate var s)) "error"]
+      [else (update var update-val s)])))
 
-;; Takes the value to be updated, the location of the value and the
-;; Updates the variable at the location with the new value, returns the updated state
+;;takes a variable, the value it is to be updated to and a state
+;;returns the state with the variable's value updated at the first instance of the variable
 (define update
   (lambda (var update-val s)
     (cond
-      [(eq? var (nextvar s))  (cons update-val (rest-of-vals (vals s)))]
-      [else                   (cons (nextval s) (update var update-val (list (rest-of-vals (vars s))
-                                                                             (rest-of-vals (vals s)))))])))
+      [(null? s) '()]
+      [(null? (vars s)) (update var update-val (nextlayer s))]
+      [(local-locate var s) (cons (list (vars s) (local-update var update-val s)) (nextlayer s))]
+      [else (cons (layer s) (update var update-val (nextlayer s)))])))
 
-;; Finds the location of the variable's value in the state
+;;takes a variable and a state
+;; returns true if the variable exists on the top layer of the state, false otherwise
+(define local-locate
+  (lambda (var s)
+    (cond
+      [(or (null? s) (null? (vars s)))  #f]
+      [(eq? var (nextvar s)) #t]
+      [else (local-locate var (next-part s))])))
+
+;;takes a variable, the value to be updated and the state with the top layer the layer to be updated
+;;returns the state with the layer updated with the new value for the variable
+(define local-update
+  (lambda (var update-val s)
+    (cond
+      [(eq? var (nextvar s))  (cons update-val (rest-of (vals s)))]
+      [else                   (cons (nextval s) (local-update var update-val (next-part s)))])))
+
+
+;; returns #t if the value is found in the state, #f otherwise
 ;; Takes the variable it is locating, a counter and a state
 (define locate
-  (lambda (var counter s)
+  (lambda (var s )
     (cond
-      [(or (null? s)(null? (vars s)))
-       "error"]
-      [(eq? var (nextvar s))
-       counter]
-      [else
-       (locate var (+ counter 1) (cons (rest-of-vals (vars s)) (cons (rest-of-vals (vals s)) '())))])))
+      [(null? s) #f]
+      [(null? (vars s)) (locate var (nextlayer s))]
+      [(eq? var (nextvar s)) #t]
+      [else (locate var (next-part s))])))
+
 
 ;; Takes a varaiable and a state, adds it to a state with non number uninitilized value "init"
 ;; (does not take value, to update value, use m-update)
 ;; Returns the updated state, if used before assigned, should result in error
-;; Will accept an empty state '(), a state formated '(()()) or a state formated '((var1 ...)(val1 ...))
+;; Will accept an empty state '(), a state formated '((()())) or a state formated '(((var1 ...)(val1 ...))((varx ...) (valx ...)))
 (define m-add
   (lambda (var s)
       (cond
-        [(or (null? s) (null? (vars s)))   (list (list var) (list "init"))]
-        [(eq? (locate var 0 s) "init")     (m-update var "init" s)]
-        [else                              (list (cons  var (vars s)) (cons "init" (vals s)))])))
+        [(null? s)    (list (list (list var) (list "init")))]
+        [(null? (vars s)) (cons (list (list var) (list "init")) (nextlayer s))]
+        [else                              (cons (list (cons  var (vars s)) (cons "init" (vals s))) (nextlayer s))])))
 
-;; Takes a variable and a state
-;; Returns the updated state with the variable and assosiated value removed
+
+;;takes a variable and a state
+;;returns the state with the variable and it's value removed
 (define m-remove
   (lambda (var s)
-    (if (not (number? (locate var 0 s)))
-        "error"
-        (list (remove var (vars s)) (remove-val var s)))))
+    (cond
+      [(null? s) "error"]
+      [(not (locate var s)) "error"]
+      [else (remove var s)])))
+
+;;takes a variable and a state, removes the variable and it's value from the first layer it is found in
+;;returns the updated state with the variable and it's value removed
+(define remove
+  (lambda (var s)
+    (cond
+      [(null? s) '()]
+      [(null? (vars s)) (remove var (nextlayer s))]
+      [(local-locate var s) (cons (list (remove-var var (vars s)) (remove-val var  s)) (nextlayer s))]
+      [else (cons (layer s) (remove var (nextlayer s)))])))
+
 
 ;; Takes a variable and a state
 ;; Returns the value list with the value attached to the variable removed
 (define remove-val
   (lambda (var s)
     (if (eq? var (nextvar s))
-        (rest-of-vals (vals s))
-        (cons (nextval s) (remove-val var (list (rest-of-vals (vars s)) (rest-of-vals (vals s))))))))
+        (rest-of (vals s))
+        (cons (nextval s) (remove-val var (next-part s))))))
 
-;; Takes an atom and a list
-;; Returns the list with the first instance of the atom removed
-(define remove
+;; Takes an variable and a variable list
+;; Returns the variable list with the first instance of the variable removed
+(define remove-var
   (lambda (a lis)
     (cond
       [(null? lis)                '()]
-      [(eq? a (first-val lis))    (rest-of-vals lis)]
-      [else                       (cons (first-val lis) (remove a (rest-of-vals lis)))])))
+      [(eq? a (first-val lis))    (rest-of lis)]
+      [else                       (cons (first-val lis) (remove-var a (rest-of lis)))])))
 
 ;; Determines if an expression is boolean
 (define am-i-boolean
@@ -292,12 +347,12 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define m-return
   (lambda (exp s)
     (cond
-      [(eq?   exp #t) "true"]
-      [(eq?   exp #f) "false"]
+      [(eq?   exp #t) 'true]
+      [(eq?   exp #f) 'false]
       [(and (pair? exp) (am-i-boolean exp)) (m-return (m-condition exp s) s)]
       [(pair? exp)    (m-value exp s)]
-      [(eq? (m-value exp s) #t) "true"]
-      [(eq? (m-value exp s) #f) "false"]
+      [(eq? (m-value exp s) #t) 'true]
+      [(eq? (m-value exp s) #f) 'false]
       [else           (m-value exp s)])))
 
 ;;;;**********ABSTRACTION**********
@@ -321,20 +376,26 @@ m-remove - removes a variable and it's value from state, returns updated state
 (define variable cadr)
 (define expression caddr)
 
+
 ; for remove
 (define first-val car)
 
 ; for state computation
-(define vars car)
-(define vals cadr)
-(define nextvar caar)
-(define rest-of-vals cdr)
-(define nextval caadr)
+(define vars caar)
+(define vals cadar)
+(define nextvar caaar)
+(define rest-of cdr)
+(define nextval caadar)
+(define layer car)
+(define nextlayer cdr)
+(define next-part
+  (lambda (s)
+    (cons (list (cdr (vars s)) (cdr (vals s))) (nextlayer s))))
 
 ; for running/state
-(define empty-state '(() ()))
+(define new-layer '(()()))
+(define empty-state '((() ())))
 (define first-statement car)
 (define rest-of-body cdr)
-(define popped-state cdr)
 
 ;; Thank you, sleep well :)
