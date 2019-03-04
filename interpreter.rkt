@@ -26,8 +26,8 @@
   (lambda (exp s return break continue try catch finally)
     (cond
       [(null? exp)                         s]
+      [(not (list? (first-statement exp))) (m-what-type-cc exp s)]
       [(null? (rest-of-body exp))          (m-what-type-cc (first-statement exp) s)]
-      [(not (list? (first-statement exp))) (m-what-type-cc (first-statement exp) s)]
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type-cc (first-statement exp) s return break continue try catch finally)  return break continue try catch finally)])))
 
