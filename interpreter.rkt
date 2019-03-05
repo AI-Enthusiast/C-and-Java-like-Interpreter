@@ -22,11 +22,11 @@
   (lambda (filename callcc)
      (m-state (parse-t filename) empty-state
              callcc ;; return
-             (lambda (v) v) ;; 
-             (lambda (v) v)
-             (lambda (v) v)
-             (lambda (v) v)
-             (lambda (v) v))))
+             (lambda (v) v) ;; break
+             (lambda (v) v) ;; continue
+             (lambda (v) v) ;; try
+             (lambda (v) v) ;; catch
+             (lambda (v) v)))) ;; finally 
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define parse-t
