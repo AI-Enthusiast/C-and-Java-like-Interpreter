@@ -34,6 +34,7 @@
       [(null? exp)                         s]
       [(not (list? (first-statement exp))) (m-what-type                  exp  s return break continue try catch finally)]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s return break continue try catch finally)]
+      [(eq? (first-statement exp) 'begin)  (m-pop (m-state (rest-of-body exp) (m-push s) return break continue try catch finally))]
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s return break continue try catch finally) return break continue try catch finally)])))
 
