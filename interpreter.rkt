@@ -14,9 +14,15 @@
 ;; e.g. (run "Tests/Test1.txt")
 (define run
   (lambda (filename)
-    (m-state (parse-t filename) empty-state
-             (lambda (v) v) ;; CPS
-             (lambda (v) v)
+    (call/cc
+     (lambda (k)
+       (runner filename k)))))
+
+(define runner
+  (lambda (filename callcc)
+     (m-state (parse-t filename) empty-state
+             callcc ;; return
+             (lambda (v) v) ;; 
              (lambda (v) v)
              (lambda (v) v)
              (lambda (v) v)
@@ -32,8 +38,14 @@
   (lambda (exp s return break continue try catch finally)
     (cond
       [(null? exp)                         s]
+      ; check for return
+      ;[(and (list? (first-statement exp)) (eq? (statement-type-id (first-statement exp)) 'return))
+      ;                   (m-return (statement-body (first-statement exp)) s return finally)]
       [(not (list? (first-statement exp))) (m-what-type                  exp  s return break continue try catch finally)]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s return break continue try catch finally)]
+      ; [(eq? (first-statement exp) 'return) (m-return (statement-body (first-statement exp)) s return finally)]
+      [(eq? (first-statement exp) 'begin)  (m-pop (m-state (rest-of-body exp) (m-push s) return break continue try catch finally))]
+     
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s return break continue try catch finally) return break continue try catch finally)])))
 
@@ -84,7 +96,7 @@
 
       ; is it a return statement
       [(eq? (statement-type-id exp) 'return) (m-return (statement-body exp) s return finally)]
-
+      
       ; oh no
       [else                                  (error 'undefined "undefined expression")])))
 
@@ -402,3 +414,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define rest-of-body cdr)
 
 ;; Thank you, sleep well :)
+
+;; debugging
+;; (run "Tests/p2.Test4.txt")
+
