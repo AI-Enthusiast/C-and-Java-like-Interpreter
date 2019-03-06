@@ -222,7 +222,7 @@
   (pass? (run "Tests/p2.Test6.txt") 25)                                                         ; 6/                                           
   (pass? (run "Tests/p2.Test7.txt") 21)                                                         ; 7/
   ;(pass? (run "Tests/p2.Test8.txt") 6)                                                          ; 8/
-  ;(pass? (run "Tests/p2.Test9.txt") -1)                                                         ; 9/
+  (pass? (run "Tests/p2.Test9.txt") -1)                                                         ; 9/
   ;(pass? (run "Tests/p2.Test10.txt") 789)                                                       ; 10/
   ;(pass? (run "Tests/p2.Test11.txt") "error")   ;should give error                             ; 11/
   ;(pass? (run "Tests/p2.Test12.txt") "error")   ;should give error                             ; 12/
@@ -232,7 +232,8 @@
   ;(pass? (run "Tests/p2.Test16.txt") 110)                                                       ; 16/
   ;(pass? (run "Tests/p2.Test17.txt") 2000400)                                                   ; 17/ 
   ;(pass? (run "Tests/p2.Test18.txt") 101)                                                       ; 18/ 
-  ;(pass? (run "Tests/p2.Test19.txt") "error")   ;should give error                             ; 19/
+  ;(pass? (run "Tests/p2.Test19.txt") "error")   ;should give error                              ; 19/
+  (pass? (run "Tests/Test7.txt") 2)              ; this tests break                              ; 20/ 
   
   (newline)) ; left hanging for easy test additions
 

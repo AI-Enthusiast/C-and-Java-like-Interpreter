@@ -80,13 +80,13 @@
 
       ; conditional statement checking (if/while/etc.)
       [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s return break continue try catch finally)]
-      [(eq? (statement-type-id exp) 'while)  (m-while-loop   exp s return break continue try catch finally)]
+      [(eq? (statement-type-id exp) 'while)  (call/cc (lambda (k) (m-while-loop   exp s return k continue try catch finally)))]
 
       ; is it a break
-      [(eq? (statement-type-id exp) 'break)  (break #| DO SOMETHING |#)]
+      [(eq? (statement-type-id exp) 'break)  (break s #| DO SOMETHING |#)]
 
       ;is it a continue
-      [(eq? (statement-type-id exp) 'continue) (break #| DO NOTHING |#)]
+      [(eq? (statement-type-id exp) 'continue) (break s #| DO NOTHING |#)]
 
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
@@ -187,7 +187,7 @@
 
       ; runs the while loop (body is multiple statements)
       [(m-condition (loop-condition exp) s)
-           (m-while-loop exp (m-state (loop-body exp) s return break continue try catch finally) return break continue try catch finally)]
+           (call/cc (lambda (k) (m-while-loop exp (m-state (loop-body exp) s return break k try catch finally) return break continue try catch finally)))]
 
       ; otherwise, returns initial state
       [else s])))
@@ -413,4 +413,4 @@ m-remove - removes a variable and it's value from the first layer it is found at
 
 ;; debugging
 ;; (run "Tests/p2.Test4.txt")
-
+;; (run "Tests/p2.Test9.txt")
