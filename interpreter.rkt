@@ -186,12 +186,8 @@
            (error 'undefined "undefined expression")]
 
       ; runs the while loop (body is multiple statements)
-      [(and (m-condition (loop-condition exp) s) (pair? (first-statement (loop-body exp))))
-           (m-while-loop exp (m-state (loop-body exp) s return break continue try catch finally) return break continue try catch finally)]
-
-      ; runs the while loop (body is single statement)
       [(m-condition (loop-condition exp) s)
-           (m-while-loop exp (m-what-type (loop-body exp) s return break continue try catch finally) return break continue try catch finally)]
+           (m-while-loop exp (m-state (loop-body exp) s return break continue try catch finally) return break continue try catch finally)]
 
       ; otherwise, returns initial state
       [else s])))
