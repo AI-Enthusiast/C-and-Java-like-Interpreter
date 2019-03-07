@@ -180,17 +180,19 @@
 ;; Implementing while loop
 (define m-while-loop
   (lambda (exp s return break continue try catch finally)
-    (cond
-      ; invalid expression
-      [(null? exp)
-           (error 'undefined "undefined expression")]
+    (call/cc
+     (lambda (k)
+       (cond
+         ; invalid expression
+         [(null? exp)
+          (error 'undefined "undefined expression")]
 
-      ; runs the while loop (body is multiple statements)
-      [(m-condition (loop-condition exp) s)
-           (call/cc (lambda (k) (m-while-loop exp (m-state (loop-body exp) s return break k try catch finally) return break continue try catch finally)))]
+         ; runs the while loop (body is multiple statements)
+         [(m-condition (loop-condition exp) s)
+          (m-while-loop exp (m-state (loop-body exp) s return break k try catch finally) return break continue try catch finally)]
 
-      ; otherwise, returns initial state
-      [else s])))
+         ; otherwise, returns initial state
+         [else s])))))
 
 ;; Takes an assinment and a state
 ;; Returns the updated state
