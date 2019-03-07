@@ -1,0 +1,12 @@
+var x = 0;
+while (x < 2) {
+    x = x + 1;
+    break;
+    x = 500000;
+}
+while (x > 0) {
+    x = x * 2;
+    break;
+    x = x + 500000000;
+}
+return x;

@@ -22,11 +22,11 @@
   (lambda (filename callcc)
      (m-state (parse-t filename) empty-state
              callcc ;; return
-             (lambda (v) v) ;; 
-             (lambda (v) v)
-             (lambda (v) v)
-             (lambda (v) v)
-             (lambda (v) v))))
+             (lambda (v) v) ;; break
+             (lambda (v) v) ;; continue
+             (lambda (v) v) ;; try
+             (lambda (v) v) ;; catch
+             (lambda (v) v)))) ;; finally 
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define parse-t
@@ -80,10 +80,10 @@
 
       ; conditional statement checking (if/while/etc.)
       [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s return break continue try catch finally)]
-      [(eq? (statement-type-id exp) 'while)  (m-while-loop   exp s return break continue try catch finally)]
+      [(eq? (statement-type-id exp) 'while)  (call/cc (lambda (k) (m-while-loop   exp s return k continue try catch finally)))]
 
       ; is it a break
-      [(eq? (statement-type-id exp) 'break)  (break #| DO SOMETHING |#)]
+      [(eq? (statement-type-id exp) 'break)  (break s #| DO SOMETHING |#)]
 
       ;is it a continue
       [(eq? (statement-type-id exp) 'continue) (continue #| DO NOTHING |#)]
@@ -186,12 +186,8 @@
            (error 'undefined "undefined expression")]
 
       ; runs the while loop (body is multiple statements)
-      [(and (m-condition (loop-condition exp) s) (pair? (first-statement (loop-body exp))))
-           (m-while-loop exp (m-state (loop-body exp) s return break continue try catch finally) return break continue try catch finally)]
-
-      ; runs the while loop (body is single statement)
       [(m-condition (loop-condition exp) s)
-           (m-while-loop exp (m-what-type (loop-body exp) s return break continue try catch finally) return break continue try catch finally)]
+           (call/cc (lambda (k) (m-while-loop exp (m-state (loop-body exp) s return break k try catch finally) return break continue try catch finally)))]
 
       ; otherwise, returns initial state
       [else s])))
@@ -417,4 +413,4 @@ m-remove - removes a variable and it's value from the first layer it is found at
 
 ;; debugging
 ;; (run "Tests/p2.Test4.txt")
-
+;; (run "Tests/p2.Test9.txt")
