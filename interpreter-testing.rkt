@@ -221,15 +221,15 @@
   ;(pass? (run "Tests/p2.Test5.txt") "error") ;should give error                                                        ; 5/
   (pass? (run "Tests/p2.Test6.txt") 25)                                                         ; 6/                                           
   (pass? (run "Tests/p2.Test7.txt") 21)                                                         ; 7/
-  (pass? (run "Tests/p2.Test8.txt") 6)                                                          ; 8/
+  ;(pass? (run "Tests/p2.Test8.txt") 6)                                                          ; 8/
   (pass? (run "Tests/p2.Test9.txt") -1)                                                         ; 9/
   ;(pass? (run "Tests/p2.Test10.txt") 789)                                                       ; 10/
   ;(pass? (run "Tests/p2.Test11.txt") "error")   ;should give error                             ; 11/
   ;(pass? (run "Tests/p2.Test12.txt") "error")   ;should give error                             ; 12/
   ;(pass? (run "Tests/p2.Test13.txt") "error")   ;should give error                             ; 13/
-  ;(pass? (run "Tests/p2.Test14.txt") 12)                                                        ; 14/
+  (pass? (run "Tests/p2.Test14.txt") 12)                                                        ; 14/
   ;(pass? (run "Tests/p2.Test15.txt") 125)                                                       ; 15/
-  ;(pass? (run "Tests/p2.Test16.txt") 110)                                                       ; 16/
+  ;(pass? (run "Tests/p2.Test16.txt") 110)       ;this tests try,throw,catch,finally             ; 16/
   ;(pass? (run "Tests/p2.Test17.txt") 2000400)                                                   ; 17/ 
   ;(pass? (run "Tests/p2.Test18.txt") 101)                                                       ; 18/ 
   ;(pass? (run "Tests/p2.Test19.txt") "error")   ;should give error                              ; 19/

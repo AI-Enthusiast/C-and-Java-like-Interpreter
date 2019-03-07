@@ -20,7 +20,7 @@
 
 (define runner
   (lambda (filename callcc)
-     (m-state (parse-t filename) empty-state
+    (m-state (parse-t filename) empty-state
              callcc ;; return
              (lambda (v) v) ;; break
              (lambda (v) v) ;; continue
@@ -76,18 +76,40 @@
       [(or (null? exp) (not (pair? exp)))    s]
 
       ; is it a new block
-      [(eq? (first-statement exp) 'begin)    (m-pop (m-state (rest-of-body exp) (m-push s) return break continue try catch finally))]
+      [(eq? (first-statement exp) 'begin)    (m-pop (m-state (rest-of-body exp)
+                                                             (m-push s) return break continue
+                                                             try catch finally))]
 
       ; conditional statement checking (if/while/etc.)
       [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s return break continue try catch finally)]
       [(eq? (statement-type-id exp) 'while)  (call/cc (lambda (k) (m-while-loop   exp s return k continue try catch finally)))]
 
       ; is it a break
-      [(eq? (statement-type-id exp) 'break)  (break s #| DO SOMETHING |#)]
+      [(eq? (statement-type-id exp) 'break)  (break s)]
 
       ;is it a continue
-      [(eq? (statement-type-id exp) 'continue) (continue s #| DO NOTHING |#)]
+      [(eq? (statement-type-id exp) 'continue) (continue s)]
 
+      ; is it a try thus also new block
+      [(eq? (first-statement exp) 'try)    (m-pop (m-state (rest-of-body exp)
+                                                           (m-push s) return break continue
+                                                           try catch finally))]
+
+      ;is it a throw
+      [(eq? (statement-type-id exp) 'throw) (break (m-throw (rest-of-body exp) s))]
+
+      ;is it a catch thus also a new block
+      [(eq? (statement-type-id exp) 'catch) (m-catch (statement-body exp)
+                                                     (loop-body exp)
+                                                     (m-pop (m-state (rest-of-body exp)
+                                                                     (m-push s) return break continue
+                                                                     try catch finally)))]
+
+      ;is it a finally thus also a new block
+      [(eq? (statement-type-id exp) 'finally) (m-finally exp (m-pop (m-state (rest-of-body exp)
+                                                           (m-push s) return break continue
+                                                           try catch finally)))]
+                                               
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
 
@@ -125,7 +147,7 @@
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(and (eq? (operator exp) '-) (null? (cddr exp))) ; handle negitive numbers
-                               (* -1 (m-value (left-operand exp) s))]
+       (* -1 (m-value (left-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -198,9 +220,9 @@
 ;; Returns the updated state
 (define m-assign
   (lambda (assign s)
-      (if (not (locate (variable assign) s))
-                           (error "use before declaration")
-          (m-update (variable assign) (m-value (expression assign) s) s))))
+    (if (not (locate (variable assign) s))
+        (error "use before declaration")
+        (m-update (variable assign) (m-value (expression assign) s) s))))
 
 ;; Takes a variable declaration and a state
 ;; Returns the updated state
@@ -215,6 +237,29 @@
       [else                                  (m-update (variable dec)
                                                        (m-value (expression dec) s)
                                                        (m-add (variable dec) s))])))
+
+;; Takes a throw exception and a state
+;; Returns a the poped state with the exception added 
+(define (m-throw)
+  (lambda (excptn s)
+    (m-assign '(var save excptn) (m-var-dec '(var save) (m-pop s))))) ; saves binding to be used in m-catch
+
+;; Takes an exception, expression, and state
+;; Returns the state after the expression
+(define (m-catch)
+  (lambda (excptn exp s)
+    (m-assign '(var excptn (m-lookup 'save s)) (m-var-dec '(var excptn) s))
+    (cond
+      [(null? exp) s]
+      [else (m-state (loop-body exp))])))
+
+;; Takes a body and state
+;; Returns state after body
+(define (m-finally)
+  (lambda (exp s return break continue try catch finally)
+    (cond
+      [(null? exp) s] ; TODO Check if there is a return to return insted of state before returning state
+      [else (m-state (loop-body exp))])))
 
 #|
 define state with abstration as one of the following
@@ -296,10 +341,10 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; Will accept an empty state '(), a state formated '((()())) or a state formated '(((var1 ...)(val1 ...))((varx ...) (valx ...)))
 (define m-add
   (lambda (var s)
-      (cond
-        [(null? s)    (list (list (list var) (list "init")))]
-        [(null? (vars s)) (cons (list (list var) (list "init")) (nextlayer s))]
-        [else                              (cons (list (cons  var (vars s)) (cons "init" (vals s))) (nextlayer s))])))
+    (cond
+      [(null? s)    (list (list (list var) (list "init")))]
+      [(null? (vars s)) (cons (list (list var) (list "init")) (nextlayer s))]
+      [else                              (cons (list (cons  var (vars s)) (cons "init" (vals s))) (nextlayer s))])))
 
 
 ;;takes a variable and a state
