@@ -86,7 +86,7 @@
       [(eq? (statement-type-id exp) 'break)  (break s #| DO SOMETHING |#)]
 
       ;is it a continue
-      [(eq? (statement-type-id exp) 'continue) (continue #| DO NOTHING |#)]
+      [(eq? (statement-type-id exp) 'continue) (continue s #| DO NOTHING |#)]
 
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
