@@ -227,7 +227,7 @@
   ;(pass? (run "Tests/p2.Test11.txt") "error")   ;should give error                             ; 11/
   ;(pass? (run "Tests/p2.Test12.txt") "error")   ;should give error                             ; 12/
   ;(pass? (run "Tests/p2.Test13.txt") "error")   ;should give error                             ; 13/
-  ;(pass? (run "Tests/p2.Test14.txt") 12)                                                        ; 14/
+  (pass? (run "Tests/p2.Test14.txt") 12)                                                        ; 14/
   ;(pass? (run "Tests/p2.Test15.txt") 125)                                                       ; 15/
   ;(pass? (run "Tests/p2.Test16.txt") 110)                                                       ; 16/
   ;(pass? (run "Tests/p2.Test17.txt") 2000400)                                                   ; 17/ 

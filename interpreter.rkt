@@ -44,7 +44,7 @@
       [(not (list? (first-statement exp))) (m-what-type                  exp  s return break continue try catch finally)]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s return break continue try catch finally)]
       ; [(eq? (first-statement exp) 'return) (m-return (statement-body (first-statement exp)) s return finally)]
-      [(eq? (first-statement exp) 'begin)  (m-pop (m-state (rest-of-body exp) (m-push s) return break continue try catch finally))]
+      [(eq? (first-statement exp) 'begin)  (m-pop (call/cc (lambda (k) (m-state (rest-of-body exp) (m-push s) return k continue try catch finally))))]
      
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s return break continue try catch finally) return break continue try catch finally)])))
@@ -76,14 +76,14 @@
       [(or (null? exp) (not (pair? exp)))    s]
 
       ; is it a new block
-      [(eq? (first-statement exp) 'begin)    (m-pop (m-state (rest-of-body exp) (m-push s) return break continue try catch finally))]
+      [(eq? (first-statement exp) 'begin)    (m-pop (call/cc (lambda (k) (m-state (rest-of-body exp) (m-push s) return break continue try catch finally))))]
 
       ; conditional statement checking (if/while/etc.)
       [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s return break continue try catch finally)]
       [(eq? (statement-type-id exp) 'while)  (call/cc (lambda (k) (m-while-loop   exp s return k continue try catch finally)))]
 
       ; is it a break
-      [(eq? (statement-type-id exp) 'break)  (break s #| DO SOMETHING |#)]
+      [(eq? (statement-type-id exp) 'break)  (break (m-pop s) #| DO SOMETHING |#)]
 
       ;is it a continue
       [(eq? (statement-type-id exp) 'continue) (continue s #| DO NOTHING |#)]
