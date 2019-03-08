@@ -253,29 +253,6 @@
                                                        (m-value (expression dec) s)
                                                        (m-add (variable dec) s))])))
 
-;; Takes a throw exception and a state
-;; Returns a the poped state with the exception added 
-(define (m-throw)
-  (lambda (excptn s)
-    (m-assign '(var save excptn) (m-var-dec '(var save) (m-pop s))))) ; saves binding to be used in m-catch
-
-;; Takes an exception, expression, and state
-;; Returns the state after the expression
-(define (m-catch)
-  (lambda (excptn exp s)
-    (m-assign '(var excptn (m-lookup 'save s)) (m-var-dec '(var excptn) s))
-    (cond
-      [(null? exp) s]
-      [else (m-state (loop-body exp))])))
-
-;; Takes a body and state
-;; Returns state after body
-(define (m-finally)
-  (lambda (exp s return break continue try catch finally)
-    (cond
-      [(null? exp) s] ; TODO Check if there is a return to return insted of state before returning state
-      [else (m-state (loop-body exp))])))
-
 #|
 define state with abstration as one of the following
 '()
