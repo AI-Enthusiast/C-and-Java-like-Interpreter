@@ -92,7 +92,7 @@
       [(eq? (statement-type-id exp) 'try)    (m-try-catch-finally exp s return break continue try catch finally)]
 
       ; is it a throw
-      [(eq? (statement-type-id exp) 'throw)  (break (catch (statement-body exp)))]
+      [(eq? (statement-type-id exp) 'throw)  (break (try (catch (statement-body exp))))]
 
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
@@ -113,10 +113,21 @@
       ; check if has finally first (no catch)
       [(eq? (second-identifier exp) 'finally) (m-state (second-identifier exp) (m-state (try-body exp) s return break continue try catch finally) return break continue try catch finally)]
 
+      ; check if it has catch (and no finally)
+      [(and (eq? (second-identifier exp) 'catch) (not (pair? (third-statement exp))))
+       (call/cc (lambda (k)
+                                            (m-state (try-body exp) s return break continue k
+                                          ;; CATCH STATEMENT
+                                          (lambda (exception) (m-state (catch-body (second-body exp))
+                                                                       ;; MODIFYING THE STATE 
+                                                                       (m-var-dec (list 'var (catch-var-name (second-body exp)) exception) (m-push s))
+                                                                       
+                                                                       return break continue k catch finally)) finally)))]
+
       ; check for a catch AND a finally 
       [(and (eq? (second-identifier exp) 'catch) (eq? (third-identifier exp) 'finally))
        (m-state (third-body exp) (call/cc (lambda (k)
-                                            (m-state (try-body exp) s return k continue try
+                                            (m-state (try-body exp) s return break continue k
                                           ;; CATCH STATEMENT
                                           (lambda (exception) (m-state (catch-body (second-body exp))
                                                                        ;; MODIFYING THE STATE 
@@ -451,4 +462,5 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; debugging
 ;; (run "Tests/p2.Test4.txt")
 ;; (run "Tests/p2.Test8.txt")
-;; (run "Tests/p2.Test16.txt")
+;(trace m-state)
+(run "Tests/p2.Test17.txt")
