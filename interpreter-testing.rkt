@@ -233,6 +233,8 @@
   ;(pass? (run "Tests/p2.Test17.txt") 2000400)                                                   ; 17/ 
   ;(pass? (run "Tests/p2.Test18.txt") 101)                                                       ; 18/ 
   ;(pass? (run "Tests/p2.Test19.txt") "error")   ;should give error                              ; 19/
-  (pass? (run "Tests/Test7.txt") 2)              ;this tests break                              ; 20/ 
+  (pass? (run "Tests/Test7.txt") 2)              ;this tests break                              ; 20/
+  ;(pass? (run "Tests/Test9.txt") -1)             ;tests everything                              ; 21/
+  
   
   (newline)) ; left hanging for easy test addition
