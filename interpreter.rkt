@@ -97,10 +97,10 @@
       ;is it a catch thus also a new block
       [(eq? (statement-type-id exp) 'catch) (m-catch (statement-body exp)
                                                      (loop-body exp)
-                                                      (m-pop (call/cc (lambda (k) (m-state (rest-of-body exp) (m-push s) return break continue try catch finally))))]
+                                                      (m-pop (call/cc (lambda (k) (m-state (rest-of-body exp) (m-push s) return break continue try catch finally)))))]
 
       ;is it a finally thus also a new block
-      [(eq? (statement-type-id exp) 'finally) (m-finally exp  (m-pop (call/cc (lambda (k) (m-state (rest-of-body exp) (m-push s) return break continue try catch finally))))]
+      [(eq? (statement-type-id exp) 'finally) (m-finally exp  (m-pop (call/cc (lambda (k) (m-state (rest-of-body exp) (m-push s) return break continue try catch finally)))))]
                                                
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
@@ -139,7 +139,7 @@
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(and (eq? (operator exp) '-) (null? (cddr exp))) ; handle negitive numbers
-       (* -1 (m-value (left-operand exp) s))]
+                               (* -1 (m-value (left-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -425,7 +425,6 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define assignment cddr)
 (define variable cadr)
 (define expression caddr)
-
 
 ; for remove
 (define first-val car)
