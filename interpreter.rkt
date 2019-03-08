@@ -85,23 +85,15 @@
       ; is it a break
       [(eq? (statement-type-id exp) 'break)  (break (m-pop s) #| DO SOMETHING |#)]
 
-      ;is it a continue
+      ; is it a continue
       [(eq? (statement-type-id exp) 'continue) (continue s)]
 
-      ; is it a try thus also new block
-      [(eq? (first-statement exp) 'try) (m-pop (call/cc (lambda (k) (m-state (rest-of-body exp) (m-push s) return break continue try catch finally))))]
+      ; is it a try/catch statement
+      [(eq? (statement-type-id exp) 'try)    (m-try-catch-finally exp s return break continue try catch finally)]
 
-      ;is it a throw
-      [(eq? (statement-type-id exp) 'throw) (break (m-throw (rest-of-body exp) s))]
+      ; is it a throw
+      [(eq? (statement-type-id exp) 'throw)  (catch (statement-body exp))]
 
-      ;is it a catch thus also a new block
-      [(eq? (statement-type-id exp) 'catch) (m-catch (statement-body exp)
-                                                     (loop-body exp)
-                                                      (m-pop (call/cc (lambda (k) (m-state (rest-of-body exp) (m-push s) return break continue try catch finally)))))]
-
-      ;is it a finally thus also a new block
-      [(eq? (statement-type-id exp) 'finally) (m-finally exp  (m-pop (call/cc (lambda (k) (m-state (rest-of-body exp) (m-push s) return break continue try catch finally)))))]
-                                               
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
 
@@ -113,6 +105,18 @@
       
       ; oh no
       [else                                  (error 'undefined "undefined expression")])))
+
+
+(define m-try-catch-finally
+  (lambda (exp s return break continue try catch finally)
+    (cond
+      ; check if has finally first (no catch)
+      [(eq? (second-identifier exp) 'finally) (m-state (second-identifier exp) (m-state (try-body exp) s return break continue try catch finally) return break continue try catch finally)]
+
+      ; check for a catch AND a finally 
+      [(and (eq? (second-identifier exp) 'catch) (eq? (third-identifier exp) 'finally))
+       (m-state (third-body exp) (m-state (try-body exp) s return break continue try (lambda (exception) (m-state (second-body exp) s return break continue try catch finally)) finally) return break continue try catch finally)] 
+      [else         (error 'undefined "try statement missing catch or finally")])))
 
 ;; Code a function that can take in expression of numbers and operators and return the value
 ;; e.g. (+ 3 (/ 4 2))
@@ -426,6 +430,14 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define variable cadr)
 (define expression caddr)
 
+; for try/catch/finally
+(define try-body cadr)
+(define second-identifier caaddr) ;; will say "catch" if it's a catch
+(define second-body cdaddr) ;; body of the catch statement
+(define third-statement cadddr)
+(define third-identifier (lambda (s) (car (third-statement s))))
+(define third-body (lambda (s) (cadr (third-statement s))))
+
 ; for remove
 (define first-val car)
 
@@ -452,3 +464,4 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; debugging
 ;; (run "Tests/p2.Test4.txt")
 ;; (run "Tests/p2.Test8.txt")
+;; (run "Tests/p2.Test16.txt")
