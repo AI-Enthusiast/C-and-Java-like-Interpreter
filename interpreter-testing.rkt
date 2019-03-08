@@ -92,29 +92,35 @@
   (pass? (m-condition '(! #f) 's) #t)                                                           ; 23/23
   (newline))
 
+(define state1 '(((a b c d) (#&2 #&5 #&6 #&7))))
+(define state2 '(((a b c d)(#&2 #&5 #&6 #&7))((s d e w)(#&1 #&8 #&9 #&0))))
 ;; Lookup variable's value in the state
 (define (test-m-lookup)
   (display "Test m-lookup") (newline)                                              ;Test m-lookup
-  (pass? (m-lookup 'a '(((a b c d)(2 5 6 7)))) 2)                                               ; 1/8
-  (pass? (m-lookup 'c '(((a b c d)(2 5 6 7)))) 6)                                               ; 2/8
-  (pass? (m-lookup 'd '(((a b c d)(2 5 6 7)))) 7)                                               ; 3/8
-  (pass? (m-lookup 'd '(((a b c d)(2 5 6 7))((s d e w)(1 8 9 0)))) 7)                           ; 4/8
-  (pass? (m-lookup 'b '(((a b c d)(2 5 6 7))((s d e w)(1 8 9 0)))) 5)                           ; 5/8
-  (pass? (m-lookup 'e '(((a b c d)(2 5 6 7))((s d e w)(1 8 9 0)))) 9)                           ; 6/8
-  ;(pass? (m-lookup 'q '(((a b c d)(2 5 6 7))((s d e w)(1 8 9 0)))) "error) ;should error
+  (pass? (m-lookup 'a state1) 2)                                               ; 1/8
+  (pass? (m-lookup 'c state1) 6)                                               ; 2/8
+  (pass? (m-lookup 'd state1) 7)                                               ; 3/8
+  (pass? (m-lookup 'd state2) 7)                           ; 4/8
+  (pass? (m-lookup 'b state2) 5)                           ; 5/8
+  (pass? (m-lookup 'e state2) 9)                           ; 6/8
+  ;(pass? (m-lookup 'q state2) "error) ;should error
   ;(pass? (m-lookup 'd '()) "error)     ;should error                                           ; 7/8
-  ;(pass? (m-lookup 's '(()())) "error) ;should error                                           ; 8/8
+  ;(pass? (m-lookup 's empty-state "error) ;should error                                           ; 8/8
   (newline))
 
+(define base-state
+  (lambda ()
+    (m-var-dec '(var a 2) (m-var-dec '(var b 5) (m-var-dec '(var c 6) (m-var-dec '(var d 7) empty-state))))))
 ;; Update variable's value in the state
+(define state3 '(((a b c d)(#&2 #&5 #&6 #&7))((f g h)(#&1 #&9 #&10))))
+(define state4 '(((a b c d)(#&2 #&5 #&6 #&1))((f g h)(#&1 #&9 #&10))))
 (define (test-m-update)
   (display "Test m-update") (newline)                                              ;Test m-update
-  (pass? (m-update 's 3 '(((a b c d)(2 5 6 7)))) "error")                                       ; 1/9
-  (pass? (m-update 'a 3 '(((a b c d)(2 5 6 7)))) '(((a b c d)(3 5 6 7))))                       ; 2/9
-  (pass? (m-update 'b 21 '(((a b c d)(2 5 6 7)))) '(((a b c d)(2 21 6 7))))                     ; 3/9
-  (pass? (m-update 'd 1 '(((a b c d)(2 5 6 7))))  '(((a b c d)(2 5 6 1))))                      ; 4/9
-  (pass? (m-update 'd 1 '(((a b c d)(2 5 6 7))((f g h)(1 9 10))))                               ; 5/9
-         '(((a b c d)(2 5 6 1))((f g h)(1 9 10))))
+  (pass? (m-update 's 3 state1) "error")                                       ; 1/9
+  (pass? (m-update 'a 3 state1) '(((a b c d)(3 5 6 7))))                       ; 2/9
+  (pass? (m-update 'b 21 state1) '(((a b c d)(2 21 6 7))))                     ; 3/9
+  (pass? (m-update 'd 1 state1)  '(((a b c d)(2 5 6 1))))                      ; 4/9
+  (pass? (m-update 'd 1 state3)  state4)                             ; 5/9
   (pass? (m-update 'g 23 '(((a b c d)(2 5 6 7))((f g h)(1 9 10))))                              ; 6/9
          '(((a b c d)(2 5 6 7))((f g h)(1 23 10))))
   (pass? (m-update 'd 1 '(((a b c d)(2 5 6 7))((f d h)(1 9 10))))                               ; 7/9
