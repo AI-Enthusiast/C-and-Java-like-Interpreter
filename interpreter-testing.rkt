@@ -223,7 +223,7 @@
   (pass? (run "Tests/p2.Test7.txt") 21)                                                         ; 7/
   (pass? (run "Tests/p2.Test8.txt") 6)                                                          ; 8/
   (pass? (run "Tests/p2.Test9.txt") -1)                                                         ; 9/
-  ;(pass? (run "Tests/p2.Test10.txt") 789)                                                       ; 10/
+  (pass? (run "Tests/p2.Test10.txt") 789)                                                       ; 10/
   ;(pass? (run "Tests/p2.Test11.txt") "error")   ;should give error                             ; 11/
   ;(pass? (run "Tests/p2.Test12.txt") "error")   ;should give error                             ; 12/
   ;(pass? (run "Tests/p2.Test13.txt") "error")   ;should give error                             ; 13/

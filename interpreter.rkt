@@ -86,7 +86,7 @@
       [(eq? (statement-type-id exp) 'break)  (break (m-pop s) #| DO SOMETHING |#)]
 
       ;is it a continue
-      [(eq? (statement-type-id exp) 'continue) (continue s #| DO NOTHING |#)]
+      [(eq? (statement-type-id exp) 'continue) (continue s)]
 
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
@@ -180,19 +180,19 @@
 ;; Implementing while loop
 (define m-while-loop
   (lambda (exp s return break continue try catch finally)
-    (call/cc
-     (lambda (k)
-       (cond
-         ; invalid expression
-         [(null? exp)
-          (error 'undefined "undefined expression")]
+    (cond
+      ; invalid expression
+     [(null? exp)
+      (error 'undefined "undefined expression")]
+     
+     ; runs the while loop (body is multiple statements)
+     [(m-condition (loop-condition exp) s)
+      (m-while-loop exp (call/cc (lambda (k) (m-state (loop-body exp) s return break k try catch finally))) return break continue try catch finally)]
 
-         ; runs the while loop (body is multiple statements)
-         [(m-condition (loop-condition exp) s)
-          (m-while-loop exp (m-state (loop-body exp) s return break k try catch finally) return break continue try catch finally)]
+     ; otherwise, returns initial state
+     [else s])))
 
-         ; otherwise, returns initial state
-         [else s])))))
+
 
 ;; Takes an assinment and a state
 ;; Returns the updated state
@@ -282,7 +282,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; returns #t if the value is found in the state, #f otherwise
 ;; Takes the variable it is locating, a counter and a state
 (define locate
-  (lambda (var s )
+  (lambda (var s)
     (cond
       [(null? s) #f]
       [(null? (vars s)) (locate var (nextlayer s))]
@@ -415,4 +415,4 @@ m-remove - removes a variable and it's value from the first layer it is found at
 
 ;; debugging
 ;; (run "Tests/p2.Test4.txt")
-;; (run "Tests/p2.Test9.txt")
+;; (run "Tests/p2.Test8.txt")
