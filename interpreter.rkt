@@ -239,7 +239,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
       [(null? s) (error "use before declared")]
       [(null? (vars s)) (m-lookup var (nextlayer s))]
       [(and (equal? var (nextvar s)) (eq? "init" (nextval s))) (error "use before assignment")]
-      [(equal? var (nextvar s))                                (nextval s)]
+      [(equal? var (nextvar s))                                (unbox (nextval s))]
       [else                                                    (m-lookup var (next-part s))])))
 
 
@@ -275,7 +275,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define local-update
   (lambda (var update-val s)
     (cond
-      [(eq? var (nextvar s))  (cons update-val (rest-of (vals s)))]
+      [(eq? var (nextvar s)) (begin  (set-box! (nextval s) update-val) (cons (nextval s) (rest-of (vals s))))]
       [else                   (cons (nextval s) (local-update var update-val (next-part s)))])))
 
 
@@ -297,9 +297,9 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define m-add
   (lambda (var s)
       (cond
-        [(null? s)    (list (list (list var) (list "init")))]
-        [(null? (vars s)) (cons (list (list var) (list "init")) (nextlayer s))]
-        [else                              (cons (list (cons  var (vars s)) (cons "init" (vals s))) (nextlayer s))])))
+        [(null? s)    (list (list (list var) (list (box "init"))))]
+        [(null? (vars s)) (cons (list (list var) (list (box "init"))) (nextlayer s))]
+        [else                              (cons (list (cons  var (vars s)) (cons (box "init") (vals s))) (nextlayer s))])))
 
 
 ;;takes a variable and a state
