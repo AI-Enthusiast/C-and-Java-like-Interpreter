@@ -92,7 +92,7 @@
       [(eq? (statement-type-id exp) 'try)    (m-try-catch-finally exp s return break continue try catch finally)]
 
       ; is it a throw
-      [(eq? (statement-type-id exp) 'throw)  (catch (statement-body exp))]
+      [(eq? (statement-type-id exp) 'throw)  (break (try (catch (statement-body exp))))]
 
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
@@ -113,9 +113,28 @@
       ; check if has finally first (no catch)
       [(eq? (second-identifier exp) 'finally) (m-state (second-identifier exp) (m-state (try-body exp) s return break continue try catch finally) return break continue try catch finally)]
 
+      ; check if it has catch (and no finally)
+      [(and (eq? (second-identifier exp) 'catch) (not (pair? (third-statement exp))))
+       (call/cc (lambda (k)
+                                            (m-state (try-body exp) s return break continue k
+                                          ;; CATCH STATEMENT
+                                          (lambda (exception) (m-state (catch-body (second-body exp))
+                                                                       ;; MODIFYING THE STATE 
+                                                                       (m-var-dec (list 'var (catch-var-name (second-body exp)) exception) (m-push s))
+                                                                       
+                                                                       return break continue k catch finally)) finally)))]
+
       ; check for a catch AND a finally 
       [(and (eq? (second-identifier exp) 'catch) (eq? (third-identifier exp) 'finally))
-       (m-state (third-body exp) (m-state (try-body exp) s return break continue try (lambda (exception) (m-state (second-body exp) s return break continue try catch finally)) finally) return break continue try catch finally)] 
+       (m-state (third-body exp) (call/cc (lambda (k)
+                                            (m-state (try-body exp) s return break continue k
+                                          ;; CATCH STATEMENT
+                                          (lambda (exception) (m-state (catch-body (second-body exp))
+                                                                       ;; MODIFYING THE STATE 
+                                                                       (m-var-dec (list 'var (catch-var-name (second-body exp)) exception) (m-push s))
+                                                                       
+                                                                       return k continue try catch finally)) finally)))
+                return break continue try catch finally)] 
       [else         (error 'undefined "try statement missing catch or finally")])))
 
 ;; Code a function that can take in expression of numbers and operators and return the value
@@ -280,7 +299,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
       [(null? s) (error "use before declared")]
       [(null? (vars s)) (m-lookup var (nextlayer s))]
       [(and (equal? var (nextvar s)) (eq? "init" (nextval s))) (error "use before assignment")]
-      [(equal? var (nextvar s))                                (nextval s)]
+      [(equal? var (nextvar s))                                (unbox (nextval s))]
       [else                                                    (m-lookup var (next-part s))])))
 
 
@@ -316,7 +335,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define local-update
   (lambda (var update-val s)
     (cond
-      [(eq? var (nextvar s))  (cons update-val (rest-of (vals s)))]
+      [(eq? var (nextvar s)) (begin  (set-box! (nextval s) update-val) (cons (nextval s) (rest-of (vals s))))]
       [else                   (cons (nextval s) (local-update var update-val (next-part s)))])))
 
 
@@ -337,10 +356,10 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; Will accept an empty state '(), a state formated '((()())) or a state formated '(((var1 ...)(val1 ...))((varx ...) (valx ...)))
 (define m-add
   (lambda (var s)
-    (cond
-      [(null? s)    (list (list (list var) (list "init")))]
-      [(null? (vars s)) (cons (list (list var) (list "init")) (nextlayer s))]
-      [else                              (cons (list (cons  var (vars s)) (cons "init" (vals s))) (nextlayer s))])))
+      (cond
+        [(null? s)    (list (list (list var) (list (box "init"))))]
+        [(null? (vars s)) (cons (list (list var) (list (box "init"))) (nextlayer s))]
+        [else                              (cons (list (cons  var (vars s)) (cons (box "init") (vals s))) (nextlayer s))])))
 
 
 ;;takes a variable and a state
@@ -437,6 +456,8 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define third-statement cadddr)
 (define third-identifier (lambda (s) (car (third-statement s))))
 (define third-body (lambda (s) (cadr (third-statement s))))
+(define catch-body cadr)
+(define catch-var-name caar)
 
 ; for remove
 (define first-val car)
@@ -464,4 +485,5 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; debugging
 ;; (run "Tests/p2.Test4.txt")
 ;; (run "Tests/p2.Test8.txt")
-;; (run "Tests/p2.Test16.txt")
+;(trace m-state)
+(run "Tests/p2.Test17.txt")
