@@ -95,9 +95,9 @@
 ;; Lookup variable's value in the state
 #|(define (test-m-lookup)
   (display "Test m-lookup") (newline)                                              ;Test m-lookup
-  (pass? (m-lookup 'a '(((a b c d)(2 5 6 7)))) 2)                                               ; 1/8
-  (pass? (m-lookup 'c '(((a b c d)(2 5 6 7)))) 6)                                               ; 2/8
-  (pass? (m-lookup 'd '(((a b c d)(2 5 6 7)))) 7)                                               ; 3/8
+  ;(pass? (m-lookup 'a '(((a b c d)(2 5 6 7)))) 2)                                               ; 1/8
+  ;(pass? (m-lookup 'c '(((a b c d)(2 5 6 7)))) 6)                                               ; 2/8
+  ;(pass? (m-lookup 'd '(((a b c d)(2 5 6 7)))) 7)                                               ; 3/8
   (pass? (m-lookup 'd '(((a b c d)(2 5 6 7))((s d e w)(1 8 9 0)))) 7)                           ; 4/8
   (pass? (m-lookup 'b '(((a b c d)(2 5 6 7))((s d e w)(1 8 9 0)))) 5)                           ; 5/8
   (pass? (m-lookup 'e '(((a b c d)(2 5 6 7))((s d e w)(1 8 9 0)))) 9)                           ; 6/8
@@ -232,10 +232,11 @@
   (pass? (run "Tests/p2.Test15.txt") 125)                                                       ; 15/
   (pass? (run "Tests/p2.Test16.txt") 110)                                                       ; 16/
   ;(pass? (run "Tests/p2.Test17.txt") 2000400)                                                   ; 17/ 
-  ;(pass? (run "Tests/p2.Test18.txt") 101)                                                       ; 18/ 
+  (pass? (run "Tests/p2.Test18.txt") 101)                                                       ; 18/ 
   ;(pass? (run "Tests/p2.Test19.txt") "error")   ;should give error                              ; 19/
   (pass? (run "Tests/Test7.txt") 2)              ;this tests break                              ; 20/
   ;(pass? (run "Tests/Test9.txt") -1)             ;tests everything                              ; 21/
+  (pass? (run "Tests/Test10.txt") 10) 
   
   
   (newline)) ; left hanging for easy test addition

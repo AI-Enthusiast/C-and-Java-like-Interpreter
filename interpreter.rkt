@@ -110,19 +110,24 @@
 (define m-try-catch-finally
   (lambda (exp s return break continue try catch finally)
     (cond
-      ; check if has finally first (no catch)
-      [(eq? (second-identifier exp) 'finally) (m-state (second-identifier exp) (m-state (try-body exp) s return break continue try catch finally) return break continue try catch finally)]
-
+      ; oh no
+      [(and (not (pair? (third-statement exp))) (not (pair? (catch-statement exp)))) (error 'undefined "try statement missing catch or finally")]
+      
       ; check if it has catch (and no finally)
-      [(and (eq? (second-identifier exp) 'catch) (not (pair? (third-statement exp))))
-       (call/cc (lambda (k)
-                                            (m-state (try-body exp) s return break continue k
+      [(and (not (pair? (third-statement exp))) (eq? (second-identifier exp) 'catch))
+       (call/cc (lambda (k) (m-state (try-body exp) s return break continue k
                                           ;; CATCH STATEMENT
                                           (lambda (exception) (m-state (catch-body (second-body exp))
                                                                        ;; MODIFYING THE STATE 
                                                                        (m-var-dec (list 'var (catch-var-name (second-body exp)) exception) (m-push s))
                                                                        
                                                                        return break continue k catch finally)) finally)))]
+
+      ; check if has finally first (no catch)
+      [(and (eq? (third-identifier exp) 'finally) (not (pair? (catch-statement exp))))
+       (m-state (third-body exp) (m-state (try-body exp) s return break continue (lambda (v) s) (lambda (v) s) finally) return break continue try catch finally)]
+
+      
 
       ; check for a catch AND a finally 
       [(and (eq? (second-identifier exp) 'catch) (eq? (third-identifier exp) 'finally))
@@ -428,6 +433,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 
 ; for try/catch/finally
 (define try-body cadr)
+(define catch-statement caddr)
 (define second-identifier caaddr) ;; will say "catch" if it's a catch
 (define second-body cdaddr) ;; body of the catch statement
 (define third-statement cadddr)
