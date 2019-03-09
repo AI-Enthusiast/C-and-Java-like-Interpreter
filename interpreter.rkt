@@ -44,7 +44,7 @@
       [(not (list? (first-statement exp))) (m-what-type                  exp  s return break continue try catch finally)]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s return break continue try catch finally)]
       ; [(eq? (first-statement exp) 'return) (m-return (statement-body (first-statement exp)) s return finally)]
-      [(eq? (first-statement exp) 'begin)  (m-pop (call/cc (lambda (k) (m-state (rest-of-body exp) (m-push s) return k continue try catch finally))))]
+      [(eq? (first-statement exp) 'begin)  (m-pop (call/cc (lambda (k) (m-state (rest-of-body exp) (m-push s) return k continue try catch k))))]
      
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s return break continue try catch finally) return break continue try catch finally)])))
@@ -110,8 +110,12 @@
 (define m-try-catch-finally
   (lambda (exp s return break continue try catch finally)
     (cond
+
+      ; oh no
+      [(and (null? (cddr exp)) (null? (car (cdddar exp)))) (error 'undefined "try statement missing catch or finally")]
+      
       ; check if has finally first (no catch)
-      [(eq? (second-identifier exp) 'finally) (m-state (second-identifier exp) (m-state (try-body exp) s return break continue try catch finally) return break continue try catch finally)]
+      [(and (eq? (third-statement exp) 'finally) (null? (caddr exp))) (m-state (third-identifier exp) (m-state (try-body exp) s return break continue try catch finally) return break continue try catch finally)]
 
       ; check if it has catch (and no finally)
       [(and (eq? (second-identifier exp) 'catch) (not (pair? (third-statement exp))))
@@ -398,7 +402,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
-      [(and (pair? exp) (am-i-boolean exp)) (m-return (m-condition exp s) s return finally)]
+      [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp s) s return finally))]
       [(pair? exp)                          (return (m-value exp s))]
       [(eq? (m-value exp s) #t)             (return 'true)]
       [(eq? (m-value exp s) #f)             (return 'false)]
@@ -463,4 +467,4 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; (run "Tests/p2.Test4.txt")
 ;; (run "Tests/p2.Test8.txt")
 ;(trace m-state)
-(run "Tests/p2.Test17.txt")
+(run "Tests/Test9.txt")
