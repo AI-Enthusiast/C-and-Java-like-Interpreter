@@ -55,7 +55,7 @@
 ;; Returns state with most recent state popped off
 (define m-pop
   (lambda (s)
-    (nextlayer s))) ; TODO popped state does not exist
+    (nextlayer s)))
 
 ;; Returns state with new empty state pushed on
 (define m-push
@@ -65,52 +65,45 @@
 
 ;; Figures out which method should be used to evaluate this, and evaluates this
 ;; Returns updated state
-;(define m-what-type
-;  (lambda (exp s)
-;    (call/cc
-;     (lambda (return break continue try catch finally)
-;       (m-what-type-cc exp s return break continue try catch finally)))))
-
-;TODO add break and continue
 (define m-what-type
   (lambda (exp s return break continue try catch finally)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
-      [(or (null? exp) (not (pair? exp)))    s]
+      [(or (null? exp) (not (pair? exp)))      s]
 
       ; is it a new block
-      [(eq? (first-statement exp) 'begin)    (m-pop (m-state (rest-of-body exp) (m-push s)
+      [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push s)
                                                              return break continue try catch finally))]
 
       ; conditional statement checking (if/while/etc.)
-      [(eq? (statement-type-id exp) 'if)     (m-if-statement exp s return break continue try catch finally)]
-      [(eq? (statement-type-id exp) 'while)  (call/cc (lambda (k) (m-while-loop exp s return k continue
+      [(eq? (statement-type-id exp) 'if)       (m-if-statement exp s return break continue try catch finally)]
+      [(eq? (statement-type-id exp) 'while)    (call/cc (lambda (k) (m-while-loop exp s return k continue
                                                                                 try catch finally)))]
 
       ; is it a break
-      [(eq? (statement-type-id exp) 'break)  (break (m-pop s) #| DO SOMETHING |#)]
+      [(eq? (statement-type-id exp) 'break)    (break (m-pop s))]
 
       ; is it a continue
       [(eq? (statement-type-id exp) 'continue) (continue s)]
 
       ; is it a try/catch statement
-      [(eq? (statement-type-id exp) 'try)    (call/cc (λ (k) (m-try-catch-finally exp s return break
+      [(eq? (statement-type-id exp) 'try)      (call/cc (λ (k) (m-try-catch-finally exp s return break
                                                                                   continue k catch finally)))]
 
       ; is it a throw
-      [(eq? (statement-type-id exp) 'throw)  (try (m-pop (catch (statement-body exp))))]
+      [(eq? (statement-type-id exp) 'throw)    (try (m-pop (catch (statement-body exp))))]
 
       ; is it a declaration
-      [(eq? (statement-type-id exp) 'var)    (m-var-dec exp s)]
+      [(eq? (statement-type-id exp) 'var)      (m-var-dec exp s)]
 
       ; is it an assignment
-      [(eq? (statement-type-id exp) '=)      (m-assign exp s)]
+      [(eq? (statement-type-id exp) '=)        (m-assign exp s)]
 
       ; is it a return statement
-      [(eq? (statement-type-id exp) 'return) (m-return (statement-body exp) s return finally)]
+      [(eq? (statement-type-id exp) 'return)   (m-return (statement-body exp) s return finally)]
       
       ; oh no
-      [else                                  (error 'undefined "undefined expression")])))
+      [else                                    (error 'undefined "undefined expression")])))
 
 
 (define m-try-catch-finally
@@ -259,7 +252,7 @@
   (lambda (dec s)
     (cond
       ; check variable not already declared
-      [(locate (variable dec) s) (error "redefining")]
+      [(locate (variable dec) s)             (error "redefining")]
       ; just need to add variable, not value
       [(null? (assignment dec))              (m-add (variable dec) s)]
       ; need to add value as well
@@ -344,7 +337,8 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; Takes a varaiable and a state, adds it to a state with non number uninitilized value "init"
 ;; (does not take value, to update value, use m-update)
 ;; Returns the updated state, if used before assigned, should result in error
-;; Will accept an empty state '(), a state formated '((()())) or a state formated '(((var1 ...)(val1 ...))((varx ...) (valx ...)))
+;; Will accept an empty state '(), a state formated '((()())) or
+;; a state formated '(((var1 ...)(val1 ...))((varx ...) (valx ...)))
 (define m-add
   (lambda (var s)
       (cond
@@ -472,6 +466,3 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define rest-of-body cdr)
 
 ;; Thank you, sleep well :)
-
-(run "Tests/p2.Test17.txt")
-
