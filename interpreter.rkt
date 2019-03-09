@@ -110,36 +110,40 @@
   (lambda (exp s return break continue try catch finally)
     (cond
       ; oh no
-      [(and (not (pair? (third-statement exp))) (not (pair? (catch-statement exp)))) (error 'undefined "try statement missing catch or finally")]
+      [(and (not (pair? (third-statement exp))) (not (pair? (catch-statement exp))))
+       (error 'undefined "try statement missing catch or finally")]
       
       ; check if it has catch (and no finally)
       [(and (not (pair? (third-statement exp))) (eq? (second-identifier exp) 'catch))
        (call/cc (lambda (k) (m-state (try-body exp) s return break continue k
-                                          ;; CATCH STATEMENT
-                                          (lambda (exception) (m-state (catch-body (second-body exp))
-                                                                       ;; MODIFYING THE STATE 
-                                                                       (m-var-dec (list 'var (catch-var-name (second-body exp)) exception) (m-push s))
-                                                                       
-                                                                       return break continue k catch finally)) finally)))]
+                         ;; CATCH STATEMENT
+                         (lambda (exception) (m-state (catch-body (second-body exp))
+                                                      ;; MODIFYING THE STATE 
+                                                      (m-var-dec (list 'var (catch-var-name (second-body exp))
+                                                                      exception) (m-push s))
+                                                      return break continue k catch finally)) finally)))]
 
       ; check if has finally first (no catch)
       [(and (eq? (third-identifier exp) 'finally) (not (pair? (catch-statement exp))))
-       (m-state (third-body exp) (m-state (try-body exp) s return break continue (lambda (v) s) (lambda (v) s) finally) return break continue try catch finally)]
+       (m-state (third-body exp) (m-state (try-body exp) s return break continue
+                                          (lambda (v) s) (lambda (v) s) finally)
+                return break continue try catch finally)]
 
       
 
       ; check for a catch AND a finally 
       [(and (eq? (second-identifier exp) 'catch) (eq? (third-identifier exp) 'finally))
-       (m-state (third-body exp) (call/cc (lambda (k)
-                                            (m-state (try-body exp) s return break continue k
+       (m-state (third-body exp)
+                (call/cc (lambda (k) (m-state (try-body exp) s return break continue k
                                           ;; CATCH STATEMENT
                                           (lambda (exception) (m-state (catch-body (second-body exp))
-                                                                       ;; MODIFYING THE STATE 
-                                                                       (m-var-dec (list 'var (catch-var-name (second-body exp)) exception) (m-push s))
-                                                                       
-                                                                       return k continue try catch finally)) finally)))
+                                                      ;; MODIFYING THE STATE 
+                                                      (m-var-dec (list 'var (catch-var-name (second-body exp))
+                                                                       exception) (m-push s))
+                                                      return k continue try catch finally)) finally)))
                 return break continue try catch finally)] 
-      [else         (error 'undefined "try statement missing catch or finally")])))
+      [else
+       (error 'undefined "try statement missing catch or finally")])))
 
 ;; Code a function that can take in expression of numbers and operators and return the value
 ;; e.g. (+ 3 (/ 4 2))
