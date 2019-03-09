@@ -33,12 +33,12 @@
   (test-parse-t)
   (test-m-value)
   (test-m-condition)
-  (test-m-lookup)
+  #|(test-m-lookup)
   (test-m-update)
   (test-m-add)
   (test-m-remove)
   (test-m-assign)
-  (test-m-var-dec)
+  (test-m-var-dec)|#
   (test-p1-test-scripts)
   (test-p2-test-scripts)
 
@@ -93,7 +93,7 @@
   (newline))
 
 ;; Lookup variable's value in the state
-(define (test-m-lookup)
+#|(define (test-m-lookup)
   (display "Test m-lookup") (newline)                                              ;Test m-lookup
   (pass? (m-lookup 'a '(((a b c d)(2 5 6 7)))) 2)                                               ; 1/8
   (pass? (m-lookup 'c '(((a b c d)(2 5 6 7)))) 6)                                               ; 2/8
@@ -179,6 +179,7 @@
   ;(pass? (m-var-dec '(var a (+ x 1)) '(((c s a x)(2 3 5 7)))) "error") ;should error           ; 10/11
   ;(pass? (m-var-dec '(var a (+ a 1)) '(((c s a x)(2 3 5 4)))) "error") ;should error           ; 11/11
   (newline))
+|#
 
 ;; Tests interpreter functionality P1
 (define (test-p1-test-scripts)

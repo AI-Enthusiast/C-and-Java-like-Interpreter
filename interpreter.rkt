@@ -275,7 +275,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
     (cond
       [(null? s) (error "use before declared")]
       [(null? (vars s)) (m-lookup var (nextlayer s))]
-      [(and (equal? var (nextvar s)) (eq? "init" (nextval s))) (error "use before assignment")]
+      [(and (equal? var (nextvar s)) (eq? "init" (unbox (nextval s)))) (error "use before assignment")]
       [(equal? var (nextvar s))                                (unbox (nextval s))]
       [else                                                    (m-lookup var (next-part s))])))
 
@@ -464,7 +464,9 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; (run "Tests/p2.Test8.txt")
 ;(trace m-state)
 ;(run "Tests/p2.Test17.txt")
-#|(trace m-update)
+#|(trace run)
+(trace m-what-type)
+(trace m-update)
 (trace m-add)
 (trace m-state)
 (trace m-value)
@@ -473,6 +475,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (trace m-pop)
 (trace m-push)
 (trace m-remove)
+(trace m-return)
 (trace  m-try-catch-finally)
 (trace  m-while-loop)
 (trace m-if-statement)|#
