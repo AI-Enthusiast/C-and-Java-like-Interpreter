@@ -33,12 +33,12 @@
   (test-parse-t)
   (test-m-value)
   (test-m-condition)
-  (test-m-lookup)
+  #|(test-m-lookup)
   (test-m-update)
   (test-m-add)
   (test-m-remove)
   (test-m-assign)
-  (test-m-var-dec)
+  (test-m-var-dec)|#
   (test-p1-test-scripts)
   (test-p2-test-scripts)
 
@@ -95,7 +95,7 @@
 (define state1 '(((a b c d) (#&2 #&5 #&6 #&7))))
 (define state2 '(((a b c d)(#&2 #&5 #&6 #&7))((s d e w)(#&1 #&8 #&9 #&0))))
 ;; Lookup variable's value in the state
-(define (test-m-lookup)
+#|(define (test-m-lookup)
   (display "Test m-lookup") (newline)                                              ;Test m-lookup
   (pass? (m-lookup 'a state1) 2)                                               ; 1/8
   (pass? (m-lookup 'c state1) 6)                                               ; 2/8
@@ -185,6 +185,7 @@
   ;(pass? (m-var-dec '(var a (+ x 1)) '(((c s a x)(2 3 5 7)))) "error") ;should error           ; 10/11
   ;(pass? (m-var-dec '(var a (+ a 1)) '(((c s a x)(2 3 5 4)))) "error") ;should error           ; 11/11
   (newline))
+|#
 
 ;; Tests interpreter functionality P1
 (define (test-p1-test-scripts)
@@ -224,10 +225,10 @@
   (pass? (run "Tests/p2.Test2.txt") 164)                                                        ; 2/
   (pass? (run "Tests/p2.Test3.txt") 32)                                                         ; 3/
   (pass? (run "Tests/p2.Test4.txt") 2)                                                          ; 4/
-  ;(pass? (run "Tests/p2.Test5.txt") "error") ;should give error                                                        ; 5/
+  ;(pass? (run "Tests/p2.Test5.txt") "error") ;should give error                                ; 5/
   (pass? (run "Tests/p2.Test6.txt") 25)                                                         ; 6/                                           
   (pass? (run "Tests/p2.Test7.txt") 21)                                                         ; 7/
-  (pass? (run "Tests/p2.Test8.txt") 6)                                                          ; 8/
+  ;(pass? (run "Tests/p2.Test8.txt") 6)                                                         ; 8/
   (pass? (run "Tests/p2.Test9.txt") -1)                                                         ; 9/
   (pass? (run "Tests/p2.Test10.txt") 789)                                                       ; 10/
   ;(pass? (run "Tests/p2.Test11.txt") "error")   ;should give error                             ; 11/
@@ -235,12 +236,14 @@
   ;(pass? (run "Tests/p2.Test13.txt") "error")   ;should give error                             ; 13/
   (pass? (run "Tests/p2.Test14.txt") 12)                                                        ; 14/
   (pass? (run "Tests/p2.Test15.txt") 125)                                                       ; 15/
-  ;(pass? (run "Tests/p2.Test16.txt") 110)                                                       ; 16/
+  (pass? (run "Tests/p2.Test16.txt") 110)                                                       ; 16/
   ;(pass? (run "Tests/p2.Test17.txt") 2000400)                                                   ; 17/ 
-  ;(pass? (run "Tests/p2.Test18.txt") 101)                                                       ; 18/ 
+  (pass? (run "Tests/p2.Test18.txt") 101)                                                       ; 18/ 
   ;(pass? (run "Tests/p2.Test19.txt") "error")   ;should give error                              ; 19/
-  (pass? (run "Tests/Test7.txt") 2)              ; this tests break                              ; 20/ 
+  (pass? (run "Tests/Test7.txt") 2)              ;this tests break                              ; 20/
+  ;(pass? (run "Tests/Test9.txt") -1)             ;tests everything                              ; 21/
+  (pass? (run "Tests/Test10.txt") 10)
+  (pass? (run "Tests/Test11.txt") 120)
   
-  (newline)) ; left hanging for easy test additions
-
-
+  
+  (newline)) ; left hanging for easy test addition
