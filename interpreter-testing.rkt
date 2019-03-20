@@ -39,7 +39,7 @@
   (test-m-var-dec)
   (test-p1-test-scripts)
   (test-p2-test-scripts)
-  (test-p3-test-scripts)
+  ;(test-p3-test-scripts)
   
   ) ;left hanging for easy test addition
 
