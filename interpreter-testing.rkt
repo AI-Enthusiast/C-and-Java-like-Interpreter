@@ -39,7 +39,8 @@
   (test-m-var-dec)
   (test-p1-test-scripts)
   (test-p2-test-scripts)
-
+  (test-p3-test-scripts)
+  
   ) ;left hanging for easy test addition
 
 
@@ -213,6 +214,48 @@
   ;(pass? (run "Tests/Test9.txt") -1)             ;tests everything                              ; 21/
   (pass? (run "Tests/Test10.txt") 10)
   (pass? (run "Tests/Test11.txt") 120)
-  
-  
-  (newline)) ; left hanging for easy test addition
+  (newline)) 
+
+(define (test-p3-test-scripts)
+  (display "Test P3 test scripts") (newline)
+  ;A main with code inside
+  (pass? (run "Tests/p3.Test1.txt") 10)                                                         ; 1/
+  ;A function that uses global variables
+  (pass? (run "Tests/p3.Test2.txt") 14)                                                         ; 2/
+  ;A function that changes global variables
+  (pass? (run "Tests/p3.Test3.txt") 45)
+  ;A recursive function
+  (pass? (run "Tests/p3.Test4.txt") 55)
+  ;Functions with multiple parameters that hide global variables
+  (pass? (run "Tests/p3.Test5.txt") 1)
+  ;Verifying that your code uses static scoping instead of dynamic scoping
+  (pass? (run "Tests/p3.Test6.txt") 115)
+  ;Boolean parameters and return values
+  (pass? (run "Tests/p3.Test7.txt") 'true)
+  ;Multiple function calls in an expression
+  (pass? (run "Tests/p3.Test8.txt") 20)
+  ;A function call in the parameter of a function
+  (pass? (run "Tests/p3.Test9.txt") 24)
+  ;A function call that ignores the return value
+  (pass? (run "Tests/p3.Test10.txt") 2)
+  ;A function without a return statement
+  (pass? (run "Tests/p3.Test11.txt") 35)
+  ;Mismatched parameters and arguments
+  ;(pass? (run "Tests/p3.Test12.txt") "error")   ;should give error
+  (pass? (run "Tests/p3.Test13.txt") 90)
+  ;Functions inside functions accessing variables outside
+  (pass? (run "Tests/p3.Test14.txt") 69)         ;heh nice
+  ;Functions inside functions with variables of the same name
+  (pass? (run "Tests/p3.Test15.txt") 87)
+  ;Functions inside functions inside functions
+  (pass? (run "Tests/p3.Test16.txt") 64)
+  ;Functions inside functions accessing out of scope variables
+  ;(pass? (run "Tests/p3.Test17.txt") "error")   ;should give error
+  ;try/catch finally, but no exception thrown
+  (pass? (run "Tests/p3.Test18.txt") 125)
+  ;Throwing an exception inside a function
+  (pass? (run "Tests/p3.Test19.txt") 100)
+  ;Throwing an exception from a function
+  (pass? (run "Tests/p3.Test20.txt") 2000400)
+
+  (newline)); left hanging for easy test addition
