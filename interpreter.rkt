@@ -19,7 +19,7 @@
 
 (define runner
   (lambda (filename callcc)
-    (m-state (parse-t filename) empty-state
+    (m-base-layer (parse-t filename) empty-state
              callcc ;; return
              (lambda (v) v) ;; break
              (lambda (v) v) ;; continue
@@ -62,14 +62,14 @@
     (cons new-layer s)))
 
 
-;; Figures out which method should be used to evaluate this, and evaluates this
-;; Returns updated state
-(define m-what-type
+(define m-base-layer
   (lambda (exp s return break continue try catch finally)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
-      [(or (null? exp) (not (pair? exp)))      s]
+      [(null? exp)      s]
 
+      [(null? (rest-of-body exp))          (m-base-layer (first-statement exp) s
+                                                        return break continue try catch finally)]
       ;is it the main
       [(and  (eq?  (statement-body exp) 'main)
              (eq? (statement-type-id exp) 'function)) (m-pop (m-state (cadddr exp)  (m-push s)
@@ -81,7 +81,27 @@
                                                                               (list (cdddr exp))))]
 
       ;is it a function call
-      [(eq? (statement-type-id exp) 'funcall) (m-function (cadr exp))]
+      [(eq? (statement-type-id exp) 'funcall) (m-funcall (cadr exp) s)]
+
+      ; is it a declaration
+      [(eq? (statement-type-id exp) 'var)      (m-var-dec exp s)]      
+      
+      [(eq? (first-statement exp) 'begin)  (m-pop (lambda (k) (m-base-layer (rest-of-body exp)
+                                                                       (m-push s) return k continue
+                                                                       try catch finally)))]
+     
+      [else                                (m-base-layer (rest-of-body exp)
+                                                    (m-what-type (first-statement exp) s return break
+                                                                 continue try catch finally)
+                                                    return break continue try catch finally)])))
+
+;; Figures out which method should be used to evaluate this, and evaluates this
+;; Returns updated state
+(define m-what-type
+  (lambda (exp s return break continue try catch finally)
+    (cond
+      ; null checking & if exp is not a list, then it wouldn't change the state
+      [(or (null? exp) (not (pair? exp)))      s]
 
       ; is it a new block
       [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push s)
@@ -117,7 +137,7 @@
       ; oh no
       [else                                    (error 'undefined "undefined expression")])))
 
-(define m-function
+(define m-funcall
   (lambda (actual)
     actual))
 
