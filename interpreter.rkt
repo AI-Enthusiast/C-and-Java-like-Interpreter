@@ -20,12 +20,12 @@
 (define runner
   (lambda (filename callcc)
     (m-base-layer (parse-t filename) empty-state
-             callcc ;; return
-             (lambda (v) v) ;; break
-             (lambda (v) v) ;; continue
-             (lambda (v) v) ;; try
-             (lambda (v) v) ;; catch
-             (lambda (v) v)))) ;; finally 
+                  callcc ;; return
+                  (lambda (v) v) ;; break
+                  (lambda (v) v) ;; continue
+                  (lambda (v) v) ;; try
+                  (lambda (v) v) ;; catch
+                  (lambda (v) v)))) ;; finally 
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define parse-t
@@ -61,15 +61,15 @@
   (lambda (s)
     (cons new-layer s)))
 
-
-(define m-base-layer
+;; Works through the top layer of the code then 
+(define m-base-layer 
   (lambda (exp s return break continue try catch finally)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(null? exp)      s]
 
       [(null? (rest-of-body exp))          (m-base-layer (first-statement exp) s
-                                                        return break continue try catch finally)]
+                                                         return break continue try catch finally)]
       ;is it the main
       [(and  (eq?  (statement-body exp) 'main)
              (eq? (statement-type-id exp) 'function)) (m-pop (m-state (cadddr exp)  (m-push s)
@@ -77,23 +77,18 @@
                                                                       try catch finally))]
 
       ;is  it a function
-      [(eq? (statement-type-id exp) 'function) (m-var-dec (cadr exp) (append (list (caddr exp))
-                                                                              (list (cdddr exp))))]
-
-      ;is it a function call
-      [(eq? (statement-type-id exp) 'funcall) (m-funcall (cadr exp) s)]
+      [(eq? (statement-type-id exp) 'function)  (m-var-dec (cons (cadr exp)
+                                                                 (list (append (list (caddr exp))
+                                                                               (list (cdddr exp)))))
+                                                           s)]
 
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)      (m-var-dec exp s)]      
-      
-      [(eq? (first-statement exp) 'begin)  (m-pop (lambda (k) (m-base-layer (rest-of-body exp)
-                                                                       (m-push s) return k continue
-                                                                       try catch finally)))]
      
       [else                                (m-base-layer (rest-of-body exp)
-                                                    (m-what-type (first-statement exp) s return break
-                                                                 continue try catch finally)
-                                                    return break continue try catch finally)])))
+                                                         (m-base-layer (first-statement exp) s return break
+                                                                       continue try catch finally)
+                                                         return break continue try catch finally)])))
 
 ;; Figures out which method should be used to evaluate this, and evaluates this
 ;; Returns updated state
@@ -103,14 +98,27 @@
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(or (null? exp) (not (pair? exp)))      s]
 
+      ;is  it a function
+      [(eq? (statement-type-id exp) 'function) (m-var-dec (cons (cadr exp)
+                                                                (list (append (list (caddr exp))
+                                                                              (list (cdddr exp)))))
+                                                          s)]
+
+      ;is it a function call w/o parameters
+      [(and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))) (m-funcall (cadr exp) '() s)]
+      
+      ;is it a function call
+      [(eq? (statement-type-id exp) 'funcall) (m-funcall (cadr exp) (caddr exp)
+                                                         return break continue try catch finally s)]
+      
       ; is it a new block
       [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push s)
-                                                             return break continue try catch finally))]
+                                                               return break continue try catch finally))]
 
       ; conditional statement checking (if/while/etc.)
       [(eq? (statement-type-id exp) 'if)       (m-if-statement exp s return break continue try catch finally)]
       [(eq? (statement-type-id exp) 'while)    (call/cc (lambda (k) (m-while-loop exp s return k continue
-                                                                                try catch finally)))]
+                                                                                  try catch finally)))]
 
       ; is it a break
       [(eq? (statement-type-id exp) 'break)    (break (m-pop s))]
@@ -120,7 +128,7 @@
 
       ; is it a try/catch statement
       [(eq? (statement-type-id exp) 'try)      (call/cc (λ (k) (m-try-catch-finally exp s return break
-                                                                                  continue k catch finally)))]
+                                                                                    continue k catch finally)))]
 
       ; is it a throw
       [(eq? (statement-type-id exp) 'throw)    (try (m-pop (catch (statement-body exp))))]
@@ -138,9 +146,31 @@
       [else                                    (error 'undefined "undefined expression")])))
 
 (define m-funcall
-  (lambda (actual)
-    actual))
+  (lambda (name actual return break continue try catch finally s)
+    (let* [(all (m-lookup name s))
+           (formal (car all))
+           (body (cadr))]
+        (if (eq? (num-in-list actual 0) (num-in-list formal 0))
+            (m-pop (m-state body (lists-to-assign actual formal (m-push s))
+                            return break continue try catch finally))
+            (error 'undefined "Paramater mismatch")))))
 
+;; Takes two lists (l1 actual values)  (l2 formal values)
+;; Returns an updated state
+;; eg: (lists-to-assign '(1 2 3) '(a b c) s)
+(define lists-to-assign
+  (lambda (l1 l2 s)
+    (if (null? l1)
+        s
+        (lists-to-assign (cdr l1) (cdr l2) (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) s)))))
+
+;; Sums the number of attoms in a list
+;; helper for m-funcall
+(define num-in-list
+  (lambda (lis acc)
+    (if (null? lis)
+        acc
+        (num-in-list (cdr lis) (+ acc 1)))))
 
 (define m-try-catch-finally
   (lambda (exp s return break continue try catch finally)
@@ -152,12 +182,12 @@
       ; check if it has catch (and no finally)
       [(and (not (pair? (third-statement exp))) (eq? (second-identifier exp) 'catch))
        (call/cc (lambda (k) (m-state (try-body exp) s return break continue k
-                         ;; CATCH STATEMENT
-                         (lambda (exception) (m-state (catch-body (second-body exp))
-                                                      ;; MODIFYING THE STATE 
-                                                      (m-var-dec (list 'var (catch-var-name (second-body exp))
-                                                                      exception) (m-push s))
-                                                      return break continue k catch finally)) finally)))]
+                                     ;; CATCH STATEMENT
+                                     (lambda (exception) (m-state (catch-body (second-body exp))
+                                                                  ;; MODIFYING THE STATE 
+                                                                  (m-var-dec (list 'var (catch-var-name (second-body exp))
+                                                                                   exception) (m-push s))
+                                                                  return break continue k catch finally)) finally)))]
 
       ; check if has finally first (no catch)
       [(and (eq? (third-identifier exp) 'finally) (not (pair? (catch-statement exp))))
@@ -171,12 +201,12 @@
       [(and (eq? (second-identifier exp) 'catch) (eq? (third-identifier exp) 'finally))
        (m-state (third-body exp)
                 (call/cc (lambda (k) (m-state (try-body exp) s return break continue k
-                                          ;; CATCH STATEMENT
-                                          (lambda (exception) (m-state (catch-body (second-body exp))
-                                                      ;; MODIFYING THE STATE 
-                                                      (m-var-dec (list 'var (catch-var-name (second-body exp))
-                                                                       exception) (m-push s))
-                                                      return k continue try catch finally)) finally)))
+                                              ;; CATCH STATEMENT
+                                              (lambda (exception) (m-state (catch-body (second-body exp))
+                                                                           ;; MODIFYING THE STATE 
+                                                                           (m-var-dec (list 'var (catch-var-name (second-body exp))
+                                                                                            exception) (m-push s))
+                                                                           return k continue try catch finally)) finally)))
                 return break continue try catch finally)] 
       [else
        (error 'undefined "try statement missing catch or finally")])))
@@ -206,7 +236,7 @@
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(and (eq? (operator exp) '-) (null? (cddr exp))) ; handle negitive numbers
-                               (* -1 (m-value (left-operand exp) s))]
+       (* -1 (m-value (left-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -265,17 +295,17 @@
   (lambda (exp s return break continue try catch finally)
     (cond
       ; invalid expression
-     [(null? exp)
-           (error 'undefined "undefined expression")]
+      [(null? exp)
+       (error 'undefined "undefined expression")]
      
-     ; runs the while loop (body is multiple statements)
-     [(m-condition (loop-condition exp) s)
-           (m-while-loop exp (call/cc (lambda (k) (m-state (loop-body exp) s
-                                                      return break k try catch finally)))
-                    return break continue try catch finally)]
+      ; runs the while loop (body is multiple statements)
+      [(m-condition (loop-condition exp) s)
+       (m-while-loop exp (call/cc (lambda (k) (m-state (loop-body exp) s
+                                                       return break k try catch finally)))
+                     return break continue try catch finally)]
 
-     ; otherwise, returns initial state
-     [else s])))
+      ; otherwise, returns initial state
+      [else s])))
 
 
 
@@ -324,7 +354,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
       [(null? s)                                               (error "use before declared")]
       [(null? (vars s))                                        (m-lookup var (nextlayer s))]
       [(and (equal? var (nextvar s)) (eq? "init" (unbox (nextval s)))) 
-                                                               (error "use before assignment")]
+       (error "use before assignment")]
       [(equal? var (nextvar s))                                (unbox (nextval s))]
       [else                                                    (m-lookup var (next-part s))])))
 
@@ -383,10 +413,10 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; a state formated '(((var1 ...)(val1 ...))((varx ...) (valx ...)))
 (define m-add
   (lambda (var s)
-      (cond
-        [(null? s)        (list (list (list var) (list (box "init"))))]
-        [(null? (vars s)) (cons (list (list var) (list (box "init"))) (nextlayer s))]
-        [else             (cons (list (cons  var (vars s)) (cons (box "init") (vals s))) (nextlayer s))])))
+    (cond
+      [(null? s)        (list (list (list var) (list (box "init"))))]
+      [(null? (vars s)) (cons (list (list var) (list (box "init"))) (nextlayer s))]
+      [else             (cons (list (cons  var (vars s)) (cons (box "init") (vals s))) (nextlayer s))])))
 
 
 ;;takes a variable and a state
