@@ -29,9 +29,7 @@ try{
 		return x * 100 + y * 10 + z;
 	}
 	finally {
-		var x = 0;
-		return x = x + 1;
-		throw x;
+		throw 0 + 1;
 	}
 }
 catch (e) {
