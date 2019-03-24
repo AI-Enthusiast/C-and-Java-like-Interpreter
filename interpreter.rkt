@@ -128,7 +128,8 @@
 
       ; is it a try/catch statement
       [(eq? (statement-type-id exp) 'try)      (call/cc (λ (k) (m-try-catch-finally exp s return break
-                                                                                    continue k catch finally)))]
+                                                                                    continue k catch
+                                                                                    finally)))]
 
       ; is it a throw
       [(eq? (statement-type-id exp) 'throw)    (try (m-pop (catch (statement-body exp))))]
@@ -185,9 +186,11 @@
                                      ;; CATCH STATEMENT
                                      (lambda (exception) (m-state (catch-body (second-body exp))
                                                                   ;; MODIFYING THE STATE 
-                                                                  (m-var-dec (list 'var (catch-var-name (second-body exp))
+                                                                  (m-var-dec (list 'var (catch-var-name
+                                                                                         (second-body exp))
                                                                                    exception) (m-push s))
-                                                                  return break continue k catch finally)) finally)))]
+                                                                  return break continue k catch finally))
+                                     finally)))]
 
       ; check if has finally first (no catch)
       [(and (eq? (third-identifier exp) 'finally) (not (pair? (catch-statement exp))))
@@ -204,9 +207,13 @@
                                               ;; CATCH STATEMENT
                                               (lambda (exception) (m-state (catch-body (second-body exp))
                                                                            ;; MODIFYING THE STATE 
-                                                                           (m-var-dec (list 'var (catch-var-name (second-body exp))
-                                                                                            exception) (m-push s))
-                                                                           return k continue try catch finally)) finally)))
+                                                                           (m-var-dec
+                                                                            (list 'var
+                                                                                  (catch-var-name
+                                                                                   (second-body exp))
+                                                                                  exception) (m-push s))
+                                                                           return k continue
+                                                                           try catch finally)) finally)))
                 return break continue try catch finally)] 
       [else
        (error 'undefined "try statement missing catch or finally")])))
