@@ -1,13 +1,12 @@
 #lang racket
 ;;;; A Java/C (ish) interpreter
 ;;;; EECS 345
-;;;; Group #21: Shanti Polara, Catlin Campbell, Cormac Dacker
+;;;; Group #7: Shanti Polara, Catlin Campbell, Cormac Dacker
 ;;;; Will run a txt file containing code by using the run function (run "Filename.txt")
 ;;;; Order of inputs for ALL m-state and m-state like things
-;;;; m-state(exp, s, return, break, continue, try, catch, finally)
 
 (provide (all-defined-out))         ; allows for testing to be done in interpreter-testing.rkt
-(require "simpleParser.rkt")        ; loads simpleParser.rkt, which itself loads lex.rkt
+(require "functionParser.rkt")        ; loads simpleParser.rkt, which itself loads lex.rkt
 (require racket/trace)              ; for debugging
 
 ;; Runs the filename, should be provided in quotes
@@ -71,6 +70,19 @@
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(or (null? exp) (not (pair? exp)))      s]
 
+      ;is it the main
+      [(and  (eq?  (statement-body exp) 'main)
+             (eq? (statement-type-id exp) 'function)) (m-pop (m-state (cadddr exp)  (m-push s)
+                                                                      return break continue
+                                                                      try catch finally))]
+
+      ;is  it a function
+      [(eq? (statement-type-id exp) 'function) (m-var-dec (cadr exp) (append (list (caddr exp))
+                                                                              (list (cdddr exp))))]
+
+      ;is it a function call
+      [(eq? (statement-type-id exp) 'funcall) (m-function (cadr exp))]
+
       ; is it a new block
       [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push s)
                                                              return break continue try catch finally))]
@@ -104,6 +116,10 @@
       
       ; oh no
       [else                                    (error 'undefined "undefined expression")])))
+
+(define m-function
+  (lambda (actual)
+    actual))
 
 
 (define m-try-catch-finally

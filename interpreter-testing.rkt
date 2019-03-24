@@ -30,16 +30,16 @@
   ; (pass? {actual} {expected})
   ; (newline)
 
-  (test-parse-t)
+  ;(test-parse-t)
   (test-m-value)
   (test-m-condition)
   (test-m-lookup)
   (test-m-add)
   (test-m-remove)
   (test-m-var-dec)
-  (test-p1-test-scripts)
-  (test-p2-test-scripts)
-  ;(test-p3-test-scripts)
+  ;(test-p1-test-scripts)
+  ;(test-p2-test-scripts)
+  (test-p3-test-scripts)
   
   ) ;left hanging for easy test addition
 
@@ -229,33 +229,33 @@
   ;Functions with multiple parameters that hide global variables
   (pass? (run "Tests/p3.Test5.txt") 1)
   ;Verifying that your code uses static scoping instead of dynamic scoping
-  (pass? (run "Tests/p3.Test6.txt") 115)
+  ;(pass? (run "Tests/p3.Test6.txt") 115)
   ;Boolean parameters and return values
-  (pass? (run "Tests/p3.Test7.txt") 'true)
+  ;(pass? (run "Tests/p3.Test7.txt") 'true)
   ;Multiple function calls in an expression
-  (pass? (run "Tests/p3.Test8.txt") 20)
+  ;(pass? (run "Tests/p3.Test8.txt") 20)
   ;A function call in the parameter of a function
-  (pass? (run "Tests/p3.Test9.txt") 24)
+  ;(pass? (run "Tests/p3.Test9.txt") 24)
   ;A function call that ignores the return value
-  (pass? (run "Tests/p3.Test10.txt") 2)
+  ;(pass? (run "Tests/p3.Test10.txt") 2)
   ;A function without a return statement
-  (pass? (run "Tests/p3.Test11.txt") 35)
+  ;(pass? (run "Tests/p3.Test11.txt") 35)
   ;Mismatched parameters and arguments
   ;(pass? (run "Tests/p3.Test12.txt") "error")   ;should give error
-  (pass? (run "Tests/p3.Test13.txt") 90)
+  ;(pass? (run "Tests/p3.Test13.txt") 90)
   ;Functions inside functions accessing variables outside
-  (pass? (run "Tests/p3.Test14.txt") 69)         ;heh nice
+  ;(pass? (run "Tests/p3.Test14.txt") 69)         ;heh nice
   ;Functions inside functions with variables of the same name
-  (pass? (run "Tests/p3.Test15.txt") 87)
+  ;(pass? (run "Tests/p3.Test15.txt") 87)
   ;Functions inside functions inside functions
-  (pass? (run "Tests/p3.Test16.txt") 64)
+  ;(pass? (run "Tests/p3.Test16.txt") 64)
   ;Functions inside functions accessing out of scope variables
   ;(pass? (run "Tests/p3.Test17.txt") "error")   ;should give error
   ;try/catch finally, but no exception thrown
-  (pass? (run "Tests/p3.Test18.txt") 125)
+  ;(pass? (run "Tests/p3.Test18.txt") 125)
   ;Throwing an exception inside a function
-  (pass? (run "Tests/p3.Test19.txt") 100)
+  ;(pass? (run "Tests/p3.Test19.txt") 100)
   ;Throwing an exception from a function
-  (pass? (run "Tests/p3.Test20.txt") 2000400)
+  ;(pass? (run "Tests/p3.Test20.txt") 2000400)
 
   (newline)); left hanging for easy test addition
