@@ -148,10 +148,12 @@
 
 (define m-funcall
   (lambda (name actual return break continue try catch finally s)
+    ;gets the body and the formal parameters of the function
     (let* [(all (m-lookup name s))
            (formal (car all))
-           (body (cadr))]
+           (body (cadr all))]
         (if (eq? (num-in-list actual 0) (num-in-list formal 0))
+            ;runs the body
             (m-pop (m-state body (lists-to-assign actual formal (m-push s))
                             return break continue try catch finally))
             (error 'undefined "Paramater mismatch")))))
