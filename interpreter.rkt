@@ -418,12 +418,23 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; Returns the updated state, if used before assigned, should result in error
 ;; Will accept an empty state '(), a state formated '((()())) or
 ;; a state formated '(((var1 ...)(val1 ...))((varx ...) (valx ...)))
+;;adds local vars only, global vars added durring first pass
 (define m-add
   (lambda (var s)
-    (cond
-      [(null? s)        (list (list (list var) (list (box "init"))))]
-      [(null? (vars s)) (cons (list (list var) (list (box "init"))) (nextlayer s))]
-      [else             (cons (list (cons  var (vars s)) (cons (box "init") (vals s))) (nextlayer s))])))
+     (list (cons (list (list (cons  var (vars s)) (cons (box "init") (vals s)))(func-layer s)) (cdr (local s))) (global s))))
+
+(define m-add-local-func
+  (lambda (var s)
+    (list (cons (var-layer s) (list (cdr (local s)))))))
+
+(define m-add-global-var
+  (lambda (var s)
+    (list (local s) (list (list (cons var (global-vars s)) (cons (box "init") (global-vals s))) (global-func-layer s)))))
+
+(define m-add-global-func
+  (lambda (func closure s)
+    (list (local s) (list (global-var-layer s) (list (cons func (global-funcs s)) (cons (box closure) (global-func-defs s)))))))
+
 
 
 ;;takes a variable and a state
@@ -434,7 +445,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
       [(null? s)            "error"]
       [(not (locate var s)) "error"]
       [else                 (remove var s)])))
-
+;((((((q) (#&"init")) (() ())))) ((() ()) (() ())))
 ;;takes a variable and a state, removes the variable and it's value from the first layer it is found in
 ;;returns the updated state with the variable and it's value removed
 (define remove
@@ -528,21 +539,62 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define first-val car)
 
 ; for state computation
-(define vars caar)
-(define vals cadar)
-(define nextvar caaar)
-(define rest-of cdr)
-(define nextval caadar)
-(define layer car)
-(define nextlayer cdr)
+(define vars caaaar) ;local vars
+(define vals (lambda (s) (car (cdaaar s)))) ;local vals
+(define nextvar (lambda (s) (car (vars s)))) ;local var
+(define nextval (lambda (s) (car (vals s)))) ;local val
+(define local-layer caar) ;returns single local layer
+(define var-layer  caaar)
+(define func-layer cadaar)
+(define global cadr) ;returns global state
+(define local car) ;returns entire local state
+
+
+(define next-local-layer ;returns entire state minus a local layer
+  (lambda (s)
+    ;(if (null? (cdr (local s)))
+       ; (list (global s))
+        (list (cdr (local s)) (global s))))
+
+(define nextlayer next-local-layer);;TURN TO NEXTLOCALLAYER
+
+(define layer car) ;;;;REMOVE FROM ALL
+
 (define next-part
   (lambda (s)
-    (cons (list (cdr (vars s)) (cdr (vals s))) (nextlayer s))))
+    (cons (list (cdr (vars s)) (cdr (vals s))) (nextlayer s)))) ;has extra parens when removing layer, probobly for best
+(define nextfunc (lambda (s) (caar (func-layer s))))
+(define nextfunc-def (lambda (s) (caadr (func-layer s))))
+(define funcs (lambda (s) (car (func-layer s))))
+(define func-defs (lambda (s) (cadr (func-layer s))))
+(define global-var-layer (lambda (s) (car (global s))))
+(define global-func-layer (lambda (s) (cadr (global s))))
+(define global-vars (lambda (s) (car (global-var-layer s))))
+(define global-vals (lambda (s) (cadr (global-var-layer s))))
+(define global-funcs (lambda (s) (car (global-func-layer s))))
+(define global-func-defs (lambda (s) (cadr (global-func-layer s))))
+(define global-nextvar (lambda (s) (car (global-vars s))))
+(define global-nextval (lambda (s) (car (global-vals s))))
+(define global-nextfunc (lambda (s) (car (global-funcs s))))
+(define global-nextfunc-def (lambda (s) (car (global-func-defs s))))
+;(define global-vals (lambda cadaadr)
+(define rest-of cdr)
+                   
+
 
 ; for running/state
-(define new-layer '(()()))
-(define empty-state '((() ())))
+(define new-layer '((()())(()())))
+(define empty-state '((((()())(()())))((()())(()()))))
+(define b '((((()())(()())))((()())(()()))))
 (define first-statement car)
 (define rest-of-body cdr)
+
+(define a-global '(((a b) (1 2))((f1 f2)((stuff1) (stuff2)))))
+(define a-local '((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6))))))
+(define a  '(((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6)))))(((a b) (1 2))((f1 f2)((stuff1) (stuff2))))))
+(define c '((((() ()) (() ()))) (((a) (#&"init")) (() ()))))
+(define d '((((() ()) (() ()))) (((a) (#&2)) (() ()))))
+(define e '((((() ()) ((f1) ((stufffff))))) (((a) (#&2)) (() ()))))
+(define state2 '(((a b c d)(#&2 #&5 #&6 #&7))((s d e w)(#&1 #&8 #&9 #&0))))
 
 ;; Thank you, sleep well :)
