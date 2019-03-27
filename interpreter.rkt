@@ -363,7 +363,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
       [(and (equal? var (nextvar s)) (eq? "init" (unbox (nextval s)))) 
        (error "use before assignment")]
       [(equal? var (nextvar s))                                (unbox (nextval s))]
-      [else                                                    (m-lookup var (next-part s))])))
+      [else                                                    (m-lookup var (next-part-vars s))])))
 
 
 ;; Takes a variable, the value it is to be updated to, and the state, returns the updated state
@@ -391,7 +391,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
     (cond
       [(or (null? s) (null? (vars s)))  #f]
       [(eq? var (nextvar s))            #t]
-      [else                             (local-locate var (next-part s))])))
+      [else                             (local-locate var (next-part-vars s))])))
 
 ;;takes a variable, the value to be updated and the state with the top layer the layer to be updated
 ;;returns the state with the layer updated with the new value for the variable
@@ -399,7 +399,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
   (lambda (var update-val s)
     (cond
       [(eq? var (nextvar s)) (begin  (set-box! (nextval s) update-val) (cons (nextval s) (rest-of (vals s))))]
-      [else                  (cons (nextval s) (local-update var update-val (next-part s)))])))
+      [else                  (cons (nextval s) (local-update var update-val (next-part-vars s)))])))
 
 
 ;; returns #t if the value is found in the state, #f otherwise
@@ -410,7 +410,25 @@ m-remove - removes a variable and it's value from the first layer it is found at
       [(null? s)             #f]
       [(null? (vars s))      (locate var (nextlayer s))]
       [(eq? var (nextvar s)) #t]
-      [else                  (locate var (next-part s))])))
+      [else                  (locate var (next-part-vars s))])))
+
+(define locate-var
+  (lambda (var s)
+    (cond
+      [(eq? (local s) '())             (locate-global-var var s)]
+      [(null? (vars s))      (locate var (nextlayer s))]
+      [(eq? var (nextvar s)) #t]
+      [else                  (locate var (next-part-vars s))])))
+
+(define locate-global-var
+  (lambda (var s)
+    (cond
+      [(null? (global s))     #f]
+      [(null? (global-vars s)) #f]
+      [(eq? var (global-nextvar s)) #t]
+      [else                  (locate-global-var var (global-nextpart-funcs s))])))
+   
+      
 
 
 ;; Takes a varaiable and a state, adds it to a state with non number uninitilized value "init"
@@ -424,8 +442,8 @@ m-remove - removes a variable and it's value from the first layer it is found at
      (list (cons (list (list (cons  var (vars s)) (cons (box "init") (vals s)))(func-layer s)) (cdr (local s))) (global s))))
 
 (define m-add-local-func
-  (lambda (var s)
-    (list (cons (var-layer s) (list (cdr (local s)))))))
+  (lambda (func closure s)
+    (list (cons (list (var-layer s) (list (cons func (funcs s)) (cons (box closure) (func-defs s)))) (cdr (local s))) (global s))))
 
 (define m-add-global-var
   (lambda (var s)
@@ -434,45 +452,6 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define m-add-global-func
   (lambda (func closure s)
     (list (local s) (list (global-var-layer s) (list (cons func (global-funcs s)) (cons (box closure) (global-func-defs s)))))))
-
-
-
-;;takes a variable and a state
-;;returns the state with the variable and it's value removed
-(define m-remove
-  (lambda (var s)
-    (cond
-      [(null? s)            "error"]
-      [(not (locate var s)) "error"]
-      [else                 (remove var s)])))
-;((((((q) (#&"init")) (() ())))) ((() ()) (() ())))
-;;takes a variable and a state, removes the variable and it's value from the first layer it is found in
-;;returns the updated state with the variable and it's value removed
-(define remove
-  (lambda (var s)
-    (cond
-      [(null? s)            '()]
-      [(null? (vars s))     (remove var (nextlayer s))]
-      [(local-locate var s) (cons (list (remove-var var (vars s)) (remove-val var  s)) (nextlayer s))]
-      [else (cons (layer s) (remove var (nextlayer s)))])))
-
-
-;; Takes a variable and a state
-;; Returns the value list with the value attached to the variable removed
-(define remove-val
-  (lambda (var s)
-    (if (eq? var (nextvar s))
-        (rest-of (vals s))
-        (cons (nextval s) (remove-val var (next-part s))))))
-
-;; Takes an variable and a variable list
-;; Returns the variable list with the first instance of the variable removed
-(define remove-var
-  (lambda (a lis)
-    (cond
-      [(null? lis)                '()]
-      [(eq? a (first-val lis))    (rest-of lis)]
-      [else                       (cons (first-val lis) (remove-var a (rest-of lis)))])))
 
 ;; Determines if an expression is boolean
 (define am-i-boolean
@@ -560,13 +539,13 @@ m-remove - removes a variable and it's value from the first layer it is found at
 
 (define layer car) ;;;;REMOVE FROM ALL
 
-(define next-part
+(define next-part-vars
   (lambda (s)
-    (cons (list (cdr (vars s)) (cdr (vals s))) (nextlayer s)))) ;has extra parens when removing layer, probobly for best
+    (list (cons (cons (list (cdr (vars s)) (cdr (vals s))) (func-layer s)) (cdr (local s))) (global s)))) ;has extra parens when removing layer, probobly for best
 (define nextfunc (lambda (s) (caar (func-layer s))))
 (define nextfunc-def (lambda (s) (caadr (func-layer s))))
-(define funcs (lambda (s) (car (func-layer s))))
-(define func-defs (lambda (s) (cadr (func-layer s))))
+(define funcs (lambda (s) (car (func-layer s)))) ; local funcs
+(define func-defs (lambda (s) (cadr (func-layer s)))) ;local func defs
 (define global-var-layer (lambda (s) (car (global s))))
 (define global-func-layer (lambda (s) (cadr (global s))))
 (define global-vars (lambda (s) (car (global-var-layer s))))
@@ -577,8 +556,19 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define global-nextval (lambda (s) (car (global-vals s))))
 (define global-nextfunc (lambda (s) (car (global-funcs s))))
 (define global-nextfunc-def (lambda (s) (car (global-func-defs s))))
+(define global-nextpart-vars
+  (lambda (s)
+    (list (local s) (cons (list (cdr (global-vars s)) (cdr (global-vals s))) (cdr (global s))))))
+(define global-nextpart-funcs
+  (lambda (s)
+    (list (local s) (list (global-var-layer s) (list (cdr (global-funcs s)) (cdr (global-func-defs s)))))))
+
 ;(define global-vals (lambda cadaadr)
 (define rest-of cdr)
+(define b-global-vars (lambda (s) (caar (global s))))
+(define b-global-nextval (lambda (s) (cadar (global s))))
+
+
                    
 
 
@@ -595,6 +585,8 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define c '((((() ()) (() ()))) (((a) (#&"init")) (() ()))))
 (define d '((((() ()) (() ()))) (((a) (#&2)) (() ()))))
 (define e '((((() ()) ((f1) ((stufffff))))) (((a) (#&2)) (() ()))))
+(define q '((((() ())((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6)))))(((a b) (1 2))((f1 f2)((stuff1) (stuff2))))))
 (define state2 '(((a b c d)(#&2 #&5 #&6 #&7))((s d e w)(#&1 #&8 #&9 #&0))))
+(define w '(((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))
 
 ;; Thank you, sleep well :)
