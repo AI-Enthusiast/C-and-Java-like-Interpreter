@@ -365,6 +365,55 @@ m-remove - removes a variable and it's value from the first layer it is found at
       [(equal? var (nextvar s))                                (unbox (nextval s))]
       [else                                                    (m-lookup var (next-part-vars s))])))
 
+(define m-lookup-var
+  (lambda (var s)
+    (cond
+      [(null? s)                     (error "use before declared")]
+      [(null? (local s))             (lookup-global-var var s)]
+      [(null? (vars s))               (m-lookup-var var (nextlayer s))]
+      [(and (equal? var (nextvar s)) (eq? "init" (unbox (nextval s)))) 
+        (error "use before assignment")]
+      [(equal? var (nextvar s))                                (unbox (nextval s))]
+      [else                                                    (m-lookup-var var (next-part-vars s))])))
+
+
+(define lookup-global-var
+  (lambda (var s)
+    (cond
+     [(null? s)              (error "use before declared")]
+     [(null? (global s))     (error "use before declared")]
+     [(null? (global-vars s)) (error "use before declared")]
+     [(and (eq? var (global-nextvar s))(eq? "init" (unbox (global-nextval s)))) (error "use before assignment")]
+     [(equal? var (global-nextvar s))   (unbox (global-nextval s))]
+     [else                  (lookup-global-var var (global-nextpart-vars s))])))
+
+
+(define m-lookup-func
+  (lambda (func s)
+    (cond
+      [(null? s)                      (error "function not found")]
+      [(null? (local s))              (lookup-global-func func s)]
+      [(null? (funcs s))              (m-lookup-func func (nextlayer s))]
+      [(equal? func (nextfunc s))                                (unbox (nextfunc-def s))]
+      [else                                                    (m-lookup-func func (next-part-funcs s))])))
+
+(define lookup-global-func
+  (lambda (func s)
+    (cond
+     [(or (or (null? s)(null? (global s)))(null? (global-funcs s)))              (error "function not found")]
+     [(equal? func (global-nextfunc s))   (unbox (global-nextfunc-def s))]
+     [else                  (lookup-global-func func (global-nextpart-funcs s))])))
+  
+
+#| (define locate-var
+  (lambda (var s)
+    (cond
+      [(null? s)   #f]
+      [(eq? (local s) '())             (locate-global-var var s)]
+      [(null? (vars s))      (locate-var var (nextlayer s))]
+      [(eq? var (nextvar s)) #t]
+      [else
+                    |#
 
 ;; Takes a variable, the value it is to be updated to, and the state, returns the updated state
 (define m-update
@@ -589,8 +638,6 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define b-global-vars (lambda (s) (caar (global s))))
 (define b-global-nextval (lambda (s) (cadar (global s))))
 
-(trace locate-func)
-(trace locate-global-func)
                    
 
 
@@ -606,7 +653,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define a  '(((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6)))))(((a b) (1 2))((f1 f2)((stuff1) (stuff2))))))
 (define c '((((() ()) (() ()))) (((a) (#&"init")) (() ()))))
 (define d '((((() ()) (() ()))) (((a) (#&2)) (() ()))))
-(define e '((((() ()) ((f1) ((stufffff))))) (((a) (#&2)) (() ()))))
+(define e '(((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq))))) (((a) (#&2)) ((f5 f6) (#&(s5) #&(s6))))))
 (define q '((((() ())((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6)))))(((a b) (1 2))((f1 f2)((stuff1) (stuff2))))))
 (define state2 '(((a b c d)(#&2 #&5 #&6 #&7))((s d e w)(#&1 #&8 #&9 #&0))))
 (define w '(((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))
