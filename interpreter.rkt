@@ -415,20 +415,38 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define locate-var
   (lambda (var s)
     (cond
+      [(null? s)   #f]
       [(eq? (local s) '())             (locate-global-var var s)]
-      [(null? (vars s))      (locate var (nextlayer s))]
+      [(null? (vars s))      (locate-var var (nextlayer s))]
       [(eq? var (nextvar s)) #t]
-      [else                  (locate var (next-part-vars s))])))
+      [else                  (locate-var var (next-part-vars s))])))
 
 (define locate-global-var
   (lambda (var s)
     (cond
+      [(null? s)              #f]
       [(null? (global s))     #f]
       [(null? (global-vars s)) #f]
       [(eq? var (global-nextvar s)) #t]
-      [else                  (locate-global-var var (global-nextpart-funcs s))])))
+      [else                  (locate-global-var var (global-nextpart-vars s))])))
    
-      
+(define locate-func
+  (lambda (func s)
+    (cond
+      [(null? s)   #f]
+      [(eq? (local s) '())             (locate-global-func func s)]
+      [(null? (funcs s))      (locate-func func (nextlayer s))]
+      [(eq? func (nextfunc s)) #t]
+      [else                  (locate-func func (next-part-funcs s))])))
+
+(define locate-global-func
+  (lambda (func s)
+    (cond
+      [(null? s)              #f]
+      [(null? (global s))     #f]
+      [(null? (global-funcs s)) #f]
+      [(eq? func (global-nextfunc s)) #t]
+      [else                  (locate-global-func func (global-nextpart-funcs s))])))
 
 
 ;; Takes a varaiable and a state, adds it to a state with non number uninitilized value "init"
@@ -531,8 +549,6 @@ m-remove - removes a variable and it's value from the first layer it is found at
 
 (define next-local-layer ;returns entire state minus a local layer
   (lambda (s)
-    ;(if (null? (cdr (local s)))
-       ; (list (global s))
         (list (cdr (local s)) (global s))))
 
 (define nextlayer next-local-layer);;TURN TO NEXTLOCALLAYER
@@ -542,6 +558,11 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define next-part-vars
   (lambda (s)
     (list (cons (cons (list (cdr (vars s)) (cdr (vals s))) (func-layer s)) (cdr (local s))) (global s)))) ;has extra parens when removing layer, probobly for best
+
+(define next-part-funcs
+  (lambda (s)
+    (list (cons (list (var-layer s) (list (cdr (funcs s)) (cdr (func-defs s)))) (cdr (local s))) (global s))))
+         
 (define nextfunc (lambda (s) (caar (func-layer s))))
 (define nextfunc-def (lambda (s) (caadr (func-layer s))))
 (define funcs (lambda (s) (car (func-layer s)))) ; local funcs
@@ -568,7 +589,8 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define b-global-vars (lambda (s) (caar (global s))))
 (define b-global-nextval (lambda (s) (cadar (global s))))
 
-
+(trace locate-func)
+(trace locate-global-func)
                    
 
 
