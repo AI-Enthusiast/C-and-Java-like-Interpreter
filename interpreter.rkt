@@ -56,10 +56,11 @@
   (lambda (s)
     (nextlayer s)))
 
-;; Returns state with new empty state pushed on
+;; Returns state with new empty layer pushed on
 (define m-push
   (lambda (s)
-    (cons new-layer s)))
+    (list (cons new-layer (local s)) (global s))))
+
 
 ;; Works through the top layer of the code then 
 (define m-base-layer 
@@ -320,9 +321,10 @@
 ;; Returns the updated state
 (define m-assign
   (lambda (assign s)
-    (if (not (locate (variable assign) s))
+    (if (not (locate-var (variable assign) s))
         (error "use before declaration")
         (m-update (variable assign) (m-value (expression assign) s) s))))
+
 
 ;; Takes a variable declaration and a state
 ;; Returns the updated state
@@ -330,13 +332,26 @@
   (lambda (dec s)
     (cond
       ; check variable not already declared
-      [(locate (variable dec) s)             (error "redefining")]
+      [(local-locate (variable dec) s)             (error "redefining")]
       ; just need to add variable, not value
       [(null? (assignment dec))              (m-add (variable dec) s)]
       ; need to add value as well
       [else                                  (m-update (variable dec)
                                                        (m-value (expression dec) s)
                                                        (m-add (variable dec) s))])))
+
+(define m-global-var-dec
+  (lambda (dec s)
+    (cond
+      ; check variable not already declared
+      [(locate-global-var (variable dec) s)             (error "redefining")]
+      ; just need to add variable, not value
+      [(null? (assignment dec))              (m-add-global-var (variable dec) s)]
+      ; need to add value as well
+      [else                                  (m-update (variable dec)
+                                                       (m-value (expression dec) s)
+                                                       (m-add-global-var (variable dec) s))])))
+    
 
 #|
 define state with abstration as one of the following
@@ -405,23 +420,33 @@ m-remove - removes a variable and it's value from the first layer it is found at
      [else                  (lookup-global-func func (global-nextpart-funcs s))])))
   
 
-#| (define locate-var
-  (lambda (var s)
-    (cond
-      [(null? s)   #f]
-      [(eq? (local s) '())             (locate-global-var var s)]
-      [(null? (vars s))      (locate-var var (nextlayer s))]
-      [(eq? var (nextvar s)) #t]
-      [else
-                    |#
+;;check if in local, if in no local layer, do single global update (can use s-values)
+;;when do local layer update, return is lambda func with updated vars and vals, have  to combine back fro return
 
-;; Takes a variable, the value it is to be updated to, and the state, returns the updated state
 (define m-update
   (lambda (var update-val s)
     (cond
-      [(null? s)            "error"]
-      [(not (locate var s)) "error"]
-      [else                 (update var update-val s)])))
+      [(null? s)        "error"]
+      [(not (locate-var var s)) "error"]
+      [(local-locate-var var s) (list (local-update var update-val (local s)) (global s))]
+      [else (list (local s) (global-update var update-val (global s)))])))
+
+(define local-update
+  (lambda (var update-val s)
+    (cond
+      [(null? s)      "error"]
+      [(local-layer-locate var (top-layer s)) (local-toplayer-update var update-val (top-layer s) (lambda (v1 v2) (list (list v1 v2) (s-funcs s))))]
+      [else (cons (top-layer s) (local-update var update-val (cdr s)))])))
+    
+
+(define global-update
+  (lambda (var update-val s)
+    (cond
+      [(null? s)      "error"]
+      [(not (local-layer-locate var s))  "error"] 
+      [else (local-toplayer-update var update-val s (lambda (v1 v2) (list (list v1 v2) (s-funcs s))))])))
+
+
 
 ;;takes a variable, the value it is to be updated to and a state
 ;;returns the state with the variable's value updated at the first instance of the variable
@@ -430,37 +455,44 @@ m-remove - removes a variable and it's value from the first layer it is found at
     (cond
       [(null? s)            '()]
       [(null? (vars s))     (cons new-layer (update var update-val (nextlayer s)))]
-      [(local-locate var s) (cons (list (vars s) (local-update var update-val s)) (nextlayer s))]
+      [(local-locate var s) (cons (list (vars s) (local-toplayer-update var update-val s)) (nextlayer s))]
       [else (cons (layer s) (update var update-val (nextlayer s)))])))
 
 ;;takes a variable and a state
 ;; returns true if the variable exists on the top layer of the state, false otherwise
+;can no longer use i think
 (define local-locate
   (lambda (var s)
     (cond
-      [(or (null? s) (null? (vars s)))  #f]
+      [(null? s)         #f]
+      [(null? (vars s))  #f]
       [(eq? var (nextvar s))            #t]
       [else                             (local-locate var (next-part-vars s))])))
 
+
+;;sent just one layer of local, locate using that (use s-values)
+(define local-layer-locate
+  (lambda (var s)
+    (cond
+      [(null? s)  #f]
+      [(null? (s-vars s)) #f]
+      [(eq? var (s-nextvar s)) #t]
+      [else (local-layer-locate var (s-next-part-vars s))])))
+    
+    
+    
 ;;takes a variable, the value to be updated and the state with the top layer the layer to be updated
 ;;returns the state with the layer updated with the new value for the variable
-(define local-update
-  (lambda (var update-val s)
+(define local-toplayer-update
+  (lambda (var update-val s return)
     (cond
-      [(eq? var (nextvar s)) (begin  (set-box! (nextval s) update-val) (cons (nextval s) (rest-of (vals s))))]
-      [else                  (cons (nextval s) (local-update var update-val (next-part-vars s)))])))
+      [(equal? var (s-nextvar s)) (return (s-vars s) (begin  (set-box! (s-nextval s) update-val) (cons (s-nextval s) (rest-of (s-vals s)))))]
+      [else                  (return (local-toplayer-update var update-val  (s-next-part-vars s)  (lambda (v1 v2) (cons (s-nextvar s) v1) (cons (s-nextval s) v2))))])))
+
 
 
 ;; returns #t if the value is found in the state, #f otherwise
 ;; Takes the variable it is locating, a counter and a state
-(define locate
-  (lambda (var s)
-    (cond
-      [(null? s)             #f]
-      [(null? (vars s))      (locate var (nextlayer s))]
-      [(eq? var (nextvar s)) #t]
-      [else                  (locate var (next-part-vars s))])))
-
 (define locate-var
   (lambda (var s)
     (cond
@@ -478,6 +510,17 @@ m-remove - removes a variable and it's value from the first layer it is found at
       [(null? (global-vars s)) #f]
       [(eq? var (global-nextvar s)) #t]
       [else                  (locate-global-var var (global-nextpart-vars s))])))
+
+
+
+(define local-locate-var
+   (lambda (var s)
+    (cond
+      [(null? s)   #f]
+      [(null? (local s))      #f]
+      [(null? (vars s))      (local-locate-var var (nextlayer s))]
+      [(eq? var (nextvar s)) #t]
+      [else                  (local-locate-var var (next-part-vars s))])))
    
 (define locate-func
   (lambda (func s)
@@ -638,6 +681,21 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define b-global-vars (lambda (s) (caar (global s))))
 (define b-global-nextval (lambda (s) (cadar (global s))))
 
+;single local or global layer abstraction, includes only one set of vars, one set of functions
+(define s-nextvar caaar)
+(define s-nextval caadar)
+(define s-varlayer car)
+(define s-vars caar)
+(define s-vals cadar)
+(define s-funcs cadr)
+(define s-next-part-vars
+  (lambda (s)
+    (list (list (cdr (s-vars s)) (cdr (s-vals s))) (cadr s))))
+;;top layer when dealing with just the local state 
+(define top-layer car)
+
+                        
+
                    
 
 
@@ -657,5 +715,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define q '((((() ())((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6)))))(((a b) (1 2))((f1 f2)((stuff1) (stuff2))))))
 (define state2 '(((a b c d)(#&2 #&5 #&6 #&7))((s d e w)(#&1 #&8 #&9 #&0))))
 (define w '(((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))
+(define p '(((a b) (#&1 #&2)) ((f1 f2) (#&(s1) #&5(s2)))))
+(define z '((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq))))))
 
 ;; Thank you, sleep well :)
