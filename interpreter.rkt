@@ -78,9 +78,9 @@
                                                                       try catch finally))]
 
       ;is  it a function
-      [(eq? (statement-type-id exp) 'function)  (m-var-dec (cons (cadr exp)
+      [(eq? (statement-type-id exp) 'function)  (m-add-global-func (cadr exp)
                                                                  (list (append (list (caddr exp))
-                                                                               (list (cdddr exp)))))
+                                                                               (list (cdddr exp))))
                                                            s)]
 
       ; is it a declaration
@@ -100,9 +100,9 @@
       [(or (null? exp) (not (pair? exp)))      s]
 
       ;is  it a function
-      [(eq? (statement-type-id exp) 'function) (m-var-dec (cons (cadr exp)
+      [(eq? (statement-type-id exp) 'function) (m-add-local-func (cadr exp)
                                                                 (list (append (list (caddr exp))
-                                                                              (list (cdddr exp)))))
+                                                                              (list (cdddr exp))))
                                                           s)]
 
       ;is it a function call w/o parameters
@@ -454,7 +454,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
   (lambda (var update-val s return)
     (cond
       [(equal? var (s-nextvar s)) (return (s-vars s) (begin  (set-box! (s-nextval s) update-val) (cons (s-nextval s) (rest-of (s-vals s)))))]
-      [else                  (return (local-toplayer-update var update-val  (s-next-part-vars s)  (lambda (v1 v2) (cons (s-nextvar s) v1) (cons (s-nextval s) v2))))])))
+      [else                   (local-toplayer-update var update-val  (s-next-part-vars s)  (lambda (v1 v2) (return (cons (s-nextvar s) v1) (cons (s-nextval s) v2))))])))
 
 
 
@@ -556,7 +556,9 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define m-add-global-func
   (lambda (func closure s)
     (list (local s) (list (global-var-layer s) (list (cons func (global-funcs s)) (cons (box closure) (global-func-defs s)))))))
-'((((x) (#&10)) ((() ()) (() ()))) ((() ()) (() ())))
+
+;'((((x) (#&10)) ((() ()) (() ()))) ((() ()) (() ())))
+
 ;; Determines if an expression is boolean
 (define am-i-boolean
   (lambda (exp)
@@ -637,6 +639,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define local-layer caar) ;returns single local layer
 (define var-layer  caaar)
 (define func-layer cadaar)
+(define func-layer2 cadar)
 (define global cadr) ;returns global state
 (define local car) ;returns entire local state
 
@@ -651,8 +654,10 @@ m-remove - removes a variable and it's value from the first layer it is found at
 
 (define next-part-vars
   (lambda (s)
-    (list (cons (cons (list (cdr (vars s)) (cdr (vals s))) (func-layer s)) (cdr (local s))) (global s)))) ;has extra parens when removing layer, probobly for best
-'(((((y x) (#&"init" #&10)) (() ())) (((() ()) (() ())))) ((() ()) (() ())))
+    (list (cons (cons (list (cdr (vars s)) (cdr (vals s))) (func-layer2 s)) (cdr (local s))) (global s)))) ;has extra parens when removing layer, probobly for best
+
+;'(((((y x) (#&"init" #&10)) (() ())) (((() ()) (() ())))) ((() ()) (() ())))
+
 (define next-part-funcs
   (lambda (s)
     (list (cons (list (var-layer s) (list (cdr (funcs s)) (cdr (func-defs s)))) (cdr (local s))) (global s))))
