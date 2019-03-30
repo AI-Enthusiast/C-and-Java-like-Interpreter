@@ -37,6 +37,9 @@
   (lambda (exp s return break continue try catch finally)
     (cond
       [(null? exp)                         s]
+
+
+      
       ; check for return
       [(not (list? (first-statement exp))) (m-what-type exp  s return break continue try catch finally)]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s
@@ -106,11 +109,10 @@
                                                           s)]
 
       ;is it a function call w/o parameters
-      [(and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))) (m-funcall (cadr exp) '() s)]
+      [(and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))) (m-funcall (cadr exp) '() return s)]
       
       ;is it a function call
-      [(eq? (statement-type-id exp) 'funcall) (m-funcall (cadr exp) (caddr exp)
-                                                         return break continue try catch finally s)]
+      [(eq? (statement-type-id exp) 'funcall) (m-funcall (cadr exp) (caddr exp) return s)]
       
       ; is it a new block
       [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push s)
@@ -148,15 +150,14 @@
       [else                                    (error 'undefined "undefined expression")])))
 
 (define m-funcall
-  (lambda (name actual return break continue try catch finally s)
+  (lambda (name actual return s)
     ;gets the body and the formal parameters of the function
     (let* [(all (m-lookup name s))
            (formal (car all))
            (body (cadr all))]
         (if (eq? (num-in-list actual 0) (num-in-list formal 0))
             ;runs the body
-            (m-pop (m-state body (lists-to-assign actual formal (m-push s))
-                            return break continue try catch finally))
+            (m-pop (m-state body (lists-to-assign actual formal (m-push s)) return))
             (error 'undefined "Paramater mismatch")))))
 
 ;; Takes two lists (l1 actual values)  (l2 formal values)
@@ -251,6 +252,7 @@
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '%) (remainder (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
+      
 
       ; oh no
       [else                    (error 'undefined "undefined expression")])))
@@ -578,10 +580,18 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; Returns it as if it where in C/Java
 (define m-return
   (lambda (exp s return finally)
+          (display exp)(newline)
+
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
       [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp s) s return finally))]
+      ;is it a function call w/o parameters
+      [(and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))) (return (m-value (m-funcall (cadr exp) '() return s)))]
+      
+      ;is it a function call
+      [(eq? (statement-type-id exp) 'funcall) (return (m-value (m-funcall (cadr exp) (caddr exp) return s)))]
+      
       [(pair? exp)                          (return (m-value exp s))]
       [(eq? (m-value exp s) #t)             (return 'true)]
       [(eq? (m-value exp s) #f)             (return 'false)]
