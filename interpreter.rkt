@@ -76,9 +76,9 @@
                                                          return break continue try catch finally)]
       ;is it the main
       [(and  (eq?  (statement-body exp) 'main)
-             (eq? (statement-type-id exp) 'function)) (m-pop (m-state (cadddr exp)  (m-push s)
+             (eq? (statement-type-id exp) 'function)) (m-state (cadddr exp)  (m-push s)
                                                                       return break continue
-                                                                      try catch finally))]
+                                                                      try catch finally)]
 
       ;is  it a function
       [(eq? (statement-type-id exp) 'function)  (m-add-global-func (cadr exp)
