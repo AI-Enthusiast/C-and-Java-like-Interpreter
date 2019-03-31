@@ -37,6 +37,9 @@
   (lambda (exp s return break continue try catch finally)
     (cond
       [(null? exp)                         s]
+
+
+      
       ; check for return
       [(not (list? (first-statement exp))) (m-what-type exp  s return break continue try catch finally)]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s
@@ -78,9 +81,9 @@
                                                                       try catch finally))]
 
       ;is  it a function
-      [(eq? (statement-type-id exp) 'function)  (m-var-dec (cons (cadr exp)
+      [(eq? (statement-type-id exp) 'function)  (m-add-global-func (cadr exp)
                                                                  (list (append (list (caddr exp))
-                                                                               (list (cdddr exp)))))
+                                                                               (list (cdddr exp))))
                                                            s)]
 
       ; is it a declaration
@@ -100,17 +103,16 @@
       [(or (null? exp) (not (pair? exp)))      s]
 
       ;is  it a function
-      [(eq? (statement-type-id exp) 'function) (m-var-dec (cons (cadr exp)
+      [(eq? (statement-type-id exp) 'function) (m-add-local-func (cadr exp)
                                                                 (list (append (list (caddr exp))
-                                                                              (list (cdddr exp)))))
+                                                                              (list (cdddr exp))))
                                                           s)]
 
       ;is it a function call w/o parameters
-      [(and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))) (m-funcall (cadr exp) '() s)]
+      [(and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))) (m-funcall (cadr exp) '() return s)]
       
       ;is it a function call
-      [(eq? (statement-type-id exp) 'funcall) (m-funcall (cadr exp) (caddr exp)
-                                                         return break continue try catch finally s)]
+      [(eq? (statement-type-id exp) 'funcall) (m-funcall (cadr exp) (cddr exp) return s)]
       
       ; is it a new block
       [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push s)
@@ -148,15 +150,19 @@
       [else                                    (error 'undefined "undefined expression")])))
 
 (define m-funcall
-  (lambda (name actual return break continue try catch finally s)
+  (lambda (name actual return s)
     ;gets the body and the formal parameters of the function
-    (let* [(all (m-lookup name s))
-           (formal (car all))
-           (body (cadr all))]
+    (let* [(all (m-lookup-func name s))
+           (formal (caar all))
+           (body (car (caadar all)))]
         (if (eq? (num-in-list actual 0) (num-in-list formal 0))
             ;runs the body
-            (m-pop (m-state body (lists-to-assign actual formal (m-push s))
-                            return break continue try catch finally))
+            (m-pop (m-state body (lists-to-assign actual formal (m-push s)) return
+                            (lambda (v) v) ;; break
+                            (lambda (v) v) ;; continue
+                            (lambda (v) v) ;; try
+                            (lambda (v) v) ;; catch
+                            (lambda (v) v))) ;; finally
             (error 'undefined "Paramater mismatch")))))
 
 ;; Takes two lists (l1 actual values)  (l2 formal values)
@@ -251,6 +257,7 @@
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '%) (remainder (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
+      
 
       ; oh no
       [else                    (error 'undefined "undefined expression")])))
@@ -557,6 +564,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
   (lambda (func closure s)
     (list (local s) (list (global-var-layer s) (list (cons func (global-funcs s)) (cons (box closure) (global-func-defs s)))))))
 
+
 ;; Determines if an expression is boolean
 (define am-i-boolean
   (lambda (exp)
@@ -576,10 +584,20 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; Returns it as if it where in C/Java
 (define m-return
   (lambda (exp s return finally)
+          (display "exp")(display exp)(newline)
+
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
       [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp s) s return finally))]
+      ;is it a function call w/o parameters
+      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
+                                            (return (m-value (m-funcall (cadr exp) '() return s)))]
+      
+      ;is it a function call
+      [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
+                                            (return (m-value (m-funcall (cadr exp) (cddr exp) return s)))]
+      
       [(pair? exp)                          (return (m-value exp s))]
       [(eq? (m-value exp s) #t)             (return 'true)]
       [(eq? (m-value exp s) #f)             (return 'false)]
@@ -637,6 +655,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define local-layer caar) ;returns single local layer
 (define var-layer  caaar)
 (define func-layer cadaar)
+(define func-layer2 cadar)
 (define global cadr) ;returns global state
 (define local car) ;returns entire local state
 
