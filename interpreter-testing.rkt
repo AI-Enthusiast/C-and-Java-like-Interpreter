@@ -30,132 +30,11 @@
   ; (pass? {actual} {expected})
   ; (newline)
 
-  ;(test-parse-t)
-  (test-m-value)
-  (test-m-condition)
-  (test-m-lookup)
-  (test-m-add)
-  ;(test-m-remove)
-  (test-m-var-dec)
   ;(test-p1-test-scripts)
   ;(test-p2-test-scripts)
   (test-p3-test-scripts)
-  
+
   ) ;left hanging for easy test addition
-
-
-;; Checks the code is parsed into a tree as exprected
-(define (test-parse-t)
-  (display "Test parse-tree") (newline)                                            ;Test parse-tree
-  (pass? (parse-t "Tests/Test1.txt") '((var x) (= x 10) (var y (+ (* 3 x) 5))                   ; 1/1
-                                               (while (!= (% y x) 3) (= y (+ y 1)))
-                                               (if (> x y) (return x)
-                                                   (if (> (* x x) y) (return (* x x))
-                                                       (if (> (* x (+ x x)) y)
-                                                           (return (* x (+ x x)))
-                                                           (return (- y 1)))))))
-  (newline))
-
-;; Checks math opperations perform correctly
-(define (test-m-value)
-  (display "Test m-value") (newline)                                               ;Test m-value
-  (pass? (m-value '(+ 3 (/ 4 2)) 's) 5)                                                         ; 1/2
-  (pass? (m-value '(+ (* 3 2) (/ 4 (% 2 3))) 's) 8)                                             ; 2/2
-  (newline))
-
-;; Boolean ooporators for var assignments and conditions in if & while statements
-(define (test-m-condition)
-  (display "Test m-condition") (newline)                                           ;Test m-condition
-  (pass? (m-condition '(== 1 1) 's) #t)                                                         ; 1/23
-  (pass? (m-condition '(== 1 0) 's) #f)                                                         ; 2/23
-  (pass? (m-condition '(!= 1 1) 's) #f)                                                         ; 3/23
-  (pass? (m-condition '(!= 1 0) 's) #t)                                                         ; 4/23
-  (pass? (m-condition '(> 1 1) 's) #f)                                                          ; 5/23
-  (pass? (m-condition '(> 1 0) 's) #t)                                                          ; 6/23
-  (pass? (m-condition '(> 0 1) 's) #f)                                                          ; 7/23
-  (pass? (m-condition '(< 1 1) 's) #f)                                                          ; 8/23
-  (pass? (m-condition '(< 1 0) 's) #f)                                                          ; 9/23
-  (pass? (m-condition '(< 0 1) 's) #t)                                                          ; 10/23
-  (pass? (m-condition '(>= 1 1) 's) #t)                                                         ; 11/23
-  (pass? (m-condition '(>= 1 0) 's) #t)                                                         ; 12/23
-  (pass? (m-condition '(>= 0 1) 's) #f)                                                         ; 13/23
-  (pass? (m-condition '(<= 1 1) 's) #t)                                                         ; 14/23
-  (pass? (m-condition '(<= 1 0) 's) #f)                                                         ; 15/23
-  (pass? (m-condition '(<= 0 1) 's) #t)                                                         ; 16/23
-  (pass? (m-condition '(&& #t #t) 's) #t)                                                       ; 17/23
-  (pass? (m-condition '(&& #t #f) 's) #f)                                                       ; 18/23
-  (pass? (m-condition '(|| #t #t) 's) #t)                                                       ; 19/23
-  (pass? (m-condition '(|| #t #f) 's) #t)                                                       ; 20/23
-  (pass? (m-condition '(|| #f #f) 's) #f)                                                       ; 21/23
-  (pass? (m-condition '(! #t) 's) #f)                                                           ; 22/23
-  (pass? (m-condition '(! #f) 's) #t)                                                           ; 23/23
-  (newline))
-
-(define state1 '(((a b c d) (#&2 #&5 #&6 #&7))))
-(define state2 '(((a b c d)(#&2 #&5 #&6 #&7))((s d e w)(#&1 #&8 #&9 #&0))))
-;; Lookup variable's value in the state
-(define (test-m-lookup)
-  (display "Test m-lookup") (newline)                                                    ;Test m-lookup
-  (pass? (m-lookup 'a state1) 2)                                                                 ; 1/8
-  (pass? (m-lookup 'c state1) 6)                                                                 ; 2/8
-  (pass? (m-lookup 'd state1) 7)                                                                 ; 3/8
-  (pass? (m-lookup 'd state2) 7)                                                                 ; 4/8
-  (pass? (m-lookup 'b state2) 5)                                                                 ; 5/8
-  (pass? (m-lookup 'e state2) 9)                                                                 ; 6/8
-  ;(pass? (m-lookup 'q state2) "error) ;should error
-  ;(pass? (m-lookup 'd '()) "error)     ;should error                                            ; 7/8
-  ;(pass? (m-lookup 's empty-state "error) ;should error                                         ; 8/8
-  (newline))
-
-;; Add a variable to the state
-(define (test-m-add)
-  (display "Test m-add") (newline)                                                          ;Test m-add
-  (pass? (m-add 's '()) '(((s)(#&"init"))))                                                       ; 1/5
-  (pass? (m-add 's '((()()))) '(((s)(#&"init"))))                                                 ; 2/5
-  (pass? (m-add 's '(((a)(#&2)))) '(((s a)(#&"init" #&2))))                                       ; 3/5
-  (pass? (m-add 's '((()())((a b c)(#&3 #&4 #&5)))) '(((s)(#&"init"))((a b c)(#&3 #&4 #&5))))                           ; 4/5
-  (pass? (m-add 's '(((a b c)(#&3 #&4 #&5))((d e f)(#&7 #&8 #&9))))                                         ; 5/5
-         '(((s a b c)(#&"init" #&3 #&4 #&5))((d e f)(#&7 #&8 #&9))))
-  (newline))
-
-
-(define remove-state1 '(((a b c d)(#&2 #&5 #&6 #&7))((x d w)(#&3 #&8 #&9))))
-;; Remove a variable from a state
-#|(define (test-m-remove)
-  (display "Test m-remove") (newline)                                                    ;Test m-remove
-  (pass? (m-remove 'a state1) '(((b c d)(#&5 #&6 #&7))))                                          ; 1/8
-  (pass? (m-remove 'b state1) '(((a c d)(#&2 #&6 #&7))))                                          ; 2/8
-  (pass? (m-remove 'd remove-state1)                                                              ; 3/8
-         '(((a b c)(#&2 #&5 #&6))((x d w)(#&3 #&8 #&9))))
-  (pass? (m-remove 'w remove-state1)                                                              ; 4/8
-         '(((a b c d)(#&2 #&5 #&6 #&7))((x d)(#&3 #&8))))
-  (pass? (m-remove 'x remove-state1)                                                              ; 5/8
-         '(((a b c d)(#&2 #&5 #&6 #&7))((d w)(#&8 #&9))))    
-  (pass? (m-remove 'a '((()())((b c d)(#&5 #&6 #&7)))) "error")                                  ; 6/8
-  (pass? (m-remove 'a '((()()))) "error")                                                        ; 7/8
-  (pass? (m-remove 'a '()) "error")                                                              ; 8/8
-  (newline))|#
-
-;; Declares a variable
-(define (test-m-var-dec)
-  (display "Test m-var-dec") (newline)                                             ;Test m-var-dec
-  (pass? (m-var-dec '(var a) '(((q)(#&1)))) '(((a q) (#&"init" #&1))))                            ; 1/11
-  (pass? (m-var-dec '(var a) '((()()))) '(((a)(#&"init"))))                                       ; 2/11
-  (pass? (m-var-dec '(var a 1) '(((d s)(#&2 #&3)))) '(((a d s)(#&1 #&2 #&3))))                    ; 3/11
-  (pass? (m-var-dec '(var a (+ x 1)) '(((c s x)(#&2 #&3 #&4))))
-         '(((a c s x)(#&5 #&2 #&3 #&4))))                                                        ; 4/11
-  (pass? (m-var-dec '(var a (+ x (* c 3))) '(((c s x)(#&2 #&3 #&4))))
-         '(((a c s x)(#&10 #&2 #&3 #&4))))       ; 5/11
-  (pass? (m-var-dec '(var a 1) '(((d s)(#&2 #&3))((g h)(#&4 #&5))))
-         '(((a d s)(#&1 #&2 #&3))((g h)(#&4 #&5))))    ; 6/11
-  (pass? (m-var-dec '(var y) '(((d s)(#&2 #&3))((g h)(#&4 #&5))))
-         '(((y d s)(#&"init" #&2 #&3))((g h)(#&4 #&5)))) ; 7/11
-  ;(pass? (m-var-dec '(var a) '(((d a s)(#&1 #&2 #&3)))) "error")             ;should error      ; 8/11
-  ;(pass? (m-var-dec '(var a 1) '(((d a s)(#&1 #&2 #&3)))) "error")           ;should error      ; 9/11
-  ;(pass? (m-var-dec '(var a (+ x 1)) '(((c s a x)(#&2 #&3 #&5 #&7)))) "error") ;should error    ; 10/11
-  ;(pass? (m-var-dec '(var a (+ a 1)) '(((c s a x)(#&2 #&3 #&5 #&4)))) "error") ;should error    ; 11/11
-  (newline))
-
 
 ;; Tests interpreter functionality P1
 (define (test-p1-test-scripts)
@@ -196,7 +75,7 @@
   (pass? (run "Tests/p2.Test3.txt") 32)                                                         ; 3/
   (pass? (run "Tests/p2.Test4.txt") 2)                                                          ; 4/
   ;(pass? (run "Tests/p2.Test5.txt") "error") ;should give error                                ; 5/
-  (pass? (run "Tests/p2.Test6.txt") 25)                                                         ; 6/                                           
+  (pass? (run "Tests/p2.Test6.txt") 25)                                                         ; 6/
   (pass? (run "Tests/p2.Test7.txt") 21)                                                         ; 7/
   (pass? (run "Tests/p2.Test8.txt") 6)                                                         ; 8/
   (pass? (run "Tests/p2.Test9.txt") -1)                                                         ; 9/
@@ -207,14 +86,14 @@
   (pass? (run "Tests/p2.Test14.txt") 12)                                                        ; 14/
   (pass? (run "Tests/p2.Test15.txt") 125)                                                       ; 15/
   (pass? (run "Tests/p2.Test16.txt") 110)                                                       ; 16/
-  ;(pass? (run "Tests/p2.Test17.txt") 2000400)                                                   ; 17/ 
-  (pass? (run "Tests/p2.Test18.txt") 101)                                                       ; 18/ 
+  ;(pass? (run "Tests/p2.Test17.txt") 2000400)                                                   ; 17/
+  (pass? (run "Tests/p2.Test18.txt") 101)                                                       ; 18/
   ;(pass? (run "Tests/p2.Test19.txt") "error")   ;should give error                              ; 19/
   (pass? (run "Tests/Test7.txt") 2)              ;this tests break                              ; 20/
   ;(pass? (run "Tests/Test9.txt") -1)             ;tests everything                              ; 21/
   (pass? (run "Tests/Test10.txt") 10)
   (pass? (run "Tests/Test11.txt") 120)
-  (newline)) 
+  (newline))
 
 (define (test-p3-test-scripts)
   (display "Test P3 test scripts") (newline)
