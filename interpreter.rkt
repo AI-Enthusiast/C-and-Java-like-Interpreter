@@ -57,6 +57,7 @@
 ;; Returns state with most recent state popped off
 (define m-pop
   (lambda (s)
+    (display "pop    ") (display s) (newline)
     (nextlayer s)))
 
 ;; Returns state with new empty layer pushed on
