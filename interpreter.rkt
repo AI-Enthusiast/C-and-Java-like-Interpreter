@@ -378,7 +378,7 @@
 
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (return (m-value (m-funcall (cadr exp) (cddr exp) return s)))]
+                                            (return (m-funcall (cadr exp) (cddr exp) return s))]
 
       [(pair? exp)                          (return (m-value exp s))]
       [(eq? (m-value exp s) #t)             (return 'true)]
