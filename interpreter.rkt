@@ -68,7 +68,7 @@
 ;; Works through the top layer of the code then
 (define m-base-layer
   (lambda (exp s return break continue try catch finally)
-    (display "state stuff:   ") (display s) (newline)
+    ;(display "state stuff:   ") (display s) (newline)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(null? exp)      s]
@@ -156,18 +156,95 @@
     ;gets the body and the formal parameters of the function
     (let* [(all (m-lookup-func name s))
            (formal (caar all))
-           (body (car (caadar all)))]
+           (body (caadar all))]
         (if (eq? (num-in-list actual 0) (num-in-list formal 0))
             ;runs the body
-            (call/cc (lambda (k)
-                       (m-pop (m-state body (lists-to-assign actual formal (m-push s))
-                            k
-                            (lambda (v) v) ;; break
-                            (lambda (v) v) ;; continue
-                            (lambda (v) v) ;; try
-                            (lambda (v) v) ;; catch
-                            (lambda (v) v))))) ;; finally
+            ;(call/cc (lambda (k)
+                       ;(m-pop
+            (m-state-function body (lists-to-assign actual formal (m-push s))
+                 return
+                 (lambda (v) v) ;; break
+                 (lambda (v) v) ;; continue
+                 (lambda (v) v) ;; try
+                 (lambda (v) v) ;; catch
+                 (lambda (v) v)) ;; finally
             (error 'undefined "Paramater mismatch")))))
+
+;; returns a number or nothing, NOT a state, returns 0 as default
+(define m-state-function
+  (lambda (exp s return break continue try catch finally)
+    (cond
+      [(null? exp)                         0]
+
+
+
+      ; check for return
+      [(not (list? (first-statement exp))) (m-what-type-function exp s return break continue try catch finally)]
+      [(null? (rest-of-body exp))          (m-what-type-function (first-statement exp) s
+                                                        return break continue try catch finally)]
+
+      [(eq? (first-statement exp) 'begin)  (m-pop (lambda (k) (m-state (rest-of-body exp)
+                                                                       (m-push s) return k continue
+                                                                       try catch finally)))]
+
+      [else                                (m-state-function (rest-of-body exp)
+                                                    (m-what-type (first-statement exp) s return break
+                                                                 continue try catch finally)
+                                                    return break continue try catch finally)])))
+
+(define m-what-type-function
+  (lambda (exp s return break continue try catch finally)
+    (cond
+      ; null checking & if exp is not a list, then it wouldn't change the state
+      [(or (null? exp) (not (pair? exp)))      0]
+
+      ;is  it a function
+      [(eq? (statement-type-id exp) 'function) (m-add-local-func (cadr exp)
+                                                                (list (append (list (caddr exp))
+                                                                              (list (cdddr exp))))
+                                                          s)]
+
+      ;is it a function call w/o parameters
+      [(and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))) (m-funcall (cadr exp) '() return s)]
+
+      ;is it a function call
+      [(eq? (statement-type-id exp) 'funcall) (m-funcall (cadr exp) (cddr exp) return s)]
+
+      ; is it a new block
+      [(eq? (first-statement exp) 'begin)     (m-state-function (rest-of-body exp) (m-push s)
+                                                               return break continue try catch finally)]
+
+      ; conditional statement checking (if/while/etc.)
+      [(eq? (statement-type-id exp) 'if)       (m-if-statement exp s return break continue try catch finally)]
+      [(eq? (statement-type-id exp) 'while)    (call/cc (lambda (k) (m-while-loop exp s return k continue
+                                                                                  try catch finally)))]
+
+      ; is it a break
+      [(eq? (statement-type-id exp) 'break)    (break (m-pop s))]
+
+      ; is it a continue
+      [(eq? (statement-type-id exp) 'continue) (continue s)]
+
+      ; is it a try/catch statement
+      [(eq? (statement-type-id exp) 'try)      (call/cc (λ (k) (m-try-catch-finally exp s return break
+                                                                                    continue k catch
+                                                                                    finally)))]
+
+      ; is it a throw
+      [(eq? (statement-type-id exp) 'throw)    (try (m-pop (catch (statement-body exp))))]
+
+      ; is it a declaration
+      [(eq? (statement-type-id exp) 'var)      (m-var-dec exp s)]
+
+      ; is it an assignment
+      [(eq? (statement-type-id exp) '=)        (m-assign exp s)]
+
+      ; is it a return statement
+      [(eq? (statement-type-id exp) 'return)   (m-return (statement-body exp) s return finally)]
+
+      ; oh no
+      [else                                    (error 'undefined "undefined expression")])))
+
 
 ;; Takes two lists (l1 actual values)  (l2 formal values)
 ;; Returns an updated state
@@ -765,4 +842,4 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
 
 ;; Thank you, sleep well :)
-(run "Tests/MyTest2.txt")
+; (run "Tests/p3.Test6.txt")
