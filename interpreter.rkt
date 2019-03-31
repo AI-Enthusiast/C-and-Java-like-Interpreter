@@ -68,6 +68,7 @@
 ;; Works through the top layer of the code then
 (define m-base-layer
   (lambda (exp s return break continue try catch finally)
+    (display "state stuff:   ") (display s) (newline)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(null? exp)      s]
@@ -236,7 +237,7 @@
 ;; The operators are +, -, *, /, %, and division is integer division
 (define m-value
   (lambda (exp s)
-    (display "m-value stuff:   ") (display exp) (newline)
+    ; (display "m-value stuff:   ") (display exp) (newline)
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
@@ -366,7 +367,7 @@
 ;; Returns it as if it where in C/Java
 (define m-return
   (lambda (exp s return finally)
-          (display "exp")(display exp)(newline)
+          ;(display "exp")(display exp)(newline)
 
     (cond
       [(eq?   exp #t)                       (return 'true)]
@@ -764,3 +765,4 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
 
 ;; Thank you, sleep well :)
+(run "Tests/MyTest2.txt")
