@@ -437,7 +437,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
   (lambda (var update-val s)
     (cond
       [(null? s)      "error"]
-      [(local-layer-locate var (top-layer s)) (list (local-toplayer-update var update-val (top-layer s) (lambda (v1 v2) (list (list v1 v2) (local-funcs s)))) (cdr s))]
+      [(local-layer-locate var (top-layer s)) (cons (local-toplayer-update var update-val (top-layer s) (lambda (v1 v2) (list (list v1 v2) (local-funcs s)))) (rest-of s))]
       [else (cons (top-layer s) (local-update var update-val (cdr s)))])))
     
 
@@ -454,7 +454,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
   (lambda (var update-val s return)
     (cond
       [(equal? var (s-nextvar s)) (return (s-vars s) (begin  (set-box! (s-nextval s) update-val) (cons (s-nextval s) (rest-of (s-vals s)))))]
-      [else                  (return (local-toplayer-update var update-val  (s-next-part-vars s)  (lambda (v1 v2) (cons (s-nextvar s) v1) (cons (s-nextval s) v2))))])))
+      [else                  (local-toplayer-update var update-val  (s-next-part-vars s)  (lambda (v1 v2) (return (cons (s-nextvar s) v1) (cons (s-nextval s) v2))))])))
 
 
 
@@ -556,7 +556,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define m-add-global-func
   (lambda (func closure s)
     (list (local s) (list (global-var-layer s) (list (cons func (global-funcs s)) (cons (box closure) (global-func-defs s)))))))
-'((((x) (#&10)) ((() ()) (() ()))) ((() ()) (() ())))
+
 ;; Determines if an expression is boolean
 (define am-i-boolean
   (lambda (exp)
@@ -651,8 +651,8 @@ m-remove - removes a variable and it's value from the first layer it is found at
 
 (define next-part-vars
   (lambda (s)
-    (list (cons (cons (list (cdr (vars s)) (cdr (vals s))) (func-layer s)) (cdr (local s))) (global s)))) ;has extra parens when removing layer, probobly for best
-'(((((y x) (#&"init" #&10)) (() ())) (((() ()) (() ())))) ((() ()) (() ())))
+    (list (cons (list (list (cdr (vars s)) (cdr (vals s))) (func-layer s)) (cdr (local s))) (global s)))) ;has extra parens when removing layer, probobly for best
+
 (define next-part-funcs
   (lambda (s)
     (list (cons (list (var-layer s) (list (cdr (funcs s)) (cdr (func-defs s)))) (cdr (local s))) (global s))))
@@ -697,9 +697,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define top-layer car)
 
 (define local-funcs cadar)              
-
-                   
-
+(define next-part-local cdr)
 
 ; for running/state
 (define new-layer '((()())(()())))
@@ -718,6 +716,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define state2 '(((a b c d)(#&2 #&5 #&6 #&7))((s d e w)(#&1 #&8 #&9 #&0))))
 (define w '(((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))
 (define p '(((a b) (#&1 #&2)) ((f1 f2) (#&(s1) #&5(s2)))))
-(define z '((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq)))) (((a f)(#&2 #&1))((f8 f9)(#&(yyd) #&(uuu))))))
+(define z '((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq)))) (((a f)(#&2 #&1))((f8 f9)(#&(yyd) #&(uuu)))))) ;local test
 (define qqq  '(((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
+(define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
 ;; Thank you, sleep well :)
