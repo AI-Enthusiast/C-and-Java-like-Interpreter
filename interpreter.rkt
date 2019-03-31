@@ -174,8 +174,18 @@
 (define lists-to-assign
   (lambda (l1 l2 s)
     (if (null? l1)
-        s
-        (lists-to-assign (cdr l1) (cdr l2) (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) s)))))
+            s
+            (if (not (number? (car l1)))
+                (lists-to-assign (list-from-state l1 s) l2 s)
+                (lists-to-assign (cdr l1) (cdr l2) (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) s))))))
+
+(define list-from-state
+  (lambda (lis s)
+    (cond
+      [(null? lis) '()]
+      [(not (number? (car lis))) (cons (m-lookup-var (car lis) s) (list-from-state (cdr lis) s))]
+      [else (cons (car lis) (list-from-state (cdr lis) s))])))
+      
 
 ;; Sums the number of attoms in a list
 ;; helper for m-funcall
@@ -257,9 +267,8 @@
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
                                             (call/cc (lambda (k) (m-funcall (cadr exp) (cddr exp) k s)))]
       
-
       ; variable checking
-      [(not (pair? exp))                      (m-lookup exp s)]
+      [(not (pair? exp))                      (m-value (m-lookup exp s) s)]
 
       
       ;is it a function call w/o parameters
@@ -613,11 +622,11 @@ m-remove - removes a variable and it's value from the first layer it is found at
       
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
-                                            (return (m-value (m-funcall (cadr exp) '() return s)))]
+                                            (return (m-funcall (cadr exp) '() return s))]
       
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (return (m-value (m-funcall (cadr exp) (cddr exp) return s) s))]
+                                            (return (m-funcall (cadr exp) (cddr exp) return s))]
       
       [(pair? exp)                          (return (m-value exp s))]
       [(eq? (m-value exp s) #t)             (return 'true)]
