@@ -250,11 +250,11 @@
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
-                                            (call/cc (lambda (k) ((m-value (m-funcall (cadr exp) '() s k) s))))]
+                                            (call/cc (lambda (k) (m-value (m-funcall (cadr exp) '() k s) s)))]
       
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (call/cc (lambda (k) (m-value (m-funcall (cadr exp) (cddr exp) s k) s)))]
+                                            (call/cc (lambda (k) (m-value (m-funcall (cadr exp) (cddr exp) k s) s)))]
       
 
       ; variable checking
@@ -744,4 +744,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; Thank you, sleep well :)
 
 ;(run "Tests/p3.Test4.txt")
+(trace m-state)
+(trace m-lookup)
+
 (run "Tests/p3.Test6.txt")
