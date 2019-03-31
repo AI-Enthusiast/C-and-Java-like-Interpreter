@@ -35,7 +35,7 @@
   (test-m-condition)
   (test-m-lookup)
   (test-m-add)
-  (test-m-remove)
+  ;(test-m-remove)
   (test-m-var-dec)
   ;(test-p1-test-scripts)
   ;(test-p2-test-scripts)
@@ -121,7 +121,7 @@
 
 (define remove-state1 '(((a b c d)(#&2 #&5 #&6 #&7))((x d w)(#&3 #&8 #&9))))
 ;; Remove a variable from a state
-(define (test-m-remove)
+#|(define (test-m-remove)
   (display "Test m-remove") (newline)                                                    ;Test m-remove
   (pass? (m-remove 'a state1) '(((b c d)(#&5 #&6 #&7))))                                          ; 1/8
   (pass? (m-remove 'b state1) '(((a c d)(#&2 #&6 #&7))))                                          ; 2/8
@@ -134,7 +134,7 @@
   (pass? (m-remove 'a '((()())((b c d)(#&5 #&6 #&7)))) "error")                                  ; 6/8
   (pass? (m-remove 'a '((()()))) "error")                                                        ; 7/8
   (pass? (m-remove 'a '()) "error")                                                              ; 8/8
-  (newline))
+  (newline))|#
 
 ;; Declares a variable
 (define (test-m-var-dec)

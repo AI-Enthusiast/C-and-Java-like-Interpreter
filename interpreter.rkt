@@ -157,12 +157,14 @@
            (body (car (caadar all)))]
         (if (eq? (num-in-list actual 0) (num-in-list formal 0))
             ;runs the body
-            (m-pop (m-state body (lists-to-assign actual formal (m-push s)) return
+            (call/cc (lambda (k)
+                       ((m-pop (m-state body (lists-to-assign actual formal (m-push s))
+                            k
                             (lambda (v) v) ;; break
                             (lambda (v) v) ;; continue
                             (lambda (v) v) ;; try
                             (lambda (v) v) ;; catch
-                            (lambda (v) v))) ;; finally
+                            (lambda (v) v)))))) ;; finally
             (error 'undefined "Paramater mismatch")))))
 
 ;; Takes two lists (l1 actual values)  (l2 formal values)
@@ -245,6 +247,15 @@
 
       ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
       [(and (pair? exp) (am-i-boolean exp))   (m-condition exp s)]
+
+      ;is it a function call w/o parameters
+      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
+                                            (call/cc (lambda (k) ((m-value (m-funcall (cadr exp) '() s k) s))))]
+      
+      ;is it a function call
+      [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
+                                            (call/cc (lambda (k) (m-value (m-funcall (cadr exp) (cddr exp) s k) s)))]
+      
 
       ; variable checking
       [(not (pair? exp))                      (m-lookup exp s)]
@@ -596,7 +607,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
       
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (return (m-value (m-funcall (cadr exp) (cddr exp) return s)))]
+                                            (return (m-value (m-funcall (cadr exp) (cddr exp) return s) s))]
       
       [(pair? exp)                          (return (m-value exp s))]
       [(eq? (m-value exp s) #t)             (return 'true)]
@@ -604,14 +615,6 @@ m-remove - removes a variable and it's value from the first layer it is found at
       [else                                 (return (m-value exp s))])))
 
 
-(trace m-add)
-(trace m-add-local-func)
-(trace m-add-global-func)
-(trace m-update)
-(trace m-lookup)
-(trace local-update)
-(trace global-update)
-(trace local-toplayer-update)
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
 (define statement-body cadr)   ; e.g. the body of a return statement
@@ -739,3 +742,6 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define qqq  '(((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
 (define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
 ;; Thank you, sleep well :)
+
+;(run "Tests/p3.Test4.txt")
+(run "Tests/p3.Test6.txt")
