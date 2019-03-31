@@ -237,7 +237,6 @@
 ;; The operators are +, -, *, /, %, and division is integer division
 (define m-value
   (lambda (exp s)
-    (display "m-value stuff:   ") (display exp) (newline)
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
