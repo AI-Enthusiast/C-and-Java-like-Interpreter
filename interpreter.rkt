@@ -149,6 +149,7 @@
       ; oh no
       [else                                    (error 'undefined "undefined expression")])))
 
+;m-funcall returns a state
 (define m-funcall
   (lambda (name actual return s)
     ;gets the body and the formal parameters of the function
@@ -158,13 +159,13 @@
         (if (eq? (num-in-list actual 0) (num-in-list formal 0))
             ;runs the body
             (call/cc (lambda (k)
-                       ((m-pop (m-state body (lists-to-assign actual formal (m-push s))
+                       (m-pop (m-state body (lists-to-assign actual formal (m-push s))
                             k
                             (lambda (v) v) ;; break
                             (lambda (v) v) ;; continue
                             (lambda (v) v) ;; try
                             (lambda (v) v) ;; catch
-                            (lambda (v) v)))))) ;; finally
+                            (lambda (v) v))))) ;; finally
             (error 'undefined "Paramater mismatch")))))
 
 ;; Takes two lists (l1 actual values)  (l2 formal values)
@@ -250,11 +251,11 @@
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
-                                            (call/cc (lambda (k) (m-value (m-funcall (cadr exp) '() k s) s)))]
+                                            (call/cc (lambda (k) (m-funcall (cadr exp) '() k s)))]
       
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (call/cc (lambda (k) (m-value (m-funcall (cadr exp) (cddr exp) k s) s)))]
+                                            (call/cc (lambda (k) (m-funcall (cadr exp) (cddr exp) k s)))]
       
 
       ; variable checking
@@ -746,5 +747,7 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;(run "Tests/p3.Test4.txt")
 (trace m-state)
 (trace m-lookup)
+(trace m-value)
+(trace m-funcall)
 
 (run "Tests/p3.Test6.txt")
