@@ -57,6 +57,7 @@
 ;; Returns state with most recent state popped off
 (define m-pop
   (lambda (s)
+    (display "pop    ") (display s) (newline)
     (nextlayer s)))
 
 ;; Returns state with new empty layer pushed on
@@ -744,25 +745,3 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; Thank you, sleep well :)
 
 (trace m-update)
-
-'(((((a) (#&1)) (() ()))
-    (((a) (#&2)) (() ()))
-    (((a) (#&3)) (() ()))
-    (((a) (#&4)) (() ()))
-    (((a) (#&5)) (() ()))
-    (((a) (#&6)) (() ()))
-    (((a) (#&7)) (() ()))
-    (((a) (#&8)) (() ()))
-    (((a) (#&9)) (() ()))
-    (((a) (#&10)) (() ()))
-    ((() ()) (() ()))
-    ((() ()) (() ())))
-   ((() ())
-    ((fib)
-     (#&(((a)
-          (((if (== a 0)
-              (return 0)
-              (if (== a 1)
-                (return 1)
-                (return
-                 (+ (funcall fib (- a 1)) (funcall fib (- a 2))))))))))))))
