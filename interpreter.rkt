@@ -149,6 +149,7 @@
       ; oh no
       [else                                    (error 'undefined "undefined expression")])))
 
+
 (define m-funcall
   (lambda (name actual return s)
     ;gets the body and the formal parameters of the function
@@ -233,6 +234,7 @@
 ;; The operators are +, -, *, /, %, and division is integer division
 (define m-value
   (lambda (exp s)
+    (display "m-value stuff:   ") (display exp) (newline)
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
@@ -248,6 +250,16 @@
 
       ; variable checking
       [(not (pair? exp))                      (m-lookup exp s)]
+
+      
+      ;is it a function call w/o parameters
+      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
+                                            (m-value (m-funcall (cadr exp) '() (λ(v) v) s) s)]
+      
+      ;is it a function call
+      [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
+                                            (m-value (m-funcall (cadr exp) (cddr exp) (λ(v) v) s) s)]
+
 
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -584,12 +596,11 @@ m-remove - removes a variable and it's value from the first layer it is found at
 ;; Returns it as if it where in C/Java
 (define m-return
   (lambda (exp s return finally)
-          (display "exp")(display exp)(newline)
-
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
       [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp s) s return finally))]
+      
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
                                             (return (m-value (m-funcall (cadr exp) '() return s)))]
@@ -604,14 +615,6 @@ m-remove - removes a variable and it's value from the first layer it is found at
       [else                                 (return (m-value exp s))])))
 
 
-(trace m-add)
-(trace m-add-local-func)
-(trace m-add-global-func)
-(trace m-update)
-(trace m-lookup)
-(trace local-update)
-(trace global-update)
-(trace local-toplayer-update)
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
 (define statement-body cadr)   ; e.g. the body of a return statement
@@ -739,3 +742,27 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define qqq  '(((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
 (define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
 ;; Thank you, sleep well :)
+
+(trace m-update)
+
+'(((((a) (#&1)) (() ()))
+    (((a) (#&2)) (() ()))
+    (((a) (#&3)) (() ()))
+    (((a) (#&4)) (() ()))
+    (((a) (#&5)) (() ()))
+    (((a) (#&6)) (() ()))
+    (((a) (#&7)) (() ()))
+    (((a) (#&8)) (() ()))
+    (((a) (#&9)) (() ()))
+    (((a) (#&10)) (() ()))
+    ((() ()) (() ()))
+    ((() ()) (() ())))
+   ((() ())
+    ((fib)
+     (#&(((a)
+          (((if (== a 0)
+              (return 0)
+              (if (== a 1)
+                (return 1)
+                (return
+                 (+ (funcall fib (- a 1)) (funcall fib (- a 2))))))))))))))
