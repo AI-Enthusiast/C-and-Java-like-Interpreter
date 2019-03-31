@@ -110,7 +110,7 @@
   ;Verifying that your code uses static scoping instead of dynamic scoping
   ;(pass? (run "Tests/p3.Test6.txt") 115)
   ;Boolean parameters and return values
-  ;(pass? (run "Tests/p3.Test7.txt") 'true)
+  (pass? (run "Tests/p3.Test7.txt") 'true)
   ;Multiple function calls in an expression
   ;(pass? (run "Tests/p3.Test8.txt") 20)
   ;A function call in the parameter of a function
