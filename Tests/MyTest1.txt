@@ -1,0 +1,7 @@
+function fib(a) {
+  return a + 2;
+}
+
+function main() {
+  return fib(10);
+}
