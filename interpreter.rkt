@@ -25,7 +25,7 @@
                   (lambda (v) v) ;; continue
                   (lambda (v) v) ;; try
                   (lambda (v) v) ;; catch
-                  (lambda (v) v)))) ;; finally 
+                  (lambda (v) v)))) ;; finally
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define parse-t
@@ -39,16 +39,16 @@
       [(null? exp)                         s]
 
 
-      
+
       ; check for return
       [(not (list? (first-statement exp))) (m-what-type exp  s return break continue try catch finally)]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s
                                                         return break continue try catch finally)]
-      
+
       [(eq? (first-statement exp) 'begin)  (m-pop (lambda (k) (m-state (rest-of-body exp)
                                                                        (m-push s) return k continue
                                                                        try catch finally)))]
-     
+
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s return break
                                                                  continue try catch finally)
@@ -66,9 +66,10 @@
     (list (cons new-layer (local s)) (global s))))
 
 
-;; Works through the top layer of the code then 
-(define m-base-layer 
+;; Works through the top layer of the code then
+(define m-base-layer
   (lambda (exp s return break continue try catch finally)
+    (display "state stuff:   ") (display s) (newline)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(null? exp)      s]
@@ -77,9 +78,9 @@
                                                          return break continue try catch finally)]
       ;is it the main
       [(and  (eq?  (statement-body exp) 'main)
-             (eq? (statement-type-id exp) 'function)) (m-pop (m-state (cadddr exp)  (m-push s)
+             (eq? (statement-type-id exp) 'function)) (m-state (cadddr exp)  (m-push s)
                                                                       return break continue
-                                                                      try catch finally))]
+                                                                      try catch finally)]
 
       ;is  it a function
       [(eq? (statement-type-id exp) 'function)  (m-add-global-func (cadr exp)
@@ -88,8 +89,8 @@
                                                            s)]
 
       ; is it a declaration
-      [(eq? (statement-type-id exp) 'var)      (m-var-dec exp s)]      
-     
+      [(eq? (statement-type-id exp) 'var)      (m-var-dec exp s)]
+
       [else                                (m-base-layer (rest-of-body exp)
                                                          (m-base-layer (first-statement exp) s return break
                                                                        continue try catch finally)
@@ -111,10 +112,10 @@
 
       ;is it a function call w/o parameters
       [(and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))) (m-funcall (cadr exp) '() return s)]
-      
+
       ;is it a function call
       [(eq? (statement-type-id exp) 'funcall) (m-funcall (cadr exp) (cddr exp) return s)]
-      
+
       ; is it a new block
       [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push s)
                                                                return break continue try catch finally))]
@@ -146,7 +147,7 @@
 
       ; is it a return statement
       [(eq? (statement-type-id exp) 'return)   (m-return (statement-body exp) s return finally)]
-      
+
       ; oh no
       [else                                    (error 'undefined "undefined expression")])))
 
@@ -192,13 +193,13 @@
       ; oh no
       [(and (not (pair? (third-statement exp))) (not (pair? (catch-statement exp))))
        (error 'undefined "try statement missing catch or finally")]
-      
+
       ; check if it has catch (and no finally)
       [(and (not (pair? (third-statement exp))) (eq? (second-identifier exp) 'catch))
        (call/cc (lambda (k) (m-state (try-body exp) s return break continue k
                                      ;; CATCH STATEMENT
                                      (lambda (exception) (m-state (catch-body (second-body exp))
-                                                                  ;; MODIFYING THE STATE 
+                                                                  ;; MODIFYING THE STATE
                                                                   (m-var-dec (list 'var (catch-var-name
                                                                                          (second-body exp))
                                                                                    exception) (m-push s))
@@ -211,15 +212,15 @@
                                           (lambda (v) s) (lambda (v) s) finally)
                 return break continue try catch finally)]
 
-      
 
-      ; check for a catch AND a finally 
+
+      ; check for a catch AND a finally
       [(and (eq? (second-identifier exp) 'catch) (eq? (third-identifier exp) 'finally))
        (m-state (third-body exp)
                 (call/cc (lambda (k) (m-state (try-body exp) s return break continue k
                                               ;; CATCH STATEMENT
                                               (lambda (exception) (m-state (catch-body (second-body exp))
-                                                                           ;; MODIFYING THE STATE 
+                                                                           ;; MODIFYING THE STATE
                                                                            (m-var-dec
                                                                             (list 'var
                                                                                   (catch-var-name
@@ -227,7 +228,7 @@
                                                                                   exception) (m-push s))
                                                                            return k continue
                                                                            try catch finally)) finally)))
-                return break continue try catch finally)] 
+                return break continue try catch finally)]
       [else
        (error 'undefined "try statement missing catch or finally")])))
 
@@ -237,6 +238,7 @@
 ;; The operators are +, -, *, /, %, and division is integer division
 (define m-value
   (lambda (exp s)
+    ; (display "m-value stuff:   ") (display exp) (newline)
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
@@ -253,20 +255,20 @@
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
                                             (call/cc (lambda (k) (m-funcall (cadr exp) '() k s)))]
-      
+
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
                                             (call/cc (lambda (k) (m-funcall (cadr exp) (cddr exp) k s)))]
-      
+
 
       ; variable checking
       [(not (pair? exp))                      (m-lookup-var exp s)]
 
-      
+
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
                                             (m-value (m-funcall (cadr exp) '() (λ(v) v) s) s)]
-      
+
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
                                             (m-value (m-funcall (cadr exp) (cddr exp) (λ(v) v) s) s)]
@@ -280,7 +282,7 @@
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '%) (remainder (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-      
+
 
       ; oh no
       [else                    (error 'undefined "undefined expression")])))
@@ -337,7 +339,7 @@
       ; invalid expression
       [(null? exp)
        (error 'undefined "undefined expression")]
-     
+
       ; runs the while loop (body is multiple statements)
       [(m-condition (loop-condition exp) s)
        (m-while-loop exp (call/cc (lambda (k) (m-state (loop-body exp) s
@@ -366,7 +368,7 @@
 ;; Returns it as if it where in C/Java
 (define m-return
   (lambda (exp s return finally)
-          (display "exp")(display exp)(newline)
+          ;(display "exp")(display exp)(newline)
 
     (cond
       [(eq?   exp #t)                       (return 'true)]
@@ -375,11 +377,11 @@
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
                                             (return (m-value (m-funcall (cadr exp) '() return s)))]
-      
+
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (return (m-value (m-funcall (cadr exp) (cddr exp) return s)))]
-      
+                                            (return (m-funcall (cadr exp) (cddr exp) return s))]
+
       [(pair? exp)                          (return (m-value exp s))]
       [(eq? (m-value exp s) #t)             (return 'true)]
       [(eq? (m-value exp s) #f)             (return 'false)]
@@ -419,7 +421,7 @@
       [else                                  (m-update (variable dec)
                                                        (m-value (expression dec) s)
                                                        (m-add-global-var (variable dec) s))])))
-    
+
 
 #|
 define state with abstration with the format:
@@ -453,7 +455,7 @@ m-add-global-func - adds function and function closure to the global layer of st
       [(null? s)                     (error "use before declared")]
       [(null? (local s))             (lookup-global-var var s)]
       [(null? (vars s))               (m-lookup-var var (nextlayer s))]
-      [(and (equal? var (nextvar s)) (eq? "init" (unbox (nextval s)))) 
+      [(and (equal? var (nextvar s)) (eq? "init" (unbox (nextval s))))
         (error "use before assignment")]
       [(equal? var (nextvar s))                                (unbox (nextval s))]
       [else                                                    (m-lookup-var var (next-part-vars s))])))
@@ -492,7 +494,7 @@ m-add-global-func - adds function and function closure to the global layer of st
      [(or (or (null? s)(null? (global s)))(null? (global-funcs s)))              (error "function not found")]
      [(equal? func (global-nextfunc s))   (unbox (global-nextfunc-def s))]
      [else                  (lookup-global-func func (global-nextpart-funcs s))])))
-  
+
 
 ;; takes a variable, the value to be updated, and the state
 ;; returns the updated state
@@ -512,7 +514,7 @@ m-add-global-func - adds function and function closure to the global layer of st
       [(null? s)      "error"]
       [(local-layer-locate var (top-layer s)) (cons (local-toplayer-update var update-val (top-layer s) (lambda (v1 v2) (list (list v1 v2) (local-funcs s)))) (rest-of s))]
       [else (cons (top-layer s) (local-update var update-val (cdr s)))])))
-    
+
 
 ;; takes a variable, the value to be updated, and the global layer of the state
 ;; returns the updated global layer
@@ -520,7 +522,7 @@ m-add-global-func - adds function and function closure to the global layer of st
   (lambda (var update-val s)
     (cond
       [(null? s)      "error"]
-      [(not (local-layer-locate var s))  "error"] 
+      [(not (local-layer-locate var s))  "error"]
       [else (local-toplayer-update var update-val s (lambda (v1 v2) (list (list v1 v2) (s-funcs s))))])))
 
 ;;takes a variable, the value to be updated and the layer to be updated
@@ -578,8 +580,8 @@ m-add-global-func - adds function and function closure to the global layer of st
       [(null? s)  #f]
       [(null? (s-vars s)) #f]
       [(eq? var (s-nextvar s)) #t]
-      [else (local-layer-locate var (s-next-part-vars s))]))) 
-    
+      [else (local-layer-locate var (s-next-part-vars s))])))
+
 
 ;; returns #t if the var is found in the state, #f otherwise
 ;; Takes the variable it is locating and a state
@@ -636,67 +638,6 @@ m-add-global-func - adds function and function closure to the global layer of st
       [else                  (locate-global-func func (global-nextpart-funcs s))])))
 
 
-;; Takes a varaiable and a state, adds it to a state with non number uninitilized value "init"
-;; (does not take value, to update value, use m-update)
-;; Returns the updated state, if used before assigned, should result in error
-;; Will accept an empty state '(), a state formated '((()())) or
-;; a state formated '(((var1 ...)(val1 ...))((varx ...) (valx ...)))
-;;adds local vars only, global vars added durring first pass
-(define m-add
-  (lambda (var s)
-     (list (cons (list (list (cons  var (vars s)) (cons (box "init") (vals s)))(func-layer s)) (cdr (local s))) (global s))))
-
-(define m-add-local-func
-  (lambda (func closure s)
-    (list (cons (list (var-layer s) (list (cons func (funcs s)) (cons (box closure) (func-defs s)))) (cdr (local s))) (global s))))
-
-(define m-add-global-var
-  (lambda (var s)
-    (list (local s) (list (list (cons var (global-vars s)) (cons (box "init") (global-vals s))) (global-func-layer s)))))
-
-(define m-add-global-func
-  (lambda (func closure s)
-    (list (local s) (list (global-var-layer s) (list (cons func (global-funcs s)) (cons (box closure) (global-func-defs s)))))))
-
-
-;; Determines if an expression is boolean
-(define am-i-boolean
-  (lambda (exp)
-    (cond
-      [(eq? (operator exp) '||)  #t]
-      [(eq? (operator exp) '&&)  #t]
-      [(eq? (operator exp) '!)   #t]
-      [(eq? (operator exp) '==)  #t]
-      [(eq? (operator exp) '!=)  #t]
-      [(eq? (operator exp) '<)   #t]
-      [(eq? (operator exp) '>)   #t]
-      [(eq? (operator exp) '<=)  #t]
-      [(eq? (operator exp) '>=)  #t]
-      [else #f])))
-
-;; Takes an expression and a state
-;; Returns it as if it where in C/Java
-(define m-return
-  (lambda (exp s return finally)
-    (cond
-      [(eq?   exp #t)                       (return 'true)]
-      [(eq?   exp #f)                       (return 'false)]
-      [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp s) s return finally))]
-      
-      ;is it a function call w/o parameters
-      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
-                                            (return (m-value (m-funcall (cadr exp) '() return s)))]
-      
-      ;is it a function call
-      [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (return (m-value (m-funcall (cadr exp) (cddr exp) return s) s))]
-      
-      [(pair? exp)                          (return (m-value exp s))]
-      [(eq? (m-value exp s) #t)             (return 'true)]
-      [(eq? (m-value exp s) #f)             (return 'false)]
-      [else                                 (return (m-value exp s))])))
-
-
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
 (define statement-body cadr)   ; e.g. the body of a return statement
@@ -728,7 +669,7 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define third-body (lambda (s) (cadr (third-statement s))))
 (define catch-body cadr)
 (define catch-var-name caar)
- 
+
 ; for remove
 (define first-val car)
 
@@ -760,7 +701,7 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define next-part-funcs
   (lambda (s)
     (list (cons (list (var-layer s) (list (cdr (funcs s)) (cdr (func-defs s)))) (cdr (local s))) (global s))))
-         
+
 (define nextfunc (lambda (s) (caar (func-layer s))))
 (define nextfunc-def (lambda (s) (caadr (func-layer s))))
 (define funcs (lambda (s) (car (func-layer s)))) ; local funcs
@@ -797,10 +738,10 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define s-next-part-vars
   (lambda (s)
     (list (list (cdr (s-vars s)) (cdr (s-vals s))) (cadr s))))
-;;top layer when dealing with just the local state 
+;;top layer when dealing with just the local state
 (define top-layer car)
 
-(define local-funcs cadar)              
+(define local-funcs cadar)
 (define next-part-local cdr)
 
 ; for running/state
@@ -825,3 +766,4 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
 
 ;; Thank you, sleep well :)
+(run "Tests/MyTest2.txt")
