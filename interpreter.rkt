@@ -247,7 +247,7 @@
       [(and (pair? exp) (am-i-boolean exp))   (m-condition exp s)]
 
       ; variable checking
-      [(not (pair? exp))                      (m-lookup exp s)]
+      [(not (pair? exp))                      (m-lookup-var exp s)]
 
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -324,247 +324,6 @@
       ; otherwise, returns initial state
       [else s])))
 
-
-
-;; Takes an assinment and a state
-;; Returns the updated state
-(define m-assign
-  (lambda (assign s)
-    (if (not (locate-var (variable assign) s))
-        (error "use before declaration")
-        (m-update (variable assign) (m-value (expression assign) s) s))))
-
-
-;; Takes a variable declaration and a state
-;; Returns the updated state
-(define m-var-dec
-  (lambda (dec s)
-    (cond
-      ; check variable not already declared
-      [(local-locate (variable dec) s)             (error "redefining")]
-      ; just need to add variable, not value
-      [(null? (assignment dec))              (m-add (variable dec) s)]
-      ; need to add value as well
-      [else                                  (m-update (variable dec)
-                                                       (m-value (expression dec) s)
-                                                       (m-add (variable dec) s))])))
-
-(define m-global-var-dec
-  (lambda (dec s)
-    (cond
-      ; check variable not already declared
-      [(locate-global-var (variable dec) s)             (error "redefining")]
-      ; just need to add variable, not value
-      [(null? (assignment dec))              (m-add-global-var (variable dec) s)]
-      ; need to add value as well
-      [else                                  (m-update (variable dec)
-                                                       (m-value (expression dec) s)
-                                                       (m-add-global-var (variable dec) s))])))
-    
-
-#|
-define state with abstration as one of the following
-'()
-'((()()))
-'(((x, y, ...) (4, 6, ...)))
-'(((x, y, ...) (4, 6, ...))((a, b, ...)(1, 2, ...))((...)(...)))
-state is s
-methods for state
-m-lookup - looks up variable's value, returns value found at highest layer
-m-update - updates variable's value on the first location the variable is found, returns updated state
-m-add - adds uninitilized variable to state (on topmost layer), returns updated state
-m-remove - removes a variable and it's value from the first layer it is found at, returns updated state
-|#
-
-;; Takes a variable and a state
-;; Returns the value of the variable at the first instance it is found, or error message if it does not exist
-;; Will return "init" if not yet initilized
-(define m-lookup
-  (lambda (var s)
-    (cond
-      [(null? s)                                               (error "use before declared")]
-      [(null? (vars s))                                        (m-lookup var (nextlayer s))]
-      [(and (equal? var (nextvar s)) (eq? "init" (unbox (nextval s)))) 
-       (error "use before assignment")]
-      [(equal? var (nextvar s))                                (unbox (nextval s))]
-      [else                                                    (m-lookup var (next-part-vars s))])))
-
-(define m-lookup-var
-  (lambda (var s)
-    (cond
-      [(null? s)                     (error "use before declared")]
-      [(null? (local s))             (lookup-global-var var s)]
-      [(null? (vars s))               (m-lookup-var var (nextlayer s))]
-      [(and (equal? var (nextvar s)) (eq? "init" (unbox (nextval s)))) 
-        (error "use before assignment")]
-      [(equal? var (nextvar s))                                (unbox (nextval s))]
-      [else                                                    (m-lookup-var var (next-part-vars s))])))
-
-
-(define lookup-global-var
-  (lambda (var s)
-    (cond
-     [(null? s)              (error "use before declared")]
-     [(null? (global s))     (error "use before declared")]
-     [(null? (global-vars s)) (error "use before declared")]
-     [(and (eq? var (global-nextvar s))(eq? "init" (unbox (global-nextval s)))) (error "use before assignment")]
-     [(equal? var (global-nextvar s))   (unbox (global-nextval s))]
-     [else                  (lookup-global-var var (global-nextpart-vars s))])))
-
-
-(define m-lookup-func
-  (lambda (func s)
-    (cond
-      [(null? s)                      (error "function not found")]
-      [(null? (local s))              (lookup-global-func func s)]
-      [(null? (funcs s))              (m-lookup-func func (nextlayer s))]
-      [(equal? func (nextfunc s))                                (unbox (nextfunc-def s))]
-      [else                                                    (m-lookup-func func (next-part-funcs s))])))
-
-(define lookup-global-func
-  (lambda (func s)
-    (cond
-     [(or (or (null? s)(null? (global s)))(null? (global-funcs s)))              (error "function not found")]
-     [(equal? func (global-nextfunc s))   (unbox (global-nextfunc-def s))]
-     [else                  (lookup-global-func func (global-nextpart-funcs s))])))
-  
-
-;;check if in local, if in no local layer, do single global update (can use s-values)
-;;when do local layer update, return is lambda func with updated vars and vals, have  to combine back fro return
-
-(define m-update
-  (lambda (var update-val s)
-    (cond
-      [(null? s)        "error"]
-      [(not (locate-var var s)) "error"]
-      [(local-locate-var var s) (list (local-update var update-val (local s)) (global s))]
-      [else (list (local s) (global-update var update-val (global s)))])))
-
-(define local-update
-  (lambda (var update-val s)
-    (cond
-      [(null? s)      "error"]
-      [(local-layer-locate var (top-layer s)) (cons (local-toplayer-update var update-val (top-layer s) (lambda (v1 v2) (list (list v1 v2) (local-funcs s)))) (rest-of s))]
-      [else (cons (top-layer s) (local-update var update-val (cdr s)))])))
-    
-
-(define global-update
-  (lambda (var update-val s)
-    (cond
-      [(null? s)      "error"]
-      [(not (local-layer-locate var s))  "error"] 
-      [else (local-toplayer-update var update-val s (lambda (v1 v2) (list (list v1 v2) (s-funcs s))))])))
-
-;;takes a variable, the value to be updated and the state with the top layer the layer to be updated
-;;returns the state with the layer updated with the new value for the variable
-(define local-toplayer-update
-  (lambda (var update-val s return)
-    (cond
-      [(equal? var (s-nextvar s)) (return (s-vars s) (begin  (set-box! (s-nextval s) update-val) (cons (s-nextval s) (rest-of (s-vals s)))))]
-      [else                  (local-toplayer-update var update-val  (s-next-part-vars s)  (lambda (v1 v2) (return (cons (s-nextvar s) v1) (cons (s-nextval s) v2))))])))
-
-
-
-
-
-
-;;takes a variable and a state
-;; returns true if the variable exists on the top layer of the state, false otherwise
-;can no longer use i think
-(define local-locate
-  (lambda (var s)
-    (cond
-      [(null? s)         #f]
-      [(null? (vars s))  #f]
-      [(eq? var (nextvar s))            #t]
-      [else                             (local-locate var (next-part-vars s))])))
-
-
-;;sent just one layer of local, locate using that (use s-values)
-(define local-layer-locate
-  (lambda (var s)
-    (cond
-      [(null? s)  #f]
-      [(null? (s-vars s)) #f]
-      [(eq? var (s-nextvar s)) #t]
-      [else (local-layer-locate var (s-next-part-vars s))])))
-    
-    
-    
-
-;; returns #t if the value is found in the state, #f otherwise
-;; Takes the variable it is locating, a counter and a state
-(define locate-var
-  (lambda (var s)
-    (cond
-      [(null? s)   #f]
-      [(eq? (local s) '())             (locate-global-var var s)]
-      [(null? (vars s))      (locate-var var (nextlayer s))]
-      [(eq? var (nextvar s)) #t]
-      [else                  (locate-var var (next-part-vars s))])))
-
-(define locate-global-var
-  (lambda (var s)
-    (cond
-      [(null? s)              #f]
-      [(null? (global s))     #f]
-      [(null? (global-vars s)) #f]
-      [(eq? var (global-nextvar s)) #t]
-      [else                  (locate-global-var var (global-nextpart-vars s))])))
-
-
-
-(define local-locate-var
-   (lambda (var s)
-    (cond
-      [(null? s)   #f]
-      [(null? (local s))      #f]
-      [(null? (vars s))      (local-locate-var var (nextlayer s))]
-      [(eq? var (nextvar s)) #t]
-      [else                  (local-locate-var var (next-part-vars s))])))
-   
-(define locate-func
-  (lambda (func s)
-    (cond
-      [(null? s)   #f]
-      [(eq? (local s) '())             (locate-global-func func s)]
-      [(null? (funcs s))      (locate-func func (nextlayer s))]
-      [(eq? func (nextfunc s)) #t]
-      [else                  (locate-func func (next-part-funcs s))])))
-
-(define locate-global-func
-  (lambda (func s)
-    (cond
-      [(null? s)              #f]
-      [(null? (global s))     #f]
-      [(null? (global-funcs s)) #f]
-      [(eq? func (global-nextfunc s)) #t]
-      [else                  (locate-global-func func (global-nextpart-funcs s))])))
-
-
-;; Takes a varaiable and a state, adds it to a state with non number uninitilized value "init"
-;; (does not take value, to update value, use m-update)
-;; Returns the updated state, if used before assigned, should result in error
-;; Will accept an empty state '(), a state formated '((()())) or
-;; a state formated '(((var1 ...)(val1 ...))((varx ...) (valx ...)))
-;;adds local vars only, global vars added durring first pass
-(define m-add
-  (lambda (var s)
-     (list (cons (list (list (cons  var (vars s)) (cons (box "init") (vals s)))(func-layer s)) (cdr (local s))) (global s))))
-
-(define m-add-local-func
-  (lambda (func closure s)
-    (list (cons (list (var-layer s) (list (cons func (funcs s)) (cons (box closure) (func-defs s)))) (cdr (local s))) (global s))))
-
-(define m-add-global-var
-  (lambda (var s)
-    (list (local s) (list (list (cons var (global-vars s)) (cons (box "init") (global-vals s))) (global-func-layer s)))))
-
-(define m-add-global-func
-  (lambda (func closure s)
-    (list (local s) (list (global-var-layer s) (list (cons func (global-funcs s)) (cons (box closure) (global-func-defs s)))))))
-
-
 ;; Determines if an expression is boolean
 (define am-i-boolean
   (lambda (exp)
@@ -603,12 +362,263 @@ m-remove - removes a variable and it's value from the first layer it is found at
       [(eq? (m-value exp s) #f)             (return 'false)]
       [else                                 (return (m-value exp s))])))
 
+;; Takes an assinment and a state
+;; Returns the updated state
+(define m-assign
+  (lambda (assign s)
+    (if (not (locate-var (variable assign) s))
+        (error "use before declaration")
+        (m-update (variable assign) (m-value (expression assign) s) s))))
+
+
+;; Takes a variable declaration and a state
+;; Returns the updated state
+(define m-var-dec
+  (lambda (dec s)
+    (cond
+      ; check variable not already declared
+      [(local-locate (variable dec) s)             (error "redefining")]
+      ; just need to add variable, not value
+      [(null? (assignment dec))              (m-add (variable dec) s)]
+      ; need to add value as well
+      [else                                  (m-update (variable dec)
+                                                       (m-value (expression dec) s)
+                                                       (m-add (variable dec) s))])))
+
+(define m-global-var-dec
+  (lambda (dec s)
+    (cond
+      ; check variable not already declared
+      [(locate-global-var (variable dec) s)             (error "redefining")]
+      ; just need to add variable, not value
+      [(null? (assignment dec))              (m-add-global-var (variable dec) s)]
+      ; need to add value as well
+      [else                                  (m-update (variable dec)
+                                                       (m-value (expression dec) s)
+                                                       (m-add-global-var (variable dec) s))])))
+    
+
+#|
+define state with abstration with the format:
+
+'(((((var1, var2 ..)(val1, val2 ..))((local-func1, localfunc2 ...)(closure1, closure2 ... )))(Inner local layer1)(Inner local layer2))
+   (((glob-var1, glob-var2 ...)(val1, val2 ..))((glob-func1, glob-func2 ..)(closure1, closure2 ..)))))
+
+
+methods for state
+(Note, when searching for values/closures, they will be searched for first in the local layer
+then globaly)
+m-lookup-var - looks up variable's value, returns value found at highest layer
+m-lookup-func - lookes up a function's closure, returns closure found at highest level
+m-update - updates variable's value on the first location the variable is found, returns updated state
+m-add-local-var - adds uninitilized variable to local layer of state (on topmost layer), returns updated state
+m-add-global-var - adds uninitilized variable to global layer of state , returns updated state
+m-add-local-func - adds function and function closure to local layer of state
+m-add-global-func - adds function and function closure to the global layer of state
+|#
+
+;; Takes a variable and a state
+;; Returns the value of the variable at the first instance it is found, or error message if it does not exist
+;; Will error if not yet initilized or if it does not exist
+
+
+;; takes a variable and a state
+;; returns the value or an error
+(define m-lookup-var
+  (lambda (var s)
+    (cond
+      [(null? s)                     (error "use before declared")]
+      [(null? (local s))             (lookup-global-var var s)]
+      [(null? (vars s))               (m-lookup-var var (nextlayer s))]
+      [(and (equal? var (nextvar s)) (eq? "init" (unbox (nextval s)))) 
+        (error "use before assignment")]
+      [(equal? var (nextvar s))                                (unbox (nextval s))]
+      [else                                                    (m-lookup-var var (next-part-vars s))])))
+
+
+;; takes a global variable and a state
+;; returns the value or an error
+(define lookup-global-var
+  (lambda (var s)
+    (cond
+     [(null? s)              (error "use before declared")]
+     [(null? (global s))     (error "use before declared")]
+     [(null? (global-vars s)) (error "use before declared")]
+     [(and (eq? var (global-nextvar s))(eq? "init" (unbox (global-nextval s)))) (error "use before assignment")]
+     [(equal? var (global-nextvar s))   (unbox (global-nextval s))]
+     [else                  (lookup-global-var var (global-nextpart-vars s))])))
+
+
+;; takes a function and a state
+;; returns the function closure
+(define m-lookup-func
+  (lambda (func s)
+    (cond
+      [(null? s)                      (error "function not found")]
+      [(null? (local s))              (lookup-global-func func s)]
+      [(null? (funcs s))              (m-lookup-func func (nextlayer s))]
+      [(equal? func (nextfunc s))                                (unbox (nextfunc-def s))]
+      [else                                                    (m-lookup-func func (next-part-funcs s))])))
+
+
+;; takes a global function and a state
+;; returns the function closure
+(define lookup-global-func
+  (lambda (func s)
+    (cond
+     [(or (or (null? s)(null? (global s)))(null? (global-funcs s)))              (error "function not found")]
+     [(equal? func (global-nextfunc s))   (unbox (global-nextfunc-def s))]
+     [else                  (lookup-global-func func (global-nextpart-funcs s))])))
+  
+
+;; takes a variable, the value to be updated, and the state
+;; returns the updated state
+(define m-update
+  (lambda (var update-val s)
+    (cond
+      [(null? s)        "error"]
+      [(not (locate-var var s)) "error"]
+      [(local-locate-var var s) (list (local-update var update-val (local s)) (global s))]
+      [else (list (local s) (global-update var update-val (global s)))])))
+
+;; takes a variable, the value to be updated, and the local layer of the state
+;; returns the updated local layer
+(define local-update
+  (lambda (var update-val s)
+    (cond
+      [(null? s)      "error"]
+      [(local-layer-locate var (top-layer s)) (cons (local-toplayer-update var update-val (top-layer s) (lambda (v1 v2) (list (list v1 v2) (local-funcs s)))) (rest-of s))]
+      [else (cons (top-layer s) (local-update var update-val (cdr s)))])))
+    
+
+;; takes a variable, the value to be updated, and the global layer of the state
+;; returns the updated global layer
+(define global-update
+  (lambda (var update-val s)
+    (cond
+      [(null? s)      "error"]
+      [(not (local-layer-locate var s))  "error"] 
+      [else (local-toplayer-update var update-val s (lambda (v1 v2) (list (list v1 v2) (s-funcs s))))])))
+
+;;takes a variable, the value to be updated and the layer to be updated
+;;returns the variables and updated values of the layer in two lists, to be combined by the calling function
+(define local-toplayer-update
+  (lambda (var update-val s return)
+    (cond
+      [(equal? var (s-nextvar s)) (return (s-vars s) (begin  (set-box! (s-nextval s) update-val) (cons (s-nextval s) (rest-of (s-vals s)))))]
+      [else                  (local-toplayer-update var update-val  (s-next-part-vars s)  (lambda (v1 v2) (return (cons (s-nextvar s) v1) (cons (s-nextval s) v2))))])))
+
+
+
+;; Takes a local variable and a state, adds it to the topmost local section of the state with non number uninitilized value "init"
+;; (does not take value, to update value, use m-update)
+(define m-add
+  (lambda (var s)
+     (list (cons (list (list (cons  var (vars s)) (cons (box "init") (vals s)))(func-layer s)) (cdr (local s))) (global s))))
+
+;; Takes a local function and it's closure, adds the function and it's closure to the topmost local section of the state
+(define m-add-local-func
+  (lambda (func closure s)
+    (list (cons (list (var-layer s) (list (cons func (funcs s)) (cons (box closure) (func-defs s)))) (cdr (local s))) (global s))))
+
+;; Takes a global variable and a state, adds it to the global section of the state with non number uninitilized value "init"
+;; (does not take value, to update value, use m-update)
+(define m-add-global-var
+  (lambda (var s)
+    (list (local s) (list (list (cons var (global-vars s)) (cons (box "init") (global-vals s))) (global-func-layer s)))))
+
+;; Takes a global function and it's closure, adds the function and it's closure to the global section of the state
+(define m-add-global-func
+  (lambda (func closure s)
+    (list (local s) (list (global-var-layer s) (list (cons func (global-funcs s)) (cons (box closure) (global-func-defs s)))))))
+
+
+
+;;; the following are helper methods for state functions
+
+;;takes a variable and a state
+;; returns true if the variable exists on the top layer of the state, false otherwise
+;can no longer use i think
+(define local-locate
+  (lambda (var s)
+    (cond
+      [(null? s)         #f]
+      [(null? (vars s))  #f]
+      [(eq? var (nextvar s))            #t]
+      [else                             (local-locate var (next-part-vars s))])))
+
+
+;;returns #t if the variable exists in the topmost layer
+(define local-layer-locate
+  (lambda (var s)
+    (cond
+      [(null? s)  #f]
+      [(null? (s-vars s)) #f]
+      [(eq? var (s-nextvar s)) #t]
+      [else (local-layer-locate var (s-next-part-vars s))]))) 
+    
+
+;; returns #t if the var is found in the state, #f otherwise
+;; Takes the variable it is locating and a state
+(define locate-var
+  (lambda (var s)
+    (cond
+      [(null? s)   #f]
+      [(eq? (local s) '())             (locate-global-var var s)]
+      [(null? (vars s))      (locate-var var (nextlayer s))]
+      [(eq? var (nextvar s)) #t]
+      [else                  (locate-var var (next-part-vars s))])))
+
+
+;; returns #t if the given variable exists in the global layer
+(define locate-global-var
+  (lambda (var s)
+    (cond
+      [(null? s)              #f]
+      [(null? (global s))     #f]
+      [(null? (global-vars s)) #f]
+      [(eq? var (global-nextvar s)) #t]
+      [else                  (locate-global-var var (global-nextpart-vars s))])))
+
+
+;; returns #t if the given variable exists in the local layer
+(define local-locate-var
+   (lambda (var s)
+    (cond
+      [(null? s)   #f]
+      [(null? (local s))      #f]
+      [(null? (vars s))      (local-locate-var var (nextlayer s))]
+      [(eq? var (nextvar s)) #t]
+      [else                  (local-locate-var var (next-part-vars s))])))
+
+
+;; returns #t if the given function exists in any part of the state
+(define locate-func
+  (lambda (func s)
+    (cond
+      [(null? s)   #f]
+      [(eq? (local s) '())             (locate-global-func func s)]
+      [(null? (funcs s))      (locate-func func (nextlayer s))]
+      [(eq? func (nextfunc s)) #t]
+      [else                  (locate-func func (next-part-funcs s))])))
+
+;; returns #t if the given global function exists
+(define locate-global-func
+  (lambda (func s)
+    (cond
+      [(null? s)              #f]
+      [(null? (global s))     #f]
+      [(null? (global-funcs s)) #f]
+      [(eq? func (global-nextfunc s)) #t]
+      [else                  (locate-global-func func (global-nextpart-funcs s))])))
+
+
 
 (trace m-add)
 (trace m-add-local-func)
 (trace m-add-global-func)
 (trace m-update)
-(trace m-lookup)
+
 (trace local-update)
 (trace global-update)
 (trace local-toplayer-update)
@@ -738,4 +748,14 @@ m-remove - removes a variable and it's value from the first layer it is found at
 (define z '((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq)))) (((a f)(#&2 #&1))((f8 f9)(#&(yyd) #&(uuu)))))) ;local test
 (define qqq  '(((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
 (define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
+ (define l1 '(((((a) (#&10)) (() ())) ((() ()) (() ())) ((() ()) (() ())))
+    ((() ())
+     ((fib)
+      (#&(((a)
+           (((if (== a 0)
+               (return 0)
+               (if (== a 1)
+                 (return 1)
+                 (return
+                  (+ (funcall fib (- a 1)) (funcall fib (- a 2)))))))))))))))
 ;; Thank you, sleep well :)
