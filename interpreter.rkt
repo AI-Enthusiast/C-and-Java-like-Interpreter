@@ -57,7 +57,6 @@
 ;; Returns state with most recent state popped off
 (define m-pop
   (lambda (s)
-    (display "pop    ") (display s) (newline)
     (nextlayer s)))
 
 ;; Returns state with new empty layer pushed on
@@ -150,7 +149,7 @@
       ; oh no
       [else                                    (error 'undefined "undefined expression")])))
 
-;m-funcall returns a state
+
 (define m-funcall
   (lambda (name actual return s)
     ;gets the body and the formal parameters of the function
@@ -159,14 +158,12 @@
            (body (car (caadar all)))]
         (if (eq? (num-in-list actual 0) (num-in-list formal 0))
             ;runs the body
-            (call/cc (lambda (k)
-                       (m-pop (m-state body (lists-to-assign actual formal (m-push s))
-                            k
+            (m-pop (m-state body (lists-to-assign actual formal (m-push s)) return
                             (lambda (v) v) ;; break
                             (lambda (v) v) ;; continue
                             (lambda (v) v) ;; try
                             (lambda (v) v) ;; catch
-                            (lambda (v) v))))) ;; finally
+                            (lambda (v) v))) ;; finally
             (error 'undefined "Paramater mismatch")))))
 
 ;; Takes two lists (l1 actual values)  (l2 formal values)
@@ -237,6 +234,7 @@
 ;; The operators are +, -, *, /, %, and division is integer division
 (define m-value
   (lambda (exp s)
+    (display "m-value stuff:   ") (display exp) (newline)
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
@@ -249,15 +247,6 @@
 
       ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
       [(and (pair? exp) (am-i-boolean exp))   (m-condition exp s)]
-
-      ;is it a function call w/o parameters
-      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
-                                            (call/cc (lambda (k) (m-funcall (cadr exp) '() k s)))]
-      
-      ;is it a function call
-      [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (call/cc (lambda (k) (m-funcall (cadr exp) (cddr exp) k s)))]
-      
 
       ; variable checking
       [(not (pair? exp))                      (m-lookup-var exp s)]
@@ -634,67 +623,6 @@ m-add-global-func - adds function and function closure to the global layer of st
       [(null? (global-funcs s)) #f]
       [(eq? func (global-nextfunc s)) #t]
       [else                  (locate-global-func func (global-nextpart-funcs s))])))
-
-
-;; Takes a varaiable and a state, adds it to a state with non number uninitilized value "init"
-;; (does not take value, to update value, use m-update)
-;; Returns the updated state, if used before assigned, should result in error
-;; Will accept an empty state '(), a state formated '((()())) or
-;; a state formated '(((var1 ...)(val1 ...))((varx ...) (valx ...)))
-;;adds local vars only, global vars added durring first pass
-(define m-add
-  (lambda (var s)
-     (list (cons (list (list (cons  var (vars s)) (cons (box "init") (vals s)))(func-layer s)) (cdr (local s))) (global s))))
-
-(define m-add-local-func
-  (lambda (func closure s)
-    (list (cons (list (var-layer s) (list (cons func (funcs s)) (cons (box closure) (func-defs s)))) (cdr (local s))) (global s))))
-
-(define m-add-global-var
-  (lambda (var s)
-    (list (local s) (list (list (cons var (global-vars s)) (cons (box "init") (global-vals s))) (global-func-layer s)))))
-
-(define m-add-global-func
-  (lambda (func closure s)
-    (list (local s) (list (global-var-layer s) (list (cons func (global-funcs s)) (cons (box closure) (global-func-defs s)))))))
-
-
-;; Determines if an expression is boolean
-(define am-i-boolean
-  (lambda (exp)
-    (cond
-      [(eq? (operator exp) '||)  #t]
-      [(eq? (operator exp) '&&)  #t]
-      [(eq? (operator exp) '!)   #t]
-      [(eq? (operator exp) '==)  #t]
-      [(eq? (operator exp) '!=)  #t]
-      [(eq? (operator exp) '<)   #t]
-      [(eq? (operator exp) '>)   #t]
-      [(eq? (operator exp) '<=)  #t]
-      [(eq? (operator exp) '>=)  #t]
-      [else #f])))
-
-;; Takes an expression and a state
-;; Returns it as if it where in C/Java
-(define m-return
-  (lambda (exp s return finally)
-    (cond
-      [(eq?   exp #t)                       (return 'true)]
-      [(eq?   exp #f)                       (return 'false)]
-      [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp s) s return finally))]
-      
-      ;is it a function call w/o parameters
-      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
-                                            (return (m-value (m-funcall (cadr exp) '() return s)))]
-      
-      ;is it a function call
-      [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (return (m-value (m-funcall (cadr exp) (cddr exp) return s) s))]
-      
-      [(pair? exp)                          (return (m-value exp s))]
-      [(eq? (m-value exp s) #t)             (return 'true)]
-      [(eq? (m-value exp s) #f)             (return 'false)]
-      [else                                 (return (m-value exp s))])))
 
 
 ;;;;**********ABSTRACTION**********
