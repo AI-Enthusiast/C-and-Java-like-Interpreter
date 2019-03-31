@@ -149,6 +149,7 @@
       ; oh no
       [else                                    (error 'undefined "undefined expression")])))
 
+
 (define m-funcall
   (lambda (name actual return s)
     ;gets the body and the formal parameters of the function
@@ -233,6 +234,7 @@
 ;; The operators are +, -, *, /, %, and division is integer division
 (define m-value
   (lambda (exp s)
+    (display "m-value stuff:   ") (display exp) (newline)
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
@@ -248,6 +250,16 @@
 
       ; variable checking
       [(not (pair? exp))                      (m-lookup-var exp s)]
+
+      
+      ;is it a function call w/o parameters
+      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
+                                            (m-value (m-funcall (cadr exp) '() (λ(v) v) s) s)]
+      
+      ;is it a function call
+      [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
+                                            (m-value (m-funcall (cadr exp) (cddr exp) (λ(v) v) s) s)]
+
 
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -613,15 +625,6 @@ m-add-global-func - adds function and function closure to the global layer of st
       [else                  (locate-global-func func (global-nextpart-funcs s))])))
 
 
-
-(trace m-add)
-(trace m-add-local-func)
-(trace m-add-global-func)
-(trace m-update)
-
-(trace local-update)
-(trace global-update)
-(trace local-toplayer-update)
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
 (define statement-body cadr)   ; e.g. the body of a return statement
@@ -748,14 +751,5 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define z '((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq)))) (((a f)(#&2 #&1))((f8 f9)(#&(yyd) #&(uuu)))))) ;local test
 (define qqq  '(((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
 (define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
- (define l1 '(((((a) (#&10)) (() ())) ((() ()) (() ())) ((() ()) (() ())))
-    ((() ())
-     ((fib)
-      (#&(((a)
-           (((if (== a 0)
-               (return 0)
-               (if (== a 1)
-                 (return 1)
-                 (return
-                  (+ (funcall fib (- a 1)) (funcall fib (- a 2)))))))))))))))
+
 ;; Thank you, sleep well :)
