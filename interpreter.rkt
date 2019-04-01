@@ -69,7 +69,6 @@
 ;; Works through the top layer of the code then
 (define m-base-layer
   (lambda (exp s return break continue try catch finally)
-    ;(display "state stuff:   ") (display s) (newline)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(null? exp)      s]
@@ -254,8 +253,19 @@
 (define lists-to-assign
   (lambda (l1 l2 s)
     (if (null? l1)
-        s
-        (lists-to-assign (cdr l1) (cdr l2) (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) s)))))
+            s
+            (if (and (not (number? (car l1))) (> (num-in-list l1 0) 1))
+                    (lists-to-assign (list-from-state l1 s) l2 s)
+                    (lists-to-assign (cdr l1) (cdr l2)
+                                     (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) s))))))
+
+(define list-from-state
+  (lambda (lis s)
+    (cond
+      [(null? lis) '()]
+      [(not (number? (car lis))) (cons (m-lookup-var (car lis) s) (list-from-state (cdr lis) s))]
+      [else (cons (car lis) (list-from-state (cdr lis) s))])))
+
 
 ;; Sums the number of attoms in a list
 ;; helper for m-funcall
@@ -316,8 +326,6 @@
 ;; The operators are +, -, *, /, %, and division is integer division
 (define m-value
   (lambda (exp s)
-    (display "State Information: ") (display s) (newline)
-    ; (display "m-value stuff:   ") (display exp) (newline)
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
@@ -447,9 +455,6 @@
 ;; Returns it as if it where in C/Java
 (define m-return
   (lambda (exp s return finally)
-    (display "State Information (return): ") (display s) (newline)
-          ;(display "exp")(display exp)(newline)
-
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
