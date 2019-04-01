@@ -6,7 +6,7 @@
 ;;;; Order of inputs for ALL m-state and m-state like things
 
 (provide (all-defined-out))         ; allows for testing to be done in interpreter-testing.rkt
-(require "functionParser.rkt")        ; loads simpleParser.rkt, which itself loads lex.rkt
+(require "functionParser.rkt")      ; loads simpleParser.rkt, which itself loads lex.rkt
 (require racket/trace)              ; for debugging
 
 ;; Runs the filename, should be provided in quotes
@@ -37,19 +37,19 @@
   (lambda (exp s return break continue try catch finally)
     ;(display "State Information: ") (display s) (newline)
     (cond
+      ; null checking
       [(null? exp)                         s]
 
-
-
-      ; check for return
+      ; checking for single statement
       [(not (list? (first-statement exp))) (m-what-type exp  s return break continue try catch finally)]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s
                                                         return break continue try catch finally)]
 
+      ; checking for block
       [(eq? (first-statement exp) 'begin)  (m-pop (lambda (k) (m-state (rest-of-body exp)
                                                                        (m-push s) return k continue
                                                                        try catch finally)))]
-
+      ; else: process one statement at a time
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s return break
                                                                  continue try catch finally)
@@ -71,9 +71,8 @@
   (lambda (exp s return break continue try catch finally)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
-      [(null? exp)      s]
-
-      [(null? (rest-of-body exp))          (m-base-layer (first-statement exp) s
+      [(null? exp)                 s]
+      [(null? (rest-of-body exp))  (m-base-layer (first-statement exp) s
                                                          return break continue try catch finally)]
       ;is it the main
       [(and  (eq?  (statement-body exp) 'main)
@@ -81,15 +80,18 @@
                                                                       return break continue
                                                                       try catch finally)]
 
-      ;is  it a function
+      ;is it a function
       [(eq? (statement-type-id exp) 'function)  (m-add-global-func (cadr exp)
-                                                                 (list (append (list (caddr exp))
-                                                                               (list (cdddr exp))))
+                                                                 (list (append (list (func-name exp))
+                                                                               (list (func-body exp))))
                                                            s)]
 
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)      (m-var-dec exp s)]
 
+      ; otherwise, process the first statement, and then the rest of it
+      ; (the program shouldn't actually reach this point, because all things in the
+      ; main base level of the program will be either functions or variable declarations. 
       [else                                (m-base-layer (rest-of-body exp)
                                                          (m-base-layer (first-statement exp) s return break
                                                                        continue try catch finally)
@@ -683,6 +685,10 @@ m-add-global-func - adds function and function closure to the global layer of st
 ; for remove
 (define first-val car)
 
+; for declaring functions
+(define func-name caddr)
+(define func-body cdddr)
+
 ; for state computation
 (define vars caaaar) ;local vars
 (define vals (lambda (s) (car (cdaaar s)))) ;local vals
@@ -761,6 +767,7 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define first-statement car)
 (define rest-of-body cdr)
 
+#| FOR TESTING PURPOSES!!!: 
 (define a-global '(((a b) (1 2))((f1 f2)((stuff1) (stuff2)))))
 (define a-local '((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6))))))
 (define a  '(((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6)))))(((a b) (1 2))((f1 f2)((stuff1) (stuff2))))))
@@ -773,7 +780,7 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define p '(((a b) (#&1 #&2)) ((f1 f2) (#&(s1) #&5(s2)))))
 (define z '((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq)))) (((a f)(#&2 #&1))((f8 f9)(#&(yyd) #&(uuu)))))) ;local test
 (define qqq  '(((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
-(define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
+(define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ())))) |#
 
 ;; Thank you, sleep well :)
 ; (run "Tests/p3.Test6.txt")
