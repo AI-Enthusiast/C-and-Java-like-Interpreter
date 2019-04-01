@@ -76,12 +76,12 @@
                                                          return break continue try catch finally)]
       ;is it the main
       [(and  (eq?  (statement-body exp) 'main)
-             (eq? (statement-type-id exp) 'function)) (m-state (cadddr exp)  (m-push s)
+             (eq? (statement-type-id exp) 'function)) (m-state (main-body exp)  (m-push s)
                                                                       return break continue
                                                                       try catch finally)]
 
       ;is it a function
-      [(eq? (statement-type-id exp) 'function)  (m-add-global-func (cadr exp)
+      [(eq? (statement-type-id exp) 'function)  (m-add-global-func (full-func exp)
                                                                  (list (append (list (func-name exp))
                                                                                (list (func-body exp))))
                                                            s)]
@@ -109,17 +109,17 @@
 
       ;is  it a function
       [(eq? (statement-type-id exp) 'function) (m-add-local-func (cadr exp)
-                                                                (list (append (list (caddr exp))
-                                                                              (list (cdddr exp))))
+                                                                (list (append (list (func-name exp))
+                                                                              (list (func-body exp))))
                                                           s)]
 
       ;is it a function call w/o parameters
-      [(and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp)))
-       (m-funcall (cadr exp) '() (lambda (v) s) s)]
+      [(and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp)))
+       (m-funcall (funcall-name exp) no-params (lambda (v) s) s)]
       
       ;is it a function call
       [(eq? (statement-type-id exp) 'funcall)
-       (m-funcall (cadr exp) (cddr exp) (lambda (v) s) s)]
+       (m-funcall (funcall-name exp) (func-params exp) (lambda (v) s) s)]
 
       ; is it a new block
       [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push s)
@@ -162,8 +162,8 @@
   (lambda (name actual return s)
     ;gets the body and the formal parameters of the function
     (let* [(all (m-lookup-func name s))
-           (formal (caar all))
-           (body (caadar all))]
+           (formal (func-formal-params all))
+           (body (func-call-body all))]
         (if (eq? (num-in-list actual 0) (num-in-list formal 0))
             ;runs the body
             ;(call/cc (lambda (k)
@@ -270,12 +270,12 @@
       [(and (pair? exp) (am-i-boolean exp))   (m-condition exp s)]
 
       ;is it a function call w/o parameters
-      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
-                                            (call/cc (lambda (k) (m-funcall (cadr exp) '() k s)))]
+      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
+                                            (call/cc (lambda (k) (m-funcall (funcall-name exp) '() k s)))]
 
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (call/cc (lambda (k) (m-funcall (cadr exp) (cddr exp) k s)))]
+                                            (call/cc (lambda (k) (m-funcall (funcall-name exp) (func-params exp) k s)))]
 
 
       ; variable checking
@@ -283,12 +283,12 @@
 
 
       ;is it a function call w/o parameters
-      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
-                                            (m-value (m-funcall (cadr exp) '() (λ(v) v) s) s)]
+      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
+                                            (m-value (m-funcall (funcall-name exp) '() (λ(v) v) s) s)]
 
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (m-value (m-funcall (cadr exp) (cddr exp) (λ(v) v) s) s)]
+                                            (m-value (m-funcall (funcall-name exp) (func-params exp) (λ(v) v) s) s)]
 
 
       ;operators
@@ -299,7 +299,6 @@
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '%) (remainder (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-
 
       ; oh no
       [else                    (error 'undefined "undefined expression")])))
@@ -390,12 +389,12 @@
       [(eq?   exp #f)                       (return 'false)]
       [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp s) s return finally))]
       ;is it a function call w/o parameters
-      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))))
-                                            (return (m-value (m-funcall (cadr exp) '() return s)))]
+      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
+                                            (return (m-value (m-funcall (funcall-name exp) '() return s)))]
 
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (return (m-funcall (cadr exp) (cddr exp) return s))]
+                                            (return (m-funcall (funcall-name exp) (func-params exp) return s))]
 
       [(pair? exp)                          (return (m-value exp s))]
       [(eq? (m-value exp s) #t)             (return 'true)]
@@ -685,9 +684,17 @@ m-add-global-func - adds function and function closure to the global layer of st
 ; for remove
 (define first-val car)
 
-; for declaring functions
+; for function definition/calling
 (define func-name caddr)
 (define func-body cdddr)
+(define full-func cadr)
+(define main-body cadddr)
+(define func-params cddr)
+(define funcall-name cadr)
+(define no-params '())
+
+(define func-formal-params caar)
+(define func-call-body caadar)
 
 ; for state computation
 (define vars caaaar) ;local vars
