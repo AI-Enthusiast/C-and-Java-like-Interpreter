@@ -35,7 +35,6 @@
 ;; Executes code, returns updated state
 (define m-state
   (lambda (exp s return break continue try catch finally)
-    ;(display "State Information: ") (display s) (newline)
     (cond
       ; null checking
       [(null? exp)                         s]
@@ -102,7 +101,6 @@
 ;; in this m-what-type, "function" should return a number
 (define m-what-type
   (lambda (exp s return break continue try catch finally)
-    ;(display "State Information: ") (display s) (newline)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(or (null? exp) (not (pair? exp)))      s]
@@ -806,5 +804,3 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ())))) |#
 
 ;; Thank you, sleep well :)
-; (run "Tests/p3.Test6.txt")
-;(run "Tests/MyTest3.txt")
