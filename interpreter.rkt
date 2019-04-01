@@ -616,8 +616,8 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define locate-var
   (lambda (var s)
     (cond
-      [(null? s)   #f]
-      [(eq? (local s) '())             (locate-global-var var s)]
+      [(null? s)             #f]
+      [(eq? (local s) '())   (locate-global-var var s)]
       [(null? (vars s))      (locate-var var (nextlayer s))]
       [(eq? var (nextvar s)) #t]
       [else                  (locate-var var (next-part-vars s))])))
@@ -627,19 +627,19 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define locate-global-var
   (lambda (var s)
     (cond
-      [(null? s)              #f]
-      [(null? (global s))     #f]
-      [(null? (global-vars s)) #f]
+      [(null? s)                    #f]
+      [(null? (global s))           #f]
+      [(null? (global-vars s))      #f]
       [(eq? var (global-nextvar s)) #t]
-      [else                  (locate-global-var var (global-nextpart-vars s))])))
+      [else                         (locate-global-var var (global-nextpart-vars s))])))
 
 
 ;; returns #t if the given variable exists in the local layer
 (define local-locate-var
    (lambda (var s)
     (cond
-      [(null? s)   #f]
-      [(null? (local s))      #f]
+      [(null? s)             #f]
+      [(null? (local s))     #f]
       [(null? (vars s))      (local-locate-var var (nextlayer s))]
       [(eq? var (nextvar s)) #t]
       [else                  (local-locate-var var (next-part-vars s))])))
@@ -649,21 +649,21 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define locate-func
   (lambda (func s)
     (cond
-      [(null? s)   #f]
-      [(eq? (local s) '())             (locate-global-func func s)]
-      [(null? (funcs s))      (locate-func func (nextlayer s))]
+      [(null? s)               #f]
+      [(eq? (local s) '())     (locate-global-func func s)]
+      [(null? (funcs s))       (locate-func func (nextlayer s))]
       [(eq? func (nextfunc s)) #t]
-      [else                  (locate-func func (next-part-funcs s))])))
+      [else                    (locate-func func (next-part-funcs s))])))
 
 ;; returns #t if the given global function exists
 (define locate-global-func
   (lambda (func s)
     (cond
-      [(null? s)              #f]
-      [(null? (global s))     #f]
-      [(null? (global-funcs s)) #f]
+      [(null? s)                      #f]
+      [(null? (global s))             #f]
+      [(null? (global-funcs s))       #f]
       [(eq? func (global-nextfunc s)) #t]
-      [else                  (locate-global-func func (global-nextpart-funcs s))])))
+      [else                           (locate-global-func func (global-nextpart-funcs s))])))
 
 
 ;;;;**********ABSTRACTION**********
