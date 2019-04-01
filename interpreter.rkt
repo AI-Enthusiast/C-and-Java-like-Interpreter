@@ -35,6 +35,7 @@
 ;; Executes code, returns updated state
 (define m-state
   (lambda (exp s return break continue try catch finally)
+    (display "State Information: ") (display s) (newline)
     (cond
       [(null? exp)                         s]
 
@@ -99,6 +100,7 @@
 ;; Returns updated state
 (define m-what-type
   (lambda (exp s return break continue try catch finally)
+    (display "State Information: ") (display s) (newline)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(or (null? exp) (not (pair? exp)))      s]
@@ -314,6 +316,7 @@
 ;; The operators are +, -, *, /, %, and division is integer division
 (define m-value
   (lambda (exp s)
+    (display "State Information: ") (display s) (newline)
     ; (display "m-value stuff:   ") (display exp) (newline)
     (cond
       ; null checking
@@ -444,6 +447,7 @@
 ;; Returns it as if it where in C/Java
 (define m-return
   (lambda (exp s return finally)
+    (display "State Information (return): ") (display s) (newline)
           ;(display "exp")(display exp)(newline)
 
     (cond
@@ -840,3 +844,4 @@ m-add-global-func - adds function and function closure to the global layer of st
 
 ;; Thank you, sleep well :)
 ; (run "Tests/p3.Test6.txt")
+(run "Tests/MyTest3.txt")

@@ -127,7 +127,7 @@
   ;Functions inside functions with variables of the same name
   (display "Test 15: ") (pass? (run "Tests/p3.Test15.txt") 87)
   ;Functions inside functions inside functions
-  (display "Test 61: ") (pass? (run "Tests/p3.Test16.txt") 64)
+  (display "Test 16: ") (pass? (run "Tests/p3.Test16.txt") 64)
   ;Functions inside functions accessing out of scope variables
   ;(pass? (run "Tests/p3.Test17.txt") "error")   ;should give error
   ;try/catch finally, but no exception thrown
