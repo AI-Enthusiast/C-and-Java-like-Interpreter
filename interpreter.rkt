@@ -537,17 +537,19 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define global-update
   (lambda (var update-val s)
     (cond
-      [(null? s)      "error"]
+      [(null? s)                         "error"]
       [(not (local-layer-locate var s))  "error"]
-      [else (local-toplayer-update var update-val s (lambda (v1 v2) (list (list v1 v2) (s-funcs s))))])))
+      [else                              (local-toplayer-update var update-val s
+                                                                (lambda (v1 v2) (list (list v1 v2)
+                                                                                      (s-funcs s))))])))
 
 ;;takes a variable, the value to be updated and the layer to be updated
 ;;returns the variables and updated values of the layer in two lists, to be combined by the calling function
 (define local-toplayer-update
   (lambda (var update-val s return)
-    (cond
-      [(equal? var (s-nextvar s)) (return (s-vars s) (begin  (set-box! (s-nextval s) update-val) (cons (s-nextval s) (rest-of (s-vals s)))))]
-      [else                  (local-toplayer-update var update-val  (s-next-part-vars s)  (lambda (v1 v2) (return (cons (s-nextvar s) v1) (cons (s-nextval s) v2))))])))
+    (if (equal? var (s-nextvar s))
+        (return (s-vars s) (begin  (set-box! (s-nextval s) update-val) (cons (s-nextval s) (rest-of (s-vals s)))))
+        (local-toplayer-update var update-val  (s-next-part-vars s)  (lambda (v1 v2) (return (cons (s-nextvar s) v1) (cons (s-nextval s) v2)))))))
 
 
 
@@ -555,23 +557,33 @@ m-add-global-func - adds function and function closure to the global layer of st
 ;; (does not take value, to update value, use m-update)
 (define m-add
   (lambda (var s)
-     (list (cons (list (list (cons  var (vars s)) (cons (box "init") (vals s)))(func-layer s)) (cdr (local s))) (global s))))
+     (list (cons (list (list (cons  var (vars s))
+                             (cons (box "init") (vals s))) (func-layer s))
+                 (cdr (local s)))
+           (global s))))
 
 ;; Takes a local function and it's closure, adds the function and it's closure to the topmost local section of the state
 (define m-add-local-func
   (lambda (func closure s)
-    (list (cons (list (var-layer s) (list (cons func (funcs s)) (cons (box closure) (func-defs s)))) (cdr (local s))) (global s))))
+    (list (cons (list (var-layer s) (list (cons func (funcs s))
+                                          (cons (box closure) (func-defs s))))
+                (cdr (local s)))
+          (global s))))
 
 ;; Takes a global variable and a state, adds it to the global section of the state with non number uninitilized value "init"
 ;; (does not take value, to update value, use m-update)
 (define m-add-global-var
   (lambda (var s)
-    (list (local s) (list (list (cons var (global-vars s)) (cons (box "init") (global-vals s))) (global-func-layer s)))))
+    (list (local s) (list (list (cons var (global-vars s))
+                                (cons (box "init") (global-vals s)))
+                          (global-func-layer s)))))
 
 ;; Takes a global function and it's closure, adds the function and it's closure to the global section of the state
 (define m-add-global-func
   (lambda (func closure s)
-    (list (local s) (list (global-var-layer s) (list (cons func (global-funcs s)) (cons (box closure) (global-func-defs s)))))))
+    (list (local s) (list (global-var-layer s)
+                          (list (cons func (global-funcs s))
+                                (cons (box closure) (global-func-defs s)))))))
 
 
 
@@ -583,20 +595,20 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define local-locate
   (lambda (var s)
     (cond
-      [(null? s)         #f]
-      [(null? (vars s))  #f]
-      [(eq? var (nextvar s))            #t]
-      [else                             (local-locate var (next-part-vars s))])))
+      [(null? s)             #f]
+      [(null? (vars s))      #f]
+      [(eq? var (nextvar s)) #t]
+      [else                  (local-locate var (next-part-vars s))])))
 
 
 ;;returns #t if the variable exists in the topmost layer
 (define local-layer-locate
   (lambda (var s)
     (cond
-      [(null? s)  #f]
-      [(null? (s-vars s)) #f]
+      [(null? s)               #f]
+      [(null? (s-vars s))      #f]
       [(eq? var (s-nextvar s)) #t]
-      [else (local-layer-locate var (s-next-part-vars s))])))
+      [else                    (local-layer-locate var (s-next-part-vars s))])))
 
 
 ;; returns #t if the var is found in the state, #f otherwise
