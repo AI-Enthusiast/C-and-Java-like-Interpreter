@@ -35,16 +35,16 @@
 ;; Executes code, returns updated state
 (define m-state
   (lambda (exp s return break continue try catch finally)
-    (display "State Information: ") (display s) (newline)
+    ;(display "State Information: ") (display s) (newline)
     (cond
       [(null? exp)                         s]
 
 
 
       ; check for return
-      [(not (list? (first-statement exp))) (m-what-type exp  s return break continue try catch finally)]
+      [(not (list? (first-statement exp))) (m-what-type exp  s return break continue try catch finally #t)]
       [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s
-                                                        return break continue try catch finally)]
+                                                        return break continue try catch finally #t)]
 
       [(eq? (first-statement exp) 'begin)  (m-pop (lambda (k) (m-state (rest-of-body exp)
                                                                        (m-push s) return k continue
@@ -52,7 +52,7 @@
 
       [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s return break
-                                                                 continue try catch finally)
+                                                                 continue try catch finally #t)
                                                     return break continue try catch finally)])))
 
 ;; Returns state with most recent state popped off
@@ -97,9 +97,10 @@
 
 ;; Figures out which method should be used to evaluate this, and evaluates this
 ;; Returns updated state
+;; in this m-what-type, "function" should return a number
 (define m-what-type
-  (lambda (exp s return break continue try catch finally)
-    (display "State Information: ") (display s) (newline)
+  (lambda (exp s return break continue try catch finally should-func-return-state)
+    ;(display "State Information: ") (display s) (newline)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(or (null? exp) (not (pair? exp)))      s]
@@ -110,11 +111,21 @@
                                                                               (list (cdddr exp))))
                                                           s)]
 
-      ;is it a function call w/o parameters
-      [(and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp))) (m-funcall (cadr exp) '() return s)]
+      ;is it a function call w/o parameters (returns a state)
+      [(and (eq? (statement-type-id exp) 'funcall) (and (null? (cddr exp)) should-func-return-state))
+       (m-funcall-state (cadr exp) '() return s)]
 
-      ;is it a function call
-      [(eq? (statement-type-id exp) 'funcall) (m-funcall (cadr exp) (cddr exp) return s)]
+      ;is it a function call w/o parameters (returns a number)
+      [(and (eq? (statement-type-id exp) 'funcall) (null? (cddr exp)))
+       (m-funcall (cadr exp) '() return s)]
+
+      ;is it a function call (returns a state)
+      [(and (eq? (statement-type-id exp) 'funcall) should-func-return-state)
+       (m-funcall (cadr exp) (cddr exp) return s)]
+      
+      ;is it a function call (returns a number)
+      [(eq? (statement-type-id exp) 'funcall)
+       (m-funcall (cadr exp) (cddr exp) return s)]
 
       ; is it a new block
       [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push s)
@@ -151,7 +162,27 @@
       ; oh no
       [else                                    (error 'undefined "undefined expression")])))
 
-;m-funcall returns a state
+;; m-funcall-state returns a state
+(define m-funcall-state
+  (lambda (name actual return s)
+    ;gets the body and the formal parameters of the function
+    (let* [(all (m-lookup-func name s))
+           (formal (caar all))
+           (body (caadar all))]
+        (if (eq? (num-in-list actual 0) (num-in-list formal 0))
+            ;runs the body
+            (call/cc (lambda (k)
+                       (m-pop
+                        (m-state body (lists-to-assign actual formal (m-push s))
+                                 k
+                                 (lambda (v) v) ;; break
+                                 (lambda (v) v) ;; continue
+                                 (lambda (v) v) ;; try
+                                 (lambda (v) v) ;; catch
+                                 (lambda (v) v))))) ;; finally
+            (error 'undefined "Paramater mismatch")))))
+
+;; m-funcall returns a number
 (define m-funcall
   (lambda (name actual return s)
     ;gets the body and the formal parameters of the function
@@ -190,7 +221,7 @@
 
       [else                                (m-state-function (rest-of-body exp)
                                                     (m-what-type (first-statement exp) s return break
-                                                                 continue try catch finally)
+                                                                 continue try catch finally #t)
                                                     return break continue try catch finally)])))
 
 (define m-what-type-function
@@ -849,4 +880,4 @@ m-add-global-func - adds function and function closure to the global layer of st
 
 ;; Thank you, sleep well :)
 ; (run "Tests/p3.Test6.txt")
-(run "Tests/MyTest3.txt")
+;(run "Tests/MyTest3.txt")
