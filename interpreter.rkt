@@ -108,7 +108,7 @@
       [(or (null? exp) (not (pair? exp)))      s]
 
       ;is  it a function
-      [(eq? (statement-type-id exp) 'function) (m-add-local-func (cadr exp)
+      [(eq? (statement-type-id exp) 'function) (m-add-local-func (full-func exp)
                                                                 (list (append (list (func-name exp))
                                                                               (list (func-body exp))))
                                                           s)]
@@ -293,7 +293,7 @@
 
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-      [(and (eq? (operator exp) '-) (null? (cddr exp))) ; handle negitive numbers
+      [(and (eq? (operator exp) '-) (null? (right-operand-exists exp))) ; handle negitive numbers
        (* -1 (m-value (left-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -463,13 +463,13 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define m-lookup-var
   (lambda (var s)
     (cond
-      [(null? s)                     (error "use before declared")]
-      [(null? (local s))             (lookup-global-var var s)]
-      [(null? (vars s))               (m-lookup-var var (nextlayer s))]
+      [(null? s)                       (error "use before declared")]
+      [(null? (local s))               (lookup-global-var var s)]
+      [(null? (vars s))                (m-lookup-var var (nextlayer s))]
       [(and (equal? var (nextvar s)) (eq? "init" (unbox (nextval s))))
         (error "use before assignment")]
-      [(equal? var (nextvar s))                                (unbox (nextval s))]
-      [else                                                    (m-lookup-var var (next-part-vars s))])))
+      [(equal? var (nextvar s))        (unbox (nextval s))]
+      [else                            (m-lookup-var var (next-part-vars s))])))
 
 
 ;; takes a global variable and a state
@@ -477,12 +477,13 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define lookup-global-var
   (lambda (var s)
     (cond
-     [(null? s)              (error "use before declared")]
-     [(null? (global s))     (error "use before declared")]
-     [(null? (global-vars s)) (error "use before declared")]
-     [(and (eq? var (global-nextvar s))(eq? "init" (unbox (global-nextval s)))) (error "use before assignment")]
-     [(equal? var (global-nextvar s))   (unbox (global-nextval s))]
-     [else                  (lookup-global-var var (global-nextpart-vars s))])))
+     [(null? s)                       (error "use before declared")]
+     [(null? (global s))              (error "use before declared")]
+     [(null? (global-vars s))         (error "use before declared")]
+     [(and (eq? var (global-nextvar s)) (eq? "init" (unbox (global-nextval s))))
+                                      (error "use before assignment")]
+     [(equal? var (global-nextvar s)) (unbox (global-nextval s))]
+     [else                            (lookup-global-var var (global-nextpart-vars s))])))
 
 
 ;; takes a function and a state
@@ -493,8 +494,8 @@ m-add-global-func - adds function and function closure to the global layer of st
       [(null? s)                      (error "function not found")]
       [(null? (local s))              (lookup-global-func func s)]
       [(null? (funcs s))              (m-lookup-func func (nextlayer s))]
-      [(equal? func (nextfunc s))                                (unbox (nextfunc-def s))]
-      [else                                                    (m-lookup-func func (next-part-funcs s))])))
+      [(equal? func (nextfunc s))     (unbox (nextfunc-def s))]
+      [else                           (m-lookup-func func (next-part-funcs s))])))
 
 
 ;; takes a global function and a state
@@ -502,9 +503,10 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define lookup-global-func
   (lambda (func s)
     (cond
-     [(or (or (null? s)(null? (global s)))(null? (global-funcs s)))              (error "function not found")]
-     [(equal? func (global-nextfunc s))   (unbox (global-nextfunc-def s))]
-     [else                  (lookup-global-func func (global-nextpart-funcs s))])))
+     [(or (or (null? s)(null? (global s))) (null? (global-funcs s)))
+                                        (error "function not found")]
+     [(equal? func (global-nextfunc s)) (unbox (global-nextfunc-def s))]
+     [else                              (lookup-global-func func (global-nextpart-funcs s))])))
 
 
 ;; takes a variable, the value to be updated, and the state
@@ -512,10 +514,10 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define m-update
   (lambda (var update-val s)
     (cond
-      [(null? s)        "error"]
+      [(null? s)                "error"]
       [(not (locate-var var s)) "error"]
       [(local-locate-var var s) (list (local-update var update-val (local s)) (global s))]
-      [else (list (local s) (global-update var update-val (global s)))])))
+      [else                     (list (local s) (global-update var update-val (global s)))])))
 
 ;; takes a variable, the value to be updated, and the local layer of the state
 ;; returns the updated local layer
@@ -523,7 +525,10 @@ m-add-global-func - adds function and function closure to the global layer of st
   (lambda (var update-val s)
     (cond
       [(null? s)      "error"]
-      [(local-layer-locate var (top-layer s)) (cons (local-toplayer-update var update-val (top-layer s) (lambda (v1 v2) (list (list v1 v2) (local-funcs s)))) (rest-of s))]
+      [(local-layer-locate var (top-layer s))
+            (cons (local-toplayer-update var update-val (top-layer s)
+                                         (lambda (v1 v2) (list (list v1 v2) (local-funcs s))))
+                  (rest-of s))]
       [else (cons (top-layer s) (local-update var update-val (cdr s)))])))
 
 
@@ -660,10 +665,9 @@ m-add-global-func - adds function and function closure to the global layer of st
 
 ; for value operations
 (define left-operand cadr)
-
-; for m-value
 (define operator car)
 (define right-operand caddr)
+(define right-operand-exists cddr)
 
 ;for m-var-dec
 (define assignment cddr)
