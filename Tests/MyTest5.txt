@@ -1,0 +1,17 @@
+var c = 10;
+var d = 20;
+
+function bmethod() {
+  var b = 30;
+  return c + b;
+}
+
+function cmethod() {
+  var a = 40;
+  return bmethod() + a + d;
+}
+
+function main () {
+  var b = 5;
+  return cmethod() + c + b;
+}
