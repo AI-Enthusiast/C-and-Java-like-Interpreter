@@ -456,6 +456,11 @@ m-add-global-func - adds function and function closure to the global layer of st
 ;; Will error if not yet initilized or if it does not exist
 
 
+;;takes a state and strips off everything except the top layer and global
+(define m-strip
+  (lambda (s)
+   (list (list (toplayer s)) (global s))))
+
 ;; takes a variable and a state
 ;; returns the value or an error
 (define m-lookup-var
@@ -721,6 +726,8 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define func-layer2 cadar)
 (define global cadr) ;returns global state
 (define local car) ;returns entire local state
+(define toplayer caar)
+
 
 
 (define next-local-layer ;returns entire state minus a local layer
@@ -788,7 +795,7 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define first-statement car)
 (define rest-of-body cdr)
 
-#| FOR TESTING PURPOSES!!!: 
+#| ;;FOR TESTING PURPOSES!!!: 
 (define a-global '(((a b) (1 2))((f1 f2)((stuff1) (stuff2)))))
 (define a-local '((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6))))))
 (define a  '(((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6)))))(((a b) (1 2))((f1 f2)((stuff1) (stuff2))))))
@@ -801,6 +808,6 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define p '(((a b) (#&1 #&2)) ((f1 f2) (#&(s1) #&5(s2)))))
 (define z '((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq)))) (((a f)(#&2 #&1))((f8 f9)(#&(yyd) #&(uuu)))))) ;local test
 (define qqq  '(((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
-(define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ())))) |#
-
+(define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ())))) 
+|#
 ;; Thank you, sleep well :)
