@@ -1,7 +1,7 @@
 #lang racket
 ;;;; Testing of interpreter.rkt
 ;;;; EECS 345
-;;;; Group #21: Shanti Polara, Catlin Campbell, Cormac Dacker
+;;;; Group #7: Shanti Polara, Catlin Campbell, Cormac Dacker
 ;;;; Run tests by using the test function (test)
 
 (require "interpreter.rkt") ; allows for testing of the interpreter

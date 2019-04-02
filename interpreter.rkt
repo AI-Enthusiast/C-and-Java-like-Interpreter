@@ -74,24 +74,23 @@
       [(null? (rest-of-body exp))  (m-base-layer (first-statement exp) s
                                                          return break continue try catch finally)]
       ;is it the main
-      [(and  (eq?  (statement-body exp) 'main)
-             (eq? (statement-type-id exp) 'function)) (m-state (main-body exp)  (m-push s)
-                                                                      return break continue
-                                                                      try catch finally)]
+      [(and (eq? (statement-body exp) 'main) (eq? (statement-type-id exp) 'function))
+                                   (m-state (main-body exp) (m-push s)
+                                            return break continue try catch finally)]
 
       ;is it a function
-      [(eq? (statement-type-id exp) 'function)  (m-add-global-func (full-func exp)
-                                                                 (list (append (list (func-name exp))
-                                                                               (list (func-body exp))))
-                                                           s)]
+      [(eq? (statement-type-id exp) 'function)
+                                   (m-add-global-func (full-func exp) (list (append (list (func-name exp))
+                                                                                    (list (func-body exp))))
+                                                      s)]
 
       ; is it a declaration
-      [(eq? (statement-type-id exp) 'var)      (m-var-dec exp s)]
+      [(eq? (statement-type-id exp) 'var)       (m-var-dec exp s)]
 
       ; otherwise, process the first statement, and then the rest of it
       ; (the program shouldn't actually reach this point, because all things in the
       ; main base level of the program will be either functions or variable declarations. 
-      [else                                (m-base-layer (rest-of-body exp)
+      [else                                     (m-base-layer (rest-of-body exp)
                                                          (m-base-layer (first-statement exp) s return break
                                                                        continue try catch finally)
                                                          return break continue try catch finally)])))
@@ -113,11 +112,11 @@
 
       ;is it a function call w/o parameters
       [(and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp)))
-       (m-funcall (funcall-name exp) no-params (lambda (v) s) s)]
+                                               (m-funcall (funcall-name exp) no-params (lambda (v) s) s)]
       
       ;is it a function call
       [(eq? (statement-type-id exp) 'funcall)
-       (m-funcall (funcall-name exp) (func-params exp) (lambda (v) s) s)]
+                                               (m-funcall (funcall-name exp) (func-params exp) (lambda (v) s) s)]
 
       ; is it a new block
       [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push s)
@@ -166,7 +165,8 @@
             ;runs the body
             ;(call/cc (lambda (k)
                        ;(m-pop
-            (m-state body (lists-to-assign actual formal (m-push s)) ;;THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
+            (m-state body (lists-to-assign actual formal (m-push s)) ; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
+                                                                     ; We tried to fix it but it broke more things :( 
                  return
                  (lambda (v) v) ;; break
                  (lambda (v) v) ;; continue
@@ -258,7 +258,7 @@
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
       [(number? exp)                          exp] ; if it's a number, return that number
-      [(and (not (pair? exp)) (boolean? exp)) exp] ; if it's a boolean, return the boolean
+      [(and (not (pair? exp)) (boolean? exp)) exp] ; if it's a boolean, return that boolean
 
       ; boolean checking
       [(eq? exp 'true)                        #t] ; true
@@ -269,11 +269,11 @@
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
-                                            (call/cc (lambda (k) (m-funcall (funcall-name exp) '() k s)))]
+                                              (call/cc (lambda (k) (m-funcall (funcall-name exp) '() k s)))]
 
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (call/cc (lambda (k) (m-funcall (funcall-name exp) (func-params exp) k s)))]
+                                              (call/cc (lambda (k) (m-funcall (funcall-name exp) (func-params exp) k s)))]
 
 
       ; variable checking
@@ -282,17 +282,17 @@
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
-                                            (m-value (m-funcall (funcall-name exp) '() (λ(v) v) s) s)]
+                                              (m-value (m-funcall (funcall-name exp) '() (λ(v) v) s) s)]
 
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (m-value (m-funcall (funcall-name exp) (func-params exp) (λ(v) v) s) s)]
+                                              (m-value (m-funcall (funcall-name exp) (func-params exp) (λ(v) v) s) s)]
 
 
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(and (eq? (operator exp) '-) (null? (right-operand-exists exp))) ; handle negitive numbers
-       (* -1 (m-value (left-operand exp) s))]
+                               (* -1      (m-value (left-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
       [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -414,19 +414,19 @@
   (lambda (dec s)
     (cond
       ; check variable not already declared
-      [(local-locate (variable dec) s)             (error "redefining")]
+      [(local-locate (variable dec) s) (error "redefining")]
       ; just need to add variable, not value
-      [(null? (assignment dec))              (m-add (variable dec) s)]
+      [(null? (assignment dec))        (m-add (variable dec) s)]
       ; need to add value as well
-      [else                                  (m-update (variable dec)
-                                                       (m-value (expression dec) s)
-                                                       (m-add (variable dec) s))])))
+      [else                            (m-update (variable dec)
+                                                 (m-value (expression dec) s)
+                                                 (m-add (variable dec) s))])))
 
 (define m-global-var-dec
   (lambda (dec s)
     (cond
       ; check variable not already declared
-      [(locate-global-var (variable dec) s)             (error "redefining")]
+      [(locate-global-var (variable dec) s)  (error "redefining")]
       ; just need to add variable, not value
       [(null? (assignment dec))              (m-add-global-var (variable dec) s)]
       ; need to add value as well
@@ -529,10 +529,10 @@ m-add-global-func - adds function and function closure to the global layer of st
     (cond
       [(null? s)      "error"]
       [(local-layer-locate var (top-layer s))
-            (cons (local-toplayer-update var update-val (top-layer s)
-                                         (lambda (v1 v2) (list (list v1 v2) (local-funcs s))))
-                  (rest-of s))]
-      [else (cons (top-layer s) (local-update var update-val (cdr s)))])))
+                      (cons (local-toplayer-update var update-val (top-layer s)
+                                                   (lambda (v1 v2) (list (list v1 v2) (local-funcs s))))
+                            (rest-of s))]
+      [else           (cons (top-layer s) (local-update var update-val (cdr s)))])))
 
 
 ;; takes a variable, the value to be updated, and the global layer of the state
@@ -551,8 +551,11 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define local-toplayer-update
   (lambda (var update-val s return)
     (if (equal? var (s-nextvar s))
-        (return (s-vars s) (begin  (set-box! (s-nextval s) update-val) (cons (s-nextval s) (rest-of (s-vals s)))))
-        (local-toplayer-update var update-val  (s-next-part-vars s)  (lambda (v1 v2) (return (cons (s-nextvar s) v1) (cons (s-nextval s) v2)))))))
+        (return (s-vars s) (begin  (set-box! (s-nextval s) update-val)
+                                   (cons (s-nextval s) (rest-of (s-vals s)))))
+        (local-toplayer-update var update-val  (s-next-part-vars s)
+                               (lambda (v1 v2) (return (cons (s-nextvar s) v1)
+                                                       (cons (s-nextval s) v2)))))))
 
 
 
