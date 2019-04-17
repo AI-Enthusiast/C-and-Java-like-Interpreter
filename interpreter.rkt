@@ -6,7 +6,7 @@
 ;;;; Order of inputs for ALL m-state and m-state like things
 
 (provide (all-defined-out))         ; allows for testing to be done in interpreter-testing.rkt
-(require "functionParser.rkt")      ; loads simpleParser.rkt, which itself loads lex.rkt
+(require "classParser.rkt")      ; loads simpleParser.rkt, which itself loads lex.rkt
 (require racket/trace)              ; for debugging
 
 ;; Runs the filename, should be provided in quotes

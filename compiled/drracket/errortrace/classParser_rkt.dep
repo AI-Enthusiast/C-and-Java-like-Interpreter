@@ -1,0 +1,1 @@
+("7.1" ("5fda35eda3839319dafc78d35e1abc1808b74f10" . "65285a7fe127b63d0f5becf658d7a70667c6d3ca") #"C:\\Users\\corma\\Documents\\GitHub\\plc-project-group7\\lex.rkt" (collects #"errortrace" #"errortrace-key.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))
