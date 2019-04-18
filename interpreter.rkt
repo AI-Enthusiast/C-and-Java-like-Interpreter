@@ -591,8 +591,6 @@ m-add-global-func - adds function and function closure to the global layer of st
                           (list (cons func (global-funcs s))
                                 (cons (box closure) (global-func-defs s)))))))
 
-
-
 ;;; the following are helper methods for state functions
 
 ;;takes a variable and a state
@@ -672,6 +670,55 @@ m-add-global-func - adds function and function closure to the global layer of st
       [else                           (locate-global-func func (global-nextpart-funcs s))])))
 
 
+;;want to add a class, locate a class, using full state defintion
+;;((classes)(classclosures))
+
+
+(define classes car)
+(define closures cadadr)
+(define next-class (lambda (s) (car (classes s))))
+(define next-closure (lambda (s) (car (closures s))))
+(define next-extends caaadr)
+(define class-extends caadr)
+(define c1 '(class B (extends A)  body))
+(define c2 '(class A () body))
+(define state3 '((B) (((A)) ((closure)))))
+(define state4 '((B A C) (((A)(F)(D)) ((closure1)(closure2)(closure3)))))
+;;accessors of class-dec
+(define class-name cadr)
+(define extends caddr)
+(define body cadddr)
+(define next cdr)
+;class-adding-state
+
+;;iterate along next part of state, classnames, and closures
+(define next-part-classes
+  (lambda (s)
+    (list (next (classes s)) (list (next (class-extends s)) (next (closures s))))))
+
+
+
+(define m-lookup-class-closure
+  (lambda (class-name s)
+    (cond
+      [(null? (classes s)) (error "class does not exist")]
+      [(equal? class-name (next-class s)) (next-closure s)]
+      [else (m-lookup-class-closure class-name (next-part-classes s))])))
+
+(define m-lookup-super-class
+  (lambda (class-name s)
+    (cond
+      [(null? (classes s)) (error "class does not exist")]
+      [(equal? class-name (next-class s)) (class-extends s)]
+      [else (m-lookup-class-closure class-name (next-part-classes s))])))
+
+
+(define m-add-class
+ (lambda (class-dec s)
+   (list (cons (class-name class-dec) (classes s)) (list (cons (extends class-dec) (class-extends s)) (cons (generate-closure body s) (closures s))))))
+(define generate-closure
+  (lambda (body s)
+    '(closure)))
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
 (define statement-body cadr)   ; e.g. the body of a return statement
@@ -793,12 +840,13 @@ m-add-global-func - adds function and function closure to the global layer of st
 
 ; for running/state
 (define new-layer '((()())(()())))
-(define empty-state '((((()())(()())))((()())(()()))))
+(define empty-state '(()(((()())(()())))((()())(()()))))
+(define class-adding-state '(()(()())))
 (define b '((((()())(()())))((()())(()()))))
 (define first-statement car)
 (define rest-of-body cdr)
 
-#| ;;FOR TESTING PURPOSES!!!: 
+ ;;FOR TESTING PURPOSES!!!: 
 (define a-global '(((a b) (1 2))((f1 f2)((stuff1) (stuff2)))))
 (define a-local '((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6))))))
 (define a  '(((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6)))))(((a b) (1 2))((f1 f2)((stuff1) (stuff2))))))
@@ -809,8 +857,25 @@ m-add-global-func - adds function and function closure to the global layer of st
 (define state2 '(((a b c d)(#&2 #&5 #&6 #&7))((s d e w)(#&1 #&8 #&9 #&0))))
 (define w '(((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))
 (define p '(((a b) (#&1 #&2)) ((f1 f2) (#&(s1) #&5(s2)))))
-(define z '((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq)))) (((a f)(#&2 #&1))((f8 f9)(#&(yyd) #&(uuu)))))) ;local test
+;;(define z '((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq)))) (((a f)(#&2 #&1))((f8 f9)(#&(yyd) #&(uuu)))))) ;local test
 (define qqq  '(((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
 (define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ())))) 
-|#
-;; Thank you, sleep well :)
+
+(define c1-closure (cons '(super-a) e))
+(define c2-closure (cons '(super-b) q))
+(define c3-closure (cons '(super-c) qqq)) 
+;;'(q
+ ;; ((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2)))) (((q) (#&0)) ((f3 f4) (#&(dd) #&(qqq)))))
+ ;; (((a) (#&2)) ((f5 f6) (#&(s5) #&(s6)))))
+;;new state format
+(define a1 '((c1 c2 c3 c4) (close1 close2 close3 close4)))
+(define a2 (cons '(c1 c2 c3) (list (list c1-closure c2-closure c3-closure))))
+#|
+'((c1 c2 c3)
+  ((super-a
+    ((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2)))) (((q) (#&0)) ((f3 f4) (#&(dd) #&(qqq)))))
+    (((a) (#&2)) ((f5 f6) (#&(s5) #&(s6)))))
+   (super-b
+    (((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
+    (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))
+   (super-c ((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))) |#
