@@ -436,7 +436,7 @@
 
 
 #|
-define state with abstration with the format:
+define an internal var and func closure for the class with abstration with the format:
 '(((((var1, var2 ..)(val1, val2 ..))((local-func1, localfunc2 ...)(closure1, closure2 ... )))(Inner local layer1)(Inner local layer2))
    (((glob-var1, glob-var2 ...)(val1, val2 ..))((glob-func1, glob-func2 ..)(closure1, closure2 ..)))))
 methods for state
@@ -457,13 +457,28 @@ m-add-global-func - adds function and function closure to the global layer of st
 
 
 ;;takes a state and strips off everything except the top layer and global
+#| class closure needs to be passed in. later on, state will need to be passed in
+need to handle objectes function calls on object, and
+ superclasses (with inherited vars and functions),
+update lookup for funcs vars to continue looking if it has a superclass still
+in that case need to pass in entire closure along with the specific body,
+just pass along and continue if have super class
+|#
+;;all of these functions now take a class closure instead of the full state.
+;;They will only operate on the class closure
 (define m-strip
   (lambda (s)
    (list (list (toplayer s)) (global s))))
 
 ;; takes a variable and a state
 ;; returns the value or an error
+
 (define m-lookup-var
+  (lambda (var closure s)
+    [(m-lookup-var-nested var (closure-body closure))]))
+
+
+(define m-lookup-var-nested
   (lambda (var s)
     (cond
       [(null? s)                       (error "use before declared")]
@@ -489,9 +504,16 @@ m-add-global-func - adds function and function closure to the global layer of st
      [else                            (lookup-global-var var (global-nextpart-vars s))])))
 
 
+
+
 ;; takes a function and a state
 ;; returns the function closure
 (define m-lookup-func
+  (lambda (var closure s)
+    [(m-lookup-func-nested var (closure-body closure))]))
+
+
+(define m-lookup-func-nested
   (lambda (func s)
     (cond
       [(null? s)                      (error "function not found")]
@@ -515,6 +537,11 @@ m-add-global-func - adds function and function closure to the global layer of st
 ;; takes a variable, the value to be updated, and the state
 ;; returns the updated state
 (define m-update
+  (lambda (var closure s)
+    [(m-update-nested var (closure-body closure))]))
+
+
+(define m-update-nested
   (lambda (var update-val s)
     (cond
       [(null? s)                "error"]
@@ -562,6 +589,10 @@ m-add-global-func - adds function and function closure to the global layer of st
 ;; Takes a local variable and a state, adds it to the topmost local section of the state with non number uninitilized value "init"
 ;; (does not take value, to update value, use m-update)
 (define m-add
+  (lambda (var closure s)
+    [(m-add-nested var (closure-body closure))]))
+
+(define m-add-nested
   (lambda (var s)
      (list (cons (list (list (cons  var (vars s))
                              (cons (box "init") (vals s))) (func-layer s))
@@ -569,7 +600,9 @@ m-add-global-func - adds function and function closure to the global layer of st
            (global s))))
 
 ;; Takes a local function and it's closure, adds the function and it's closure to the topmost local section of the state
-(define m-add-local-func
+
+
+(define m-add-local-func-nested
   (lambda (func closure s)
     (list (cons (list (var-layer s) (list (cons func (funcs s))
                                           (cons (box closure) (func-defs s))))
@@ -579,6 +612,10 @@ m-add-global-func - adds function and function closure to the global layer of st
 ;; Takes a global variable and a state, adds it to the global section of the state with non number uninitilized value "init"
 ;; (does not take value, to update value, use m-update)
 (define m-add-global-var
+  (lambda (var closure s)
+    [(m-add-global-var-nested var (closure-body closure))]))
+
+(define m-add-global-var-nested
   (lambda (var s)
     (list (local s) (list (list (cons var (global-vars s))
                                 (cons (box "init") (global-vals s)))
@@ -586,6 +623,10 @@ m-add-global-func - adds function and function closure to the global layer of st
 
 ;; Takes a global function and it's closure, adds the function and it's closure to the global section of the state
 (define m-add-global-func
+  (lambda (var closure s)
+    [(m-add-global-func-nested  var (closure-body closure))]))
+
+(define m-add-global-func-nested
   (lambda (func closure s)
     (list (local s) (list (global-var-layer s)
                           (list (cons func (global-funcs s))
@@ -670,52 +711,63 @@ m-add-global-func - adds function and function closure to the global layer of st
       [else                           (locate-global-func func (global-nextpart-funcs s))])))
 
 
-;;want to add a class, locate a class, using full state defintion
-;;((classes)(classclosures))
 
-
-(define classes car)
-(define closures cadadr)
-(define next-class (lambda (s) (car (classes s))))
-(define next-closure (lambda (s) (car (closures s))))
-(define next-extends caaadr)
-(define class-extends caadr)
+;new state format
+;starting state is empty list
+;(class with closure, class with closure, class with closure)
+;class with closure contains: (name (superclass) (traditional state))
+(define next-class caar)
+(define next-extends cadar)
+(define next-closure caddar)
+(define next-part-classes cdr)
 (define c1 '(class B (extends A)  body))
 (define c2 '(class A () body))
-(define state3 '((B) (((A)) ((closure)))))
-(define state4 '((B A C) (((A)(F)(D)) ((closure1)(closure2)(closure3)))))
-;;accessors of class-dec
+
+;returns values for the input class information
+;format (class A (super) (body))
 (define class-name cadr)
-(define extends caddr)
-(define body cadddr)
-(define next cdr)
-;class-adding-state
+(define class-extends caddr)
+(define class-body cadddr)
+
+;returns values for a class closure
+;format (A (super) (body)) where body is a complete state of vars and funcs
+(define closure-super cadr)
+(define closure-class-name car)
+(define closure-body caddr)
+
 
 ;;iterate along next part of state, classnames, and closures
-(define next-part-classes
-  (lambda (s)
-    (list (next (classes s)) (list (next (class-extends s)) (next (closures s))))))
+(define s-test '((A (B) (stateA))(B (C) (stateB))(C () (stateC))))
+(define noI '((C () (stateC))))
+(define yesI '((A (B) (stateC))))
+(define simplebody '(A (B) (stateC)))
 
-
-
+;returns the class closure for the given class name
 (define m-lookup-class-closure
   (lambda (class-name s)
     (cond
-      [(null? (classes s)) (error "class does not exist")]
+      [(null? s) (error "class does not exist")]
       [(equal? class-name (next-class s)) (next-closure s)]
       [else (m-lookup-class-closure class-name (next-part-classes s))])))
 
+
+  
+;takes a state and class name and returns the class the class extends
 (define m-lookup-super-class
   (lambda (class-name s)
     (cond
-      [(null? (classes s)) (error "class does not exist")]
-      [(equal? class-name (next-class s)) (class-extends s)]
-      [else (m-lookup-class-closure class-name (next-part-classes s))])))
+      [(null? ( s)) (error "class does not exist")]
+      [(equal? class-name (next-class s)) (next-extends s)]
+      [else (m-lookup-super-class class-name (next-part-classes s))])))
 
-
+;add a class to a state
 (define m-add-class
  (lambda (class-dec s)
-   (list (cons (class-name class-dec) (classes s)) (list (cons (extends class-dec) (class-extends s)) (cons (generate-closure body s) (closures s))))))
+   (cons (list (class-name class-dec) (class-extends class-dec) (generate-closure class-body s)) s)))
+
+
+;This needs to be filled in. Given a class, the closure or code for the class should be filled in
+;all of the functions and global variables must be searched and filled in
 (define generate-closure
   (lambda (body s)
     '(closure)))
