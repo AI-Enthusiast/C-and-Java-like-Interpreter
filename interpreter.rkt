@@ -6,7 +6,7 @@
 ;;;; Order of inputs for ALL m-state and m-state like things
 
 (provide (all-defined-out))         ; allows for testing to be done in interpreter-testing.rkt
-(require "classParser.rkt")      ; loads simpleParser.rkt, which itself loads lex.rkt
+(require "classParser.rkt")         ; loads simpleParser.rkt, which itself loads lex.rkt
 (require racket/trace)              ; for debugging
 
 ;; Runs the filename, should be provided in quotes
@@ -19,7 +19,7 @@
 
 (define runner
   (lambda (filename callcc)
-    (m-base-layer (parse-t filename) empty-state
+    (m-base-layer (parse-t filename) empty-list empty-list
                   callcc ;; return
                   (lambda (v) v) ;; break
                   (lambda (v) v) ;; continue
@@ -34,22 +34,22 @@
 
 ;; Executes code, returns updated state
 (define m-state
-  (lambda (exp s return break continue try catch finally)
+  (lambda (exp closure s return break continue try catch finally)
     (cond
       ; null checking
       [(null? exp)                         s]
 
       ; checking for single statement
-      [(not (list? (first-statement exp))) (m-what-type exp  s return break continue try catch finally)]
-      [(null? (rest-of-body exp))          (m-what-type (first-statement exp) s
+      [(not (list? (first-statement exp))) (m-what-type exp closure s return break continue try catch finally)]
+      [(null? (rest-of-body exp))          (m-what-type (first-statement exp) closure s
                                                         return break continue try catch finally)]
 
       ; checking for block
       [(eq? (first-statement exp) 'begin)  (m-pop (lambda (k) (m-state (rest-of-body exp)
-                                                                       (m-push s) return k continue
+                                                                       closure (m-push s) return k continue
                                                                        try catch finally)))]
       ; else: process one statement at a time
-      [else                                (m-state (rest-of-body exp)
+      [else                                (m-state (rest-of-body exp) closure
                                                     (m-what-type (first-statement exp) s return break
                                                                  continue try catch finally)
                                                     return break continue try catch finally)])))
@@ -67,16 +67,19 @@
 
 ;; Works through the top layer of the code then
 (define m-base-layer
-  (lambda (exp s return break continue try catch finally)
+  (lambda (exp closure s return break continue try catch finally)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(null? exp)                 s]
-      [(null? (rest-of-body exp))  (m-base-layer (first-statement exp) s
+      [(null? (rest-of-body exp))  (m-base-layer (first-statement exp) closure s
                                                          return break continue try catch finally)]
       ;is it the main
-      [(and (eq? (statement-body exp) 'main) (eq? (statement-type-id exp) 'function))
-                                   (m-state (main-body exp) (m-push s)
-                                            return break continue try catch finally)]
+      ;[(and (eq? (statement-body exp) 'main) (eq? (statement-type-id exp) 'function))
+      ;                             (m-state (main-body exp) (m-push s)
+      ;                                      return break continue try catch finally)]
+
+      ; is it a class
+      [(eq? (statement-type-id exp) 'class) (m-add-class exp s)]
 
       ;is it a function
       [(eq? (statement-type-id exp) 'function)
@@ -90,8 +93,8 @@
       ; otherwise, process the first statement, and then the rest of it
       ; (the program shouldn't actually reach this point, because all things in the
       ; main base level of the program will be either functions or variable declarations. 
-      [else                                     (m-base-layer (rest-of-body exp)
-                                                         (m-base-layer (first-statement exp) s return break
+      [else                                     (m-base-layer (rest-of-body exp) closure
+                                                         (m-base-layer (first-statement exp) closure s return break
                                                                        continue try catch finally)
                                                          return break continue try catch finally)])))
 
@@ -99,15 +102,18 @@
 ;; Returns updated state
 ;; in this m-what-type, "function" should return a number
 (define m-what-type
-  (lambda (exp s return break continue try catch finally)
+  (lambda (exp closure s return break continue try catch finally)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
       [(or (null? exp) (not (pair? exp)))      s]
 
       ;is  it a function
-      [(eq? (statement-type-id exp) 'function) (m-add-local-func (full-func exp)
-                                                                (list (append (list (func-name exp))
+      [(eq? (statement-type-id exp) 'function) (m-add-local-func-nested (full-func exp)
+                                                                  ; function closure 
+                                                                  (list (append (list (func-name exp))
                                                                               (list (func-body exp))))
+                                                                  ; class closure
+                                                                  closure
                                                           s)]
 
       ;is it a function call w/o parameters
@@ -123,8 +129,8 @@
                                                                return break continue try catch finally))]
 
       ; conditional statement checking (if/while/etc.)
-      [(eq? (statement-type-id exp) 'if)       (m-if-statement exp s return break continue try catch finally)]
-      [(eq? (statement-type-id exp) 'while)    (call/cc (lambda (k) (m-while-loop exp s return k continue
+      [(eq? (statement-type-id exp) 'if)       (m-if-statement exp closure s return break continue try catch finally)]
+      [(eq? (statement-type-id exp) 'while)    (call/cc (lambda (k) (m-while-loop exp closure s return k continue
                                                                                   try catch finally)))]
 
       ; is it a break
@@ -134,7 +140,7 @@
       [(eq? (statement-type-id exp) 'continue) (continue s)]
 
       ; is it a try/catch statement
-      [(eq? (statement-type-id exp) 'try)      (call/cc (λ (k) (m-try-catch-finally exp s return break
+      [(eq? (statement-type-id exp) 'try)      (call/cc (λ (k) (m-try-catch-finally exp closure s return break
                                                                                     continue k catch
                                                                                     finally)))]
 
@@ -148,7 +154,7 @@
       [(eq? (statement-type-id exp) '=)        (m-assign exp s)]
 
       ; is it a return statement
-      [(eq? (statement-type-id exp) 'return)   (m-return (statement-body exp) s return finally)]
+      [(eq? (statement-type-id exp) 'return)   (m-return (statement-body exp) closure s return finally)]
 
       ; oh no
       [else                                    (error 'undefined "undefined expression")])))
@@ -204,7 +210,7 @@
         (num-in-list (cdr lis) (+ acc 1)))))
 
 (define m-try-catch-finally
-  (lambda (exp s return break continue try catch finally)
+  (lambda (exp closure s return break continue try catch finally)
     (cond
       ; oh no
       [(and (not (pair? (third-statement exp))) (not (pair? (catch-statement exp))))
@@ -212,9 +218,10 @@
 
       ; check if it has catch (and no finally)
       [(and (not (pair? (third-statement exp))) (eq? (second-identifier exp) 'catch))
-       (call/cc (lambda (k) (m-state (try-body exp) s return break continue k
+       (call/cc (lambda (k) (m-state (try-body exp) closure s return break continue k
                                      ;; CATCH STATEMENT
                                      (lambda (exception) (m-state (catch-body (second-body exp))
+                                                                  closure
                                                                   ;; MODIFYING THE STATE
                                                                   (m-var-dec (list 'var (catch-var-name
                                                                                          (second-body exp))
@@ -224,7 +231,7 @@
 
       ; check if has finally first (no catch)
       [(and (eq? (third-identifier exp) 'finally) (not (pair? (catch-statement exp))))
-       (m-state (third-body exp) (m-state (try-body exp) s return break continue
+       (m-state (third-body exp) (m-state (try-body exp) closure s return break continue
                                           (lambda (v) s) (lambda (v) s) finally)
                 return break continue try catch finally)]
 
@@ -233,9 +240,10 @@
       ; check for a catch AND a finally
       [(and (eq? (second-identifier exp) 'catch) (eq? (third-identifier exp) 'finally))
        (m-state (third-body exp)
-                (call/cc (lambda (k) (m-state (try-body exp) s return break continue k
+                (call/cc (lambda (k) (m-state (try-body exp) closure s return break continue k
                                               ;; CATCH STATEMENT
                                               (lambda (exception) (m-state (catch-body (second-body exp))
+                                                                           closure
                                                                            ;; MODIFYING THE STATE
                                                                            (m-var-dec
                                                                             (list 'var
@@ -253,7 +261,7 @@
 ;;      (+ 1 2)
 ;; The operators are +, -, *, /, %, and division is integer division
 (define m-value
-  (lambda (exp s)
+  (lambda (exp closure s)
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
@@ -603,9 +611,9 @@ just pass along and continue if have super class
 
 
 (define m-add-local-func-nested
-  (lambda (func closure s)
+  (lambda (func func-closure class-closure s)
     (list (cons (list (var-layer s) (list (cons func (funcs s))
-                                          (cons (box closure) (func-defs s))))
+                                          (cons (box func-closure) (func-defs s))))
                 (cdr (local s)))
           (global s))))
 
@@ -771,6 +779,16 @@ just pass along and continue if have super class
 (define generate-closure
   (lambda (body s)
     '(closure)))
+
+
+
+
+
+
+
+
+
+
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
 (define statement-body cadr)   ; e.g. the body of a return statement
@@ -893,6 +911,7 @@ just pass along and continue if have super class
 ; for running/state
 (define new-layer '((()())(()())))
 (define empty-state '(()(((()())(()())))((()())(()()))))
+(define empty-list '())
 (define class-adding-state '(()(()())))
 (define b '((((()())(()())))((()())(()()))))
 (define first-statement car)
