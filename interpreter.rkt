@@ -19,7 +19,7 @@
 
 (define runner
   (lambda (filename callcc)
-    (m-base-layer (parse-t filename) empty-state
+    (m-base-layer (parse-t filename) empty-list empty-list
                   callcc ;; return
                   (lambda (v) v) ;; break
                   (lambda (v) v) ;; continue
@@ -78,6 +78,9 @@
       ;                             (m-state (main-body exp) (m-push s)
       ;                                      return break continue try catch finally)]
 
+      ; is it a class
+      [(eq? (statement-type-id exp) 'class) (m-add-class exp s)]
+
       ;is it a function
       [(eq? (statement-type-id exp) 'function)
                                    (m-add-global-func (full-func exp) (list (append (list (func-name exp))
@@ -91,7 +94,7 @@
       ; (the program shouldn't actually reach this point, because all things in the
       ; main base level of the program will be either functions or variable declarations. 
       [else                                     (m-base-layer (rest-of-body exp) closure
-                                                         (m-base-layer (first-statement exp) s return break
+                                                         (m-base-layer (first-statement exp) closure s return break
                                                                        continue try catch finally)
                                                          return break continue try catch finally)])))
 
@@ -105,7 +108,7 @@
       [(or (null? exp) (not (pair? exp)))      s]
 
       ;is  it a function
-      [(eq? (statement-type-id exp) 'function) (m-add-local-func- (full-func exp)
+      [(eq? (statement-type-id exp) 'function) (m-add-local-func-nested (full-func exp)
                                                                   ; function closure 
                                                                   (list (append (list (func-name exp))
                                                                               (list (func-body exp))))
@@ -608,9 +611,9 @@ just pass along and continue if have super class
 
 
 (define m-add-local-func-nested
-  (lambda (func closure s)
+  (lambda (func func-closure class-closure s)
     (list (cons (list (var-layer s) (list (cons func (funcs s))
-                                          (cons (box closure) (func-defs s))))
+                                          (cons (box func-closure) (func-defs s))))
                 (cdr (local s)))
           (global s))))
 
@@ -776,6 +779,16 @@ just pass along and continue if have super class
 (define generate-closure
   (lambda (body s)
     '(closure)))
+
+
+
+
+
+
+
+
+
+
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
 (define statement-body cadr)   ; e.g. the body of a return statement
@@ -898,6 +911,7 @@ just pass along and continue if have super class
 ; for running/state
 (define new-layer '((()())(()())))
 (define empty-state '(()(((()())(()())))((()())(()()))))
+(define empty-list '())
 (define class-adding-state '(()(()())))
 (define b '((((()())(()())))((()())(()()))))
 (define first-statement car)
