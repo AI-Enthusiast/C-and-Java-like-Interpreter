@@ -771,13 +771,13 @@ just pass along and continue if have super class
 ;add a class to a state
 (define m-add-class
  (lambda (class-dec s)
-   (cons (list (class-name class-dec) (class-extends class-dec) (generate-closure class-body s)) s)))
+   (cons (list (class-name class-dec) (class-extends class-dec) (generate-closure (class-body class-dec) empty-state) s)))
 
 
 ;This needs to be filled in. Given a class, the closure or code for the class should be filled in
 ;all of the functions and global variables must be searched and filled in
 (define generate-closure
-  (lambda (body s)
+  (lambda (body closure)
     '(closure)))
 
 
@@ -910,7 +910,7 @@ just pass along and continue if have super class
 
 ; for running/state
 (define new-layer '((()())(()())))
-(define empty-state '(()(((()())(()())))((()())(()()))))
+(define empty-state '((((()())(()())))((()())(()()))))
 (define empty-list '())
 (define class-adding-state '(()(()())))
 (define b '((((()())(()())))((()())(()()))))
