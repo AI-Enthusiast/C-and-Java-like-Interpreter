@@ -2,7 +2,7 @@
 ;;;; A Java/C (ish) interpreter
 ;;;; EECS 345
 ;;;; Group #7: Shanti Polara, Catlin Campbell, Cormac Dacker
-;;;; Will run a txt file containing code by using the run function (run "Filename.txt")
+;;;; Will run a txt file containing code by using the run function (run "Filename.txt" "class w/ main")
 ;;;; Order of inputs for ALL m-state and m-state like things
 
 (provide (all-defined-out))         ; allows for testing to be done in interpreter-testing.rkt
@@ -15,7 +15,7 @@
   (lambda (filename classmain)
     (call/cc
      (lambda (k)
-       (runner filename k classmain)))))
+       (runner filename k (string->symbol classmain))))))
 
 (define runner
   (lambda (filename callcc classmain)
