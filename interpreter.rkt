@@ -162,16 +162,17 @@
 
 ;; m-funcall returns a number
 (define m-funcall
-  (lambda (name actual return s)
+  ;; name is name of the function, actual = input parameters 
+  (lambda (name actual return closure s)
     ;gets the body and the formal parameters of the function
-    (let* [(all (m-lookup-func name s))
+    (let* [(all (m-lookup-func name closure s))
            (formal (func-formal-params all))
            (body (func-call-body all))]
         (if (eq? (num-in-list actual 0) (num-in-list formal 0))
             ;runs the body
             ;(call/cc (lambda (k)
                        ;(m-pop
-            (m-state body (lists-to-assign actual formal (m-push s)) ; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
+            (m-state body (lists-to-assign actual formal closure (m-push s)) ; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
                                                                      ; We tried to fix it but it broke more things :( 
                  return
                  (lambda (v) v) ;; break
@@ -718,7 +719,16 @@ just pass along and continue if have super class
       [(eq? func (global-nextfunc s)) #t]
       [else                           (locate-global-func func (global-nextpart-funcs s))])))
 
+;; will return the instance's closure 
+(define get-instance
+  (lambda (name closure s)
+    (m-lookup-var name closure s)))
 
+;; will return a value
+(define m-dot
+  (lambda (var-name func-name params closure s)
+    (m-funcall func-name params (get-instance var-name closure s) s))) 
+     
 
 ;new state format
 ;starting state is empty list
