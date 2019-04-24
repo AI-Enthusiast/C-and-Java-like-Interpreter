@@ -116,6 +116,17 @@
                                                                   closure
                                                           s)]
 
+      ;is it a function call w/dot and no params
+      [(and (eq? (statement-type-id exp) 'funcall)
+       (and (list? (funcall-name exp))
+            (null? (func-params exp))))
+                   (m-dot (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) s))]
+
+      ;is it a function call w/dot
+      [(and (eq? (statement-type-id exp) 'funcall)
+            (list? (funcall-name exp)))
+                   (m-dot (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) s))]
+
       ;is it a function call w/o parameters
       [(and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp)))
                                                (m-funcall (funcall-name exp) no-params (lambda (v) s) s)]
@@ -726,8 +737,8 @@ just pass along and continue if have super class
 
 ;; will return a value
 (define m-dot
-  (lambda (var-name func-name params closure s)
-    (m-funcall func-name params (get-instance var-name closure s) s))) 
+  (lambda (var-name func-name params closure s return)
+    (m-funcall func-name params return (get-instance var-name closure s) s))) 
      
 
 ;new state format
@@ -829,6 +840,10 @@ just pass along and continue if have super class
 (define third-body (lambda (s) (cadr (third-statement s))))
 (define catch-body cadr)
 (define catch-var-name caar)
+
+; dot product stuff
+(define dot-var-name  cadadr)
+(define dot-func-name (lambda (s) (car (cddadr s))))
 
 ; for remove
 (define first-val car)
