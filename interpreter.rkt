@@ -19,14 +19,15 @@
 
 (define runner
   (lambda (filename callcc classmain)
-       (m-funcall 'main no-params (lambda (v) v)
-                  (m-lookup-class-closure classmain (m-base-layer (parse-t filename) empty-list empty-list
+    (let* [(s (m-base-layer (parse-t filename) empty-list empty-list
                                                                   callcc ;; return
                                                                   (lambda (v) v) ;; break
                                                                   (lambda (v) v) ;; continue
                                                                   (lambda (v) v) ;; try
                                                                   (lambda (v) v) ;; catch
-                                                                  (lambda (v) v)))))) ;; finally
+                                                                  (lambda (v) v)))]
+       (m-funcall 'main no-params (lambda (v) v)
+                  (m-lookup-class-closure classmain s) s)))) ;; finally
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define parse-t
@@ -162,9 +163,9 @@
 
 ;; m-funcall returns a number
 (define m-funcall
-  (lambda (name actual return s)
+  (lambda (name actual return s closure)
     ;gets the body and the formal parameters of the function
-    (let* [(all (m-lookup-func name s))
+    (let* [(all (m-lookup-func name closure s))
            (formal (func-formal-params all))
            (body (func-call-body all))]
         (if (eq? (num-in-list actual 0) (num-in-list formal 0))
