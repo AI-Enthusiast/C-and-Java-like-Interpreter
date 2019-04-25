@@ -84,8 +84,7 @@
       ;is it a function
       [(eq? (statement-type-id exp) 'function)
                                    (m-add-global-func (full-func exp) (list (append (list (func-name exp))
-                                                                                    (list (func-body exp))))
-                                                      s)]
+                                                                                    (list (func-body exp)))) closure)]
 
       ; is it a declaration
       [(eq? (statement-type-id exp) 'var)       (m-var-dec exp s)]
@@ -108,7 +107,7 @@
       [(or (null? exp) (not (pair? exp)))      s]
 
       ;is  it a function
-      [(eq? (statement-type-id exp) 'function) (m-add-local-func-nested (full-func exp)
+      [(eq? (statement-type-id exp) 'function) (m-add-local-func (full-func exp)
                                                                   ; function closure 
                                                                   (list (append (list (func-name exp))
                                                                               (list (func-body exp))))
@@ -419,7 +418,7 @@
 ;; Takes a variable declaration and a state
 ;; Returns the updated state
 (define m-var-dec
-  (lambda (dec s)
+  (lambda (dec closure s)
     (cond
       ; check variable not already declared
       [(local-locate (variable dec) s) (error "redefining")]
@@ -427,20 +426,20 @@
       [(null? (assignment dec))        (m-add (variable dec) s)]
       ; need to add value as well
       [else                            (m-update (variable dec)
-                                                 (m-value (expression dec) s)
-                                                 (m-add (variable dec) s))])))
+                                                 (m-value (expression closure dec) s)
+                                                 (m-add (variable dec) closure s) s)])))
 
 (define m-global-var-dec
-  (lambda (dec s)
+  (lambda (dec closure s)
     (cond
       ; check variable not already declared
       [(locate-global-var (variable dec) s)  (error "redefining")]
       ; just need to add variable, not value
-      [(null? (assignment dec))              (m-add-global-var (variable dec) s)]
+      [(null? (assignment dec))              (m-add-global-var (variable dec) closure s)]
       ; need to add value as well
       [else                                  (m-update (variable dec)
-                                                       (m-value (expression dec) s)
-                                                       (m-add-global-var (variable dec) s))])))
+                                                       (m-value (expression dec) closure s)
+                                                       (m-add-global-var (variable dec) closure s))])))
 
 
 #|
@@ -545,8 +544,8 @@ just pass along and continue if have super class
 ;; takes a variable, the value to be updated, and the state
 ;; returns the updated state
 (define m-update
-  (lambda (var closure s)
-    [(m-update-nested var (closure-body closure))]))
+  (lambda (var update-val closure)
+    (list (closure-class-name closure) (closure-super closure) (m-update-nested var update-val (closure-body closure)))))
 
 
 (define m-update-nested
@@ -598,7 +597,7 @@ just pass along and continue if have super class
 ;; (does not take value, to update value, use m-update)
 (define m-add
   (lambda (var closure s)
-    [(m-add-nested var (closure-body closure))]))
+    [(list (closure-class-name closure) (closure-super closure) (m-add-nested var (closure-body closure)))]))
 
 (define m-add-nested
   (lambda (var s)
@@ -608,7 +607,11 @@ just pass along and continue if have super class
            (global s))))
 
 ;; Takes a local function and it's closure, adds the function and it's closure to the topmost local section of the state
-
+(define m-add-local-func
+  (lambda (func func-closure class-closure s)
+    (list (closure-class-name class-closure) (closure-super class-closure) (m-add-local-func-nested func func-closure class-closure s))))
+  
+  
 
 (define m-add-local-func-nested
   (lambda (func func-closure class-closure s)
@@ -621,7 +624,7 @@ just pass along and continue if have super class
 ;; (does not take value, to update value, use m-update)
 (define m-add-global-var
   (lambda (var closure s)
-    [(m-add-global-var-nested var (closure-body closure))]))
+    (list (closure-class-name closure) (closure-super closure) (m-add-global-var-nested var (closure-body closure)))))
 
 (define m-add-global-var-nested
   (lambda (var s)
@@ -631,8 +634,8 @@ just pass along and continue if have super class
 
 ;; Takes a global function and it's closure, adds the function and it's closure to the global section of the state
 (define m-add-global-func
-  (lambda (var closure s)
-    [(m-add-global-func-nested  var (closure-body closure))]))
+  (lambda (func func-closure class-closure)
+    (list (closure-class-name class-closure) (closure-super class-closure) (m-add-global-func-nested  func func-closure (closure-body class-closure)))))
 
 (define m-add-global-func-nested
   (lambda (func closure s)
@@ -742,6 +745,8 @@ just pass along and continue if have super class
 (define closure-super cadr)
 (define closure-class-name car)
 (define closure-body caddr)
+(define next car)
+(define first car)
 
 
 ;;iterate along next part of state, classnames, and closures
@@ -759,6 +764,16 @@ just pass along and continue if have super class
       [else (m-lookup-class-closure class-name (next-part-classes s))])))
 
 
+#|(define m-update-class-closure
+  (lambda (closure update s)
+    (cond
+      [(null? s) '()]
+      [(equal? class-name (next-class s)) (cons (m-new-closure class-name (closure-super (next-class s)) closure-to-update) s)]
+      [else (cons (next-closure s) (m-update-class-closure class-name closure-to-update (next-part-classes s)))])))
+|#
+(define m-new-closure
+  (lambda (class-name class-super closure)
+    (list (class-name class-super closure))))
   
 ;takes a state and class name and returns the class the class extends
 (define m-lookup-super-class
@@ -771,22 +786,38 @@ just pass along and continue if have super class
 ;add a class to a state
 (define m-add-class
  (lambda (class-dec s)
-   (cons (list (class-name class-dec) (class-extends class-dec) (generate-closure class-body s)) s)))
+   (cons (generate-closure (class-body class-dec) (list (class-name class-dec) (class-extends class-dec) empty-state) s) s)))
 
 
 ;This needs to be filled in. Given a class, the closure or code for the class should be filled in
 ;all of the functions and global variables must be searched and filled in
 (define generate-closure
-  (lambda (body s)
-    '(closure)))
+  (lambda (body closure s)
+    (cond
+      [(null? body) closure]
+      [(equal? 'var (first (next body))) (generate-closure (cdr body) (m-global-var-dec (next body) closure s) s)]
+      [(equal? 'function (first (next body)))
+       (generate-closure (cdr body) (m-add-global-func  (full-func (next body)) (list (append (list (func-name (next body)))(list (func-body (next body))))) closure) s)]
+      [(equal? 'static-function (first (next body)))
+       (generate-closure (cdr body) (m-add-global-func  (full-func (next body)) (list (append (list (func-name (next body)))(list (func-body (next body))))) closure) s)]
+      [else (generate-closure (cdr body) closure s)])))
+      
+;functions not being put in in proper format maybe, make sure each update, add function is returning proper closure
+;then add super class lookup
 
 
+(define test-class '((var x 100)
+     (var y 10)
+     (function add (g h) ((return (+ g h))))
+     (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
+(define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
+;(generate-closure test-class empty-closure empty-state)
 
-
-
-
-
-
+(trace generate-closure)
+(trace m-global-var-dec)
+(trace m-update)
+(trace m-add-global-var)
+(trace m-update-nested)
 
 
 ;;;;**********ABSTRACTION**********
@@ -910,7 +941,7 @@ just pass along and continue if have super class
 
 ; for running/state
 (define new-layer '((()())(()())))
-(define empty-state '(()(((()())(()())))((()())(()()))))
+(define empty-state '((((()())(()())))((()())(()()))))
 (define empty-list '())
 (define class-adding-state '(()(()())))
 (define b '((((()())(()())))((()())(()()))))
