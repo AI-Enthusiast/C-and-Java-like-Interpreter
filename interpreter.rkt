@@ -115,6 +115,17 @@
                                                                   closure
                                                           s)]
 
+      ;is it a function call w/dot and no params
+      [(and (eq? (statement-type-id exp) 'funcall)
+       (and (list? (funcall-name exp))
+            (null? (func-params exp))))
+                   (m-dot (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) s))]
+
+      ;is it a function call w/dot
+      [(and (eq? (statement-type-id exp) 'funcall)
+            (list? (funcall-name exp)))
+                   (m-dot (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) s))]
+
       ;is it a function call w/o parameters
       [(and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp)))
                                                (m-funcall (funcall-name exp) no-params (lambda (v) s) s)]
@@ -161,16 +172,17 @@
 
 ;; m-funcall returns a number
 (define m-funcall
-  (lambda (name actual return s)
+  ;; name is name of the function, actual = input parameters 
+  (lambda (name actual return closure s)
     ;gets the body and the formal parameters of the function
-    (let* [(all (m-lookup-func name s))
+    (let* [(all (m-lookup-func name closure s))
            (formal (func-formal-params all))
            (body (func-call-body all))]
         (if (eq? (num-in-list actual 0) (num-in-list formal 0))
             ;runs the body
             ;(call/cc (lambda (k)
                        ;(m-pop
-            (m-state body (lists-to-assign actual formal (m-push s)) ; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
+            (m-state body (lists-to-assign actual formal closure (m-push s)) ; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
                                                                      ; We tried to fix it but it broke more things :( 
                  return
                  (lambda (v) v) ;; break
@@ -721,7 +733,16 @@ just pass along and continue if have super class
       [(eq? func (global-nextfunc s)) #t]
       [else                           (locate-global-func func (global-nextpart-funcs s))])))
 
+;; will return the instance's closure 
+(define get-instance
+  (lambda (name closure s)
+    (m-lookup-var name closure s)))
 
+;; will return a value
+(define m-dot
+  (lambda (var-name func-name params closure s return)
+    (m-funcall func-name params return (get-instance var-name closure s) s))) 
+     
 
 ;new state format
 ;starting state is empty list
@@ -801,9 +822,7 @@ just pass along and continue if have super class
       [(equal? 'static-function (first (next body)))
        (generate-closure (cdr body) (m-add-global-func  (full-func (next body)) (list (append (list (func-name (next body)))(list (func-body (next body))))) closure) s)]
       [else (generate-closure (cdr body) closure s)])))
-      
-;functions not being put in in proper format maybe, make sure each update, add function is returning proper closure
-;then add super class lookup
+     
 
 
 (define test-class '((var x 100)
@@ -850,6 +869,10 @@ just pass along and continue if have super class
 (define third-body (lambda (s) (cadr (third-statement s))))
 (define catch-body cadr)
 (define catch-var-name caar)
+
+; dot product stuff
+(define dot-var-name  cadadr)
+(define dot-func-name (lambda (s) (car (cddadr s))))
 
 ; for remove
 (define first-val car)
