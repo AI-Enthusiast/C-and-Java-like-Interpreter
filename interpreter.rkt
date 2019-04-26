@@ -55,7 +55,6 @@
                                                     return break continue try catch finally)])))
 ;; takes a closure
 ;; Returns state (within closure) with most recent layer popped off
-
 (define m-pop
   (lambda (closure)
     (list (closure-class-name closure) (closure-super closure) (nextlayer (closure-body closure)))))
@@ -436,7 +435,7 @@
   (lambda (dec closure s)
     (cond
       ; check variable not already declared
-      [(local-locate (variable dec) s) (error "redefining")]
+      [(local-locate (variable dec) (closure-body closure)) (error "redefining")]
       ; just need to add variable, not value
       [(null? (assignment dec))        (m-add (variable dec) s)]
       ; need to add value as well
@@ -448,7 +447,7 @@
   (lambda (dec closure s)
     (cond
       ; check variable not already declared
-      [(locate-global-var (variable dec) s)  (error "redefining")]
+      [(locate-global-var (variable dec) (closure-body closure))  (error "redefining")]
       ; just need to add variable, not value
       [(null? (assignment dec))              (m-add-global-var (variable dec) closure s)]
       ; need to add value as well
@@ -527,22 +526,21 @@ just pass along and continue if have super class
 
 
 
-
 ;; takes a function and a state
 ;; returns the function closure
 (define m-lookup-func
   (lambda (var closure s)
-    [(m-lookup-func-nested var (closure-body closure))]))
+    [(m-lookup-func-nested var (closure-body closure) s)]))
 
 
 (define m-lookup-func-nested
-  (lambda (func s)
+  (lambda (func closure-s s)
     (cond
-      [(null? s)                      (error "function not found")]
-      [(null? (local s))              (lookup-global-func func s)]
-      [(null? (funcs s))              (m-lookup-func func (nextlayer s))]
-      [(equal? func (nextfunc s))     (unbox (nextfunc-def s))]
-      [else                           (m-lookup-func func (next-part-funcs s))])))
+      [(null?  closure-s)                      (error "function not found")]
+      [(null? (local  closure-s))              (lookup-global-func func  closure-s)]
+      [(null? (funcs  closure-s))              (m-lookup-func func (nextlayer  closure-s))]
+      [(equal? func (nextfunc  closure-s))     (unbox (nextfunc-def  closure-s))]
+      [else                           (m-lookup-func func (next-part-funcs  closure-s))])))
 
 
 ;; takes a global function and a state
@@ -761,12 +759,18 @@ just pass along and continue if have super class
 ;returns values for the input class information
 ;format (class A (super) (body))
 (define class-name cadr)
-(define class-extends caddr)
+(define class-extends
+  (lambda (class-closure)
+    (if (null? (caddr class-closure))
+        '()
+      (cdaddr class-closure))))
 (define class-body cadddr)
 
 ;returns values for a class closure
 ;format (A (super) (body)) where body is a complete state of vars and funcs
 (define closure-super cadr)
+
+
 (define closure-class-name car)
 (define closure-body caddr)
 (define next car)
@@ -777,7 +781,7 @@ just pass along and continue if have super class
 (define s-test '((A (B) (stateA))(B (C) (stateB))(C () (stateC))))
 (define noI '((C () (stateC))))
 (define yesI '((A (B) (stateC))))
-(define simplebody '(A (B) (stateC)))
+(define simplebody '(A (extends B) (stateC)))
 
 ;returns the class closure for the given class name
 (define m-lookup-class-closure
