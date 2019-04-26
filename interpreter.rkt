@@ -2,7 +2,7 @@
 ;;;; A Java/C (ish) interpreter
 ;;;; EECS 345
 ;;;; Group #7: Shanti Polara, Catlin Campbell, Cormac Dacker
-;;;; Will run a txt file containing code by using the run function (run "Filename.txt")
+;;;; Will run a txt file containing code by using the run function (run "Filename.txt" "class w/ main")
 ;;;; Order of inputs for ALL m-state and m-state like things
 
 (provide (all-defined-out))         ; allows for testing to be done in interpreter-testing.rkt
@@ -12,20 +12,22 @@
 ;; Runs the filename, should be provided in quotes
 ;; e.g. (run "Tests/Test1.txt")
 (define run
-  (lambda (filename)
+  (lambda (filename classmain)
     (call/cc
      (lambda (k)
-       (runner filename k)))))
+       (runner filename k (string->symbol classmain))))))
 
 (define runner
-  (lambda (filename callcc)
-    (m-base-layer (parse-t filename) empty-list empty-list
-                  callcc ;; return
-                  (lambda (v) v) ;; break
-                  (lambda (v) v) ;; continue
-                  (lambda (v) v) ;; try
-                  (lambda (v) v) ;; catch
-                  (lambda (v) v)))) ;; finally
+  (lambda (filename callcc classmain)
+    (let* [(s (m-base-layer (parse-t filename) empty-list empty-list
+                                                                  callcc ;; return
+                                                                  (lambda (v) v) ;; break
+                                                                  (lambda (v) v) ;; continue
+                                                                  (lambda (v) v) ;; try
+                                                                  (lambda (v) v) ;; catch
+                                                                  (lambda (v) v)))]
+       (m-funcall 'main no-params (lambda (v) v)
+                  (m-lookup-class-closure classmain s) s)))) ;; finally
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define parse-t
@@ -65,7 +67,6 @@
 (define m-push
   (lambda (closure)
     (list (closure-class-name closure) (closure-super closure) (list (cons new-layer (local closure)) (global closure)))))
-
 
 ;; Works through the top layer of the code then
 (define m-base-layer
