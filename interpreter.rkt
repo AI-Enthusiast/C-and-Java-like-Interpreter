@@ -53,16 +53,19 @@
                                                     (m-what-type (first-statement exp) s return break
                                                                  continue try catch finally)
                                                     return break continue try catch finally)])))
+;; takes a closure
+;; Returns state (within closure) with most recent layer popped off
 
-;; Returns state with most recent state popped off
 (define m-pop
-  (lambda (s)
-    (nextlayer s)))
+  (lambda (closure)
+    (list (closure-class-name closure) (closure-super closure) (nextlayer (closure-body closure)))))
 
-;; Returns state with new empty layer pushed on
+
+;; takes a closure
+;; Returns state (within closure) with new empty layer pushed on
 (define m-push
-  (lambda (s)
-    (list (cons new-layer (local s)) (global s))))
+  (lambda (closure)
+    (list (closure-class-name closure) (closure-super closure) (list (cons new-layer (local closure)) (global closure)))))
 
 
 ;; Works through the top layer of the code then
@@ -823,8 +826,6 @@ just pass along and continue if have super class
        (generate-closure (cdr body) (m-add-global-func  (full-func (next body)) (list (append (list (func-name (next body)))(list (func-body (next body))))) closure) s)]
       [else (generate-closure (cdr body) closure s)])))
 
-;functions not being put in in proper format maybe, make sure each update, add function is returning proper closure
-;then add super class lookup
 
 
 (define test-class '((var x 100)
