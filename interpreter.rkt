@@ -27,7 +27,7 @@
                                                                   (lambda (v) v) ;; catch
                                                                   (lambda (v) v)))]
        (m-funcall 'main no-params (lambda (v) v)
-                  (m-lookup-class-closure classmain s) s)))) ;; finally
+                  (m-lookup-class classmain s) s)))) ;; finally
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
 (define parse-t
@@ -531,7 +531,7 @@ just pass along and continue if have super class
 ;; returns the function closure
 (define m-lookup-func
   (lambda (var closure s)
-    [(m-lookup-func-nested var (closure-body closure) s)]))
+    (m-lookup-func-nested var (closure-body closure) s)))
 
 
 (define m-lookup-func-nested
@@ -539,9 +539,9 @@ just pass along and continue if have super class
     (cond
       [(null?  closure-s)                      (error "function not found")]
       [(null? (local  closure-s))              (lookup-global-func func  closure-s)]
-      [(null? (funcs  closure-s))              (m-lookup-func func (nextlayer  closure-s))]
+      [(null? (funcs  closure-s))              (m-lookup-func-nested func (nextlayer  closure-s) s)]
       [(equal? func (nextfunc  closure-s))     (unbox (nextfunc-def  closure-s))]
-      [else                           (m-lookup-func func (next-part-funcs  closure-s))])))
+      [else                           (m-lookup-func-nested func (next-part-funcs  closure-s))])))
 
 
 ;; takes a global function and a state
@@ -792,6 +792,12 @@ just pass along and continue if have super class
       [(equal? class-name (next-class s)) (next-closure s)]
       [else (m-lookup-class-closure class-name (next-part-classes s))])))
 
+(define m-lookup-class
+  (lambda (class-name s)
+    (cond
+      [(null? s) (error "class does not exist")]
+      [(equal? class-name (next-class s)) (next s)]
+      [else (m-lookup-class class-name (next-part-classes s))])))
 
 #|(define m-update-class-closure
   (lambda (closure update s)
