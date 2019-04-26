@@ -537,13 +537,13 @@ just pass along and continue if have super class
 
 
 (define m-lookup-func-nested
-  (lambda (func s)
+  (lambda (func closure_inner)
     (cond
-      [(null? s)                      (error "function not found")]
-      [(null? (local s))              (lookup-global-func func s)]
-      [(null? (funcs s))              (m-lookup-func func (nextlayer s))]
-      [(equal? func (nextfunc s))     (unbox (nextfunc-def s))]
-      [else                           (m-lookup-func func (next-part-funcs s))])))
+      [(null? closure_inner)                      (error "function not found")]
+      [(null? (local closure_inner))              (lookup-global-func func closure_inner)]
+      [(null? (funcs closure_inner))              (m-lookup-func func (nextlayer closure_inner))]
+      [(equal? func (nextfunc closure_inner))     (unbox (nextfunc-def closure_inner))]
+      [else                           (m-lookup-func func (next-part-funcs closure_inner))])))
 
 
 ;; takes a global function and a state
@@ -836,12 +836,6 @@ just pass along and continue if have super class
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 ;(generate-closure test-class empty-closure empty-state)
 
-(trace generate-closure)
-(trace m-global-var-dec)
-(trace m-update)
-(trace m-add-global-var)
-(trace m-update-nested)
-
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
@@ -1008,3 +1002,13 @@ just pass along and continue if have super class
     (((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
     (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))
    (super-c ((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))) |#
+
+#|
+(trace generate-closure)
+(trace m-global-var-dec)
+(trace m-update)
+(trace m-add-global-var)
+(trace m-update-nested)
+|#
+
+(run "Tests/Test1.txt" "A")
