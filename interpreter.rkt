@@ -201,7 +201,7 @@
 (define lists-to-assign
   (lambda (l1 l2 closure s)
     (if (null? l1)
-            (m-var-dec (cons 'var (cons 'this (list closure))) closure s)
+            closure
             (if (and (not (number? (car l1))) (> (num-in-list l1 0) 1))
                     (lists-to-assign (list-from-state l1 closure) l2 closure) ;if l1 null assign this to closure
                     (lists-to-assign (cdr l1) (cdr l2)
@@ -291,7 +291,7 @@
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
-                                              (call/cc (lambda (k) (m-funcall (funcall-name exp) '() k s)))]
+                                              (call/cc (lambda (k) (m-funcall (funcall-name exp) '() k closure s)))]
 
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
@@ -312,7 +312,7 @@
 
 
       ;operators
-      [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
+      [(eq? (operator exp) '+) (+         (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
       [(and (eq? (operator exp) '-) (null? (right-operand-exists exp))) ; handle negitive numbers
                                (* -1      (m-value (left-operand exp) s))]
       [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
@@ -1038,3 +1038,4 @@ just pass along and continue if have super class
 (trace m-update)
 (trace m-value)
 |#
+

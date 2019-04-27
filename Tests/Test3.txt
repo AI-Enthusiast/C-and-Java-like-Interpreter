@@ -1,0 +1,24 @@
+class A {
+	var x = 5;
+	
+	function i(){
+		return 5;
+	}
+	
+	function want(){
+		return 2+3;
+	}
+	
+	function to(x){
+		return 4+x;
+	}
+	
+	function die(){
+		return x;
+	}
+	
+	static function main(){
+		var a = new A();
+		return a.i() + a.want() + a.to(1) + a.die();
+	}
+}
