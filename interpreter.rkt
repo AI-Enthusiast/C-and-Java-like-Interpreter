@@ -178,7 +178,7 @@
   ;; name is name of the function, actual = input parameters
   (lambda (name actual return closure s)
     (if (list? name)
-        (m-dot-func (cadr name) (caddr name) actual return closure s)
+        (m-dot-func (cadr name) (caddr name) actual closure s return)
         ;gets the body and the formal parameters of the function
         (let* [(all (m-lookup-func name closure s))
                (formal (func-formal-params all))
@@ -889,7 +889,12 @@ just pass along and continue if have super class
 
 ;for m-var-dec
 (define assignment cddr)
-(define is-new-instance caaddr)
+(define is-new-instance
+  (lambda (dec)
+    (if (list? (expression dec))
+        (caaddr dec)
+        (expression dec))))
+        
 (define instance-class-name (lambda (v) (cadar (assignment v))))
 (define variable cadr)
 (define expression caddr)
