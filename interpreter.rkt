@@ -186,7 +186,7 @@
             ;(call/cc (lambda (k)
                        ;(m-pop
             (m-state body (lists-to-assign actual formal (m-push closure) s) s; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
-                                                                     ; We tried to fix it but it broke more things :( 
+                                                                     ; We tried to fix it but it broke more things :(
                  return
                  (lambda (v) v) ;; break
                  (lambda (v) v) ;; continue
@@ -441,7 +441,7 @@
       ; check variable not already declared
       [(local-locate (variable dec) (closure-body closure)) (error "redefining")]
       ; just need to add variable, not value
-      [(null? (assignment dec))         (m-add (variable dec) s)]
+      [(null? (assignment dec))        (m-add (variable dec) closure s)]
       ; need to add a value, and that value is a class
       [(eq? (is-new-instance dec) 'new) (m-instance-dec dec closure s)]
       ; need to add value as well
@@ -507,7 +507,7 @@ just pass along and continue if have super class
 
 (define m-lookup-var
   (lambda (var closure s)
-    [(m-lookup-var-nested var (closure-body closure) closure s)]))
+    (m-lookup-var-nested var (closure-body closure) closure s)))
 
 
 (define m-lookup-var-nested
@@ -515,11 +515,11 @@ just pass along and continue if have super class
     (cond
       [(null? closure-s)                       (error "use before declared")]
       [(null? (local closure-s))               (lookup-global-var var closure-s closure state)]
-      [(null? (vars closure-s))                (m-lookup-var var (nextlayer closure-s) closure state)]
+      [(null? (vars closure-s))                (m-lookup-var-nested var (nextlayer closure-s) closure state)]
       [(and (equal? var (nextvar closure-s)) (eq? "init" (unbox (nextval closure-s))))
         (error "use before assignment")]
       [(equal? var (nextvar closure-s))        (unbox (nextval closure-s))]
-      [else                            (m-lookup-var var (next-part-vars closure-s) closure state)])))
+      [else                            (m-lookup-var-nested var (next-part-vars closure-s) closure state)])))
 
 
 ;; takes a global variable and a state
@@ -527,14 +527,14 @@ just pass along and continue if have super class
 (define lookup-global-var
   (lambda (var closure-s closure state)
     (cond
-     [(and (empty-check closure-s) (not (null? (closure-super closure)))) (lookup-global-var var (m-lookup-class (car (closure-super closure)) state))]
-     [(empty-check closure-s)                    (error "use before declared")]
+     [(and (empty-check-vars closure-s) (not (null? (closure-super closure)))) (m-lookup-var var (m-lookup-class (car (closure-super closure)) state) state)]
+     [(empty-check-vars closure-s)                    (error "use before declared")]
      [(and (eq? var (global-nextvar closure-s)) (eq? "init" (unbox (global-nextval closure-s))))
                                       (error "use before assignment")]
      [(equal? var (global-nextvar closure-s)) (unbox (global-nextval closure-s))]
      [else                            (lookup-global-var var (global-nextpart-vars closure-s) closure state)])))
 
-(define empty-check
+(define empty-check-vars
   (lambda (closure-s)
     (if (or (or (null? closure-s) (null? (global closure-s))) (null? (global-vars closure-s)))
         #t
@@ -545,29 +545,34 @@ just pass along and continue if have super class
 ;; returns the function closure
 (define m-lookup-func
   (lambda (var closure s)
-    (m-lookup-func-nested var (closure-body closure) s)))
+    (m-lookup-func-nested var (closure-body closure) closure s)))
 
 
 (define m-lookup-func-nested
-  (lambda (func closure-s s)
+  (lambda (func closure-s closure state)
     (cond
       [(null?  closure-s)                      (error "function not found")]
-      [(null? (local  closure-s))              (lookup-global-func func  closure-s)]
-      [(null? (funcs  closure-s))              (m-lookup-func-nested func (nextlayer  closure-s) s)]
+      [(null? (local  closure-s))              (lookup-global-func func closure-s closure state)]
+      [(null? (funcs  closure-s))              (m-lookup-func-nested func (nextlayer  closure-s) closure state)]
       [(equal? func (nextfunc  closure-s))     (unbox (nextfunc-def  closure-s))]
-      [else                           (m-lookup-func-nested func (next-part-funcs  closure-s))])))
+      [else                           (m-lookup-func-nested func (next-part-funcs  closure-s) closure state)])))
 
 
 ;; takes a global function and a state
 ;; returns the function closure
 (define lookup-global-func
-  (lambda (func s)
+  (lambda (func closure-s closure state)
     (cond
-     [(or (or (null? s)(null? (global s))) (null? (global-funcs s)))
-                                        (error "function not found")]
-     [(equal? func (global-nextfunc s)) (unbox (global-nextfunc-def s))]
-     [else                              (lookup-global-func func (global-nextpart-funcs s))])))
+     [(and (empty-check-funcs closure-s)(not (null? (closure-super closure)))) (m-lookup-func func (m-lookup-class (car (closure-super closure)) state) state)]
+     [(empty-check-funcs closure-s)                                (error "function not found")]
+     [(equal? func (global-nextfunc closure-s)) (unbox (global-nextfunc-def closure-s))]
+     [else                              (lookup-global-func func (global-nextpart-funcs closure-s) closure state)])))
 
+(define empty-check-funcs
+  (lambda (closure-s)
+    (if (or (or (null? closure-s) (null? (global closure-s))) (null? (global-funcs closure-s)))
+        #t
+        #f)))
 
 ;; takes a variable, the value to be updated, and the state
 ;; returns the updated state
@@ -831,7 +836,7 @@ just pass along and continue if have super class
 (define m-lookup-super-class
   (lambda (class-name s)
     (cond
-      [(null? ( s)) (error "class does not exist")]
+      [(null? s) (error "class does not exist")]
       [(equal? class-name (next-class s)) (next-extends s)]
       [else (m-lookup-super-class class-name (next-part-classes s))])))
 
@@ -1021,16 +1026,16 @@ just pass along and continue if have super class
 ;;new state format
 (define a1 '((c1 c2 c3 c4) (close1 close2 close3 close4)))
 (define a2 (cons '(c1 c2 c3) (list (list c1-closure c2-closure c3-closure))))
-#|
-'((c1 c2 c3)
-  ((super-a
-    ((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2)))) (((q) (#&0)) ((f3 f4) (#&(dd) #&(qqq)))))
-    (((a) (#&2)) ((f5 f6) (#&(s5) #&(s6)))))
-   (super-b
-    (((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
-    (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))
-   (super-c ((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))) |#
 
+(define sss '((c1 (A) (((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2)))) (((q) (#&0)) ((f3 f4) (#&(dd) #&(qqq)))))
+    (((a) (#&2)) ((f5 f6) (#&(s5) #&(s6))))))
+   (c2 (c3)
+    ((((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
+    (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2))))))
+   (c3 () (((((x) (#&"init")) (() ())) ((() ()) (() ()))) (((s) (#&1)) ((g1) (#&ffdvfvlkj)))))))
+(define c2-c '(c2 (c3)
+    ((((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
+    (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))))
 ;#|
 (trace generate-closure)
 (trace m-global-var-dec)
