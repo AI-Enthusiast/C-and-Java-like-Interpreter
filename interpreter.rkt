@@ -403,7 +403,7 @@
 ;; Takes an expression and a state
 ;; Returns it as if it where in C/Java
 (define m-return
-  (lambda (exp s return finally)
+  (lambda (exp closure s return finally)
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
@@ -416,10 +416,10 @@
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
                                             (return (m-funcall (funcall-name exp) (func-params exp) return s))]
 
-      [(pair? exp)                          (return (m-value exp s))]
-      [(eq? (m-value exp s) #t)             (return 'true)]
-      [(eq? (m-value exp s) #f)             (return 'false)]
-      [else                                 (return (m-value exp s))])))
+      [(pair? exp)                          (return (m-value exp closure s))]
+      [(eq? (m-value exp closure s) #t)     (return 'true)]
+      [(eq? (m-value exp closure s) #f)     (return 'false)]
+      [else                                 (return (m-value exp closure s))])))
 
 ;; Takes an assinment and a state
 ;; Returns the updated state
