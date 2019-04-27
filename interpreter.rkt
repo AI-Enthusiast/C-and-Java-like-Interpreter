@@ -237,11 +237,12 @@
        (call/cc (lambda (k) (m-state (try-body exp) closure s return break continue k
                                      ;; CATCH STATEMENT
                                      (lambda (exception) (m-state (catch-body (second-body exp))
-                                                                  closure
+                                                                  
                                                                   ;; MODIFYING THE STATE
                                                                   (m-var-dec (list 'var (catch-var-name
                                                                                          (second-body exp))
-                                                                                   exception) (m-push closure))
+                                                                                   exception) (m-push closure) s)
+                                                                  s
                                                                   return break continue k catch finally))
                                      finally)))]
 
