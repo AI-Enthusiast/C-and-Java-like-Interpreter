@@ -291,7 +291,7 @@
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
-                                              (call/cc (lambda (k) (m-funcall (funcall-name exp) '() k s)))]
+                                              (call/cc (lambda (k) (m-funcall (funcall-name exp) '() k closure s)))]
 
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
