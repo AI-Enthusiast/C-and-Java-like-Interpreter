@@ -287,7 +287,7 @@
       [(eq? exp 'false)                       #f] ; false
 
       ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
-      [(and (pair? exp) (am-i-boolean exp))   (m-condition exp s)]
+      [(and (pair? exp) (am-i-boolean exp))   (m-condition exp closure s)]
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
@@ -330,46 +330,46 @@
 ;; Code a function that can take in an expression such as (< 5 2) and return true/false
 ;; Supports ==, !=, <, >, <=, >=, &&, ||, !
 (define m-condition
-  (lambda (exp s) ; exp = expression, s = state
+  (lambda (exp closure s) ; exp = expression, s = state
     (cond
       ; null checking
       [(null? exp)               (error 'undefined "undefined expression")]
-      [(not (pair? exp))         (m-value exp s)]
-      [(null? (operator exp))    (m-value exp s)]
+      [(not (pair? exp))         (m-value exp closure s)]
+      [(null? (operator exp))    (m-value exp closure s)]
 
       ; condition checking (&&, ||, !)
-      [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '&&)  (and (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '!)   (not (m-condition (left-operand exp) s))]
+      [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '&&)  (and (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '!)   (not (m-condition (left-operand exp) closure s))]
 
       ; equality/inequality operator checking (==, !=, <, >, <=, >=)
-      [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '!=)  (not (eq? (m-condition (left-operand exp) s)
-                                           (m-condition (right-operand exp) s)))]
-      [(eq? (operator exp) '<)   (<   (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '>)   (>   (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '<=)  (<=  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '>=)  (>=  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
+      [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '!=)  (not (eq? (m-condition (left-operand exp) closure s)
+                                           (m-condition (right-operand exp) closure s)))]
+      [(eq? (operator exp) '<)   (<   (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '>)   (>   (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '<=)  (<=  (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '>=)  (>=  (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
 
       ; oh no
       [else                      (m-value exp s)])))
 
 ;; Implementing if statement
 (define m-if-statement
-  (lambda (exp s return break continue try catch finally)
+  (lambda (exp closure s return break continue try catch finally)
     (cond
       ; invalid expression
       [(null? exp)                          (error 'undefined "undefined expression")]
 
       ; run the loop of the body
-      [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s
+      [(m-condition (loop-condition exp) closure s) (m-state (loop-body exp) closure s
                                                      return break continue try catch finally)]
 
       ; if there's no else statement, return the state
       [(null? (cdddr exp)) s]
 
       ; run the else of the body
-      [else                                 (m-state (else-statement exp) s
+      [else                                 (m-state (else-statement exp) closure s
                                                      return break continue try catch finally)])))
 
 ;; Implementing while loop
@@ -411,7 +411,7 @@
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
-      [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp s) s return finally))]
+      [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp closure s) closure s return finally))]
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
                                             (return (m-value (m-funcall (funcall-name exp) '() return s)))]
