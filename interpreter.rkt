@@ -66,7 +66,7 @@
 ;; Returns state (within closure) with new empty layer pushed on
 (define m-push
   (lambda (closure)
-    (list (closure-class-name closure) (closure-super closure) (list (cons new-layer (local closure)) (global closure)))))
+    (list (closure-class-name closure) (closure-super closure) (list (cons new-layer (local (closure-body closure))) (global (closure-body closure))))))
 
 ;; Works through the top layer of the code then
 (define m-base-layer
@@ -164,7 +164,7 @@
       [(eq? (statement-type-id exp) 'var)      (m-var-dec exp closure s)]
 
       ; is it an assignment
-      [(eq? (statement-type-id exp) '=)        (m-assign exp s)]
+      [(eq? (statement-type-id exp) '=)        (m-assign exp closure s)]
 
       ; is it a return statement
       [(eq? (statement-type-id exp) 'return)   (m-return (statement-body exp) closure s return finally)]
@@ -428,7 +428,7 @@
 ;; Takes an assinment and a state
 ;; Returns the updated state
 (define m-assign
-  (lambda (assign s)
+  (lambda (assign closure s)
     (if (not (locate-var (variable assign) s))
         (error "use before declaration")
         (m-update (variable assign) (m-value (expression assign) s) s))))
@@ -1045,7 +1045,6 @@ just pass along and continue if have super class
      (function add (g h) ((return (+ g h))))
      (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
-;(generate-closure test-class empty-closure empty-state)
 
 
 #|
@@ -1060,6 +1059,12 @@ just pass along and continue if have super class
 (trace m-state)
 (trace m-update)
 (trace m-value)
+(trace m-condition)
+(trace m-pop)
+(trace m-push)
+(trace m-assign)
+(trace m-lookup-class)
+(trace m-lookup-class-closure)
 (trace m-dot-value)
 (trace m-dot-func)
 |#
