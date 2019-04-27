@@ -438,11 +438,18 @@
       ; check variable not already declared
       [(local-locate (variable dec) (closure-body closure)) (error "redefining")]
       ; just need to add variable, not value
-      [(null? (assignment dec))        (m-add (variable dec) s)]
+      [(null? (assignment dec))         (m-add (variable dec) s)]
+      ; need to add a value, and that value is a class
+      [(eq? (is-new-instance dec) 'new) (m-instance-dec dec closure s)]
       ; need to add value as well
-      [else                            (m-update (variable dec)
+      [else                             (m-update (variable dec)
                                                  (m-value (expression dec) closure s)
                                                  (m-add (variable dec) closure s) s)])))
+
+; declares a variable that's an instance
+(define m-instance-dec
+  (lambda (dec closure s)
+    (m-update (variable dec) (m-lookup-class (instance-class-name dec) s) closure)))
 
 (define m-global-var-dec
   (lambda (dec closure s)
@@ -869,6 +876,8 @@ just pass along and continue if have super class
 
 ;for m-var-dec
 (define assignment cddr)
+(define is-new-instance caaddr)
+(define instance-class-name (lambda (v) (cadar (assignment v))))
 (define variable cadr)
 (define expression caddr)
 
