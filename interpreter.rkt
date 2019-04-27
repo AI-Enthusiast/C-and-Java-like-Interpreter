@@ -26,7 +26,7 @@
                                                                   (lambda (v) v) ;; try
                                                                   (lambda (v) v) ;; catch
                                                                   (lambda (v) v)))]
-       (m-funcall 'main no-params (lambda (v) v)
+       (m-funcall 'main no-params callcc
                   (m-lookup-class classmain s) s)))) ;; finally
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
@@ -150,7 +150,7 @@
       [(eq? (statement-type-id exp) 'break)    (break (m-pop closure))]
 
       ; is it a continue
-      [(eq? (statement-type-id exp) 'continue) (continue s)]
+      [(eq? (statement-type-id exp) 'continue) (continue closure)]
 
       ; is it a try/catch statement
       [(eq? (statement-type-id exp) 'try)      (call/cc (λ (k) (m-try-catch-finally exp closure s return break
@@ -177,8 +177,12 @@
 (define m-funcall
   ;; name is name of the function, actual = input parameters
   (lambda (name actual return closure s)
-    (if (list? name)
-        (m-dot-func (cadr name) (caddr name) actual closure s return)
+    (cond
+      ; is it a dot this funcall
+      [(and (list? name) (eq? (cadr name) 'this)) (m-funcall (caddr name) actual return closure s)]
+      ; is it a dot funcall
+      [(list? name) (m-dot-func (cadr name) (caddr name) actual closure s return)]
+      [else
         ;gets the body and the formal parameters of the function
         (let* [(all (m-lookup-func name closure s))
                (formal (func-formal-params all))
@@ -195,7 +199,7 @@
                        (lambda (v) v) ;; try
                        (lambda (v) v) ;; catch
                        (lambda (v) v)) ;; finally
-              (error 'undefined "Paramater mismatch"))))))
+              (error 'undefined "Paramater mismatch")))])))
 
 ;; Takes two lists (l1 actual values)  (l2 formal values)
 ;; Returns an updated state
@@ -282,6 +286,8 @@
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
       [(number? exp)                          exp] ; if it's a number, return that number
+      [(and (and (list? exp) (eq? (car exp) 'dot)) (eq? (cadr exp) 'this))
+                                              (lookup-global-var (caddr exp) (closure-body closure) closure s)]
       [(and (not (pair? exp)) (boolean? exp)) exp] ; if it's a boolean, return that boolean
 
       ; boolean checking
@@ -367,8 +373,8 @@
       [(m-condition (loop-condition exp) closure s) (m-state (loop-body exp) closure s
                                                      return break continue try catch finally)]
 
-      ; if there's no else statement, return the state
-      [(null? (cdddr exp)) s]
+      ; if there's no else statement, return the closure
+      [(null? (cdddr exp)) closure]
 
       ; run the else of the body
       [else                                 (m-state (else-statement exp) closure s
@@ -376,20 +382,23 @@
 
 ;; Implementing while loop
 (define m-while-loop
-  (lambda (exp s return break continue try catch finally)
+  (lambda (exp closure s return break continue try catch finally)
     (cond
       ; invalid expression
       [(null? exp)
        (error 'undefined "undefined expression")]
 
       ; runs the while loop (body is multiple statements)
-      [(m-condition (loop-condition exp) s)
-       (m-while-loop exp (call/cc (lambda (k) (m-state (loop-body exp) s
+      [(m-condition (loop-condition exp) closure s)
+       (m-while-loop exp
+                     ; CLOSURE: 
+                     (call/cc (lambda (k) (m-state (loop-body exp) closure s
                                                        return break k try catch finally)))
+                     s
                      return break continue try catch finally)]
 
       ; otherwise, returns initial state
-      [else s])))
+      [else closure])))
 
 ;; Determines if an expression is boolean
 (define am-i-boolean
@@ -431,7 +440,7 @@
 ;; Returns the updated state
 (define m-assign
   (lambda (assign closure s)
-    (if (not (locate-var (variable assign) (closure-body closure) closure s))
+    (if (and (not (list (variable assign))) (not (locate-var (variable assign) (closure-body closure) closure s)))
         (error "use before declaration")
         (m-update (variable assign) (m-value (expression assign) closure s) closure s))))
 
@@ -770,13 +779,18 @@ just pass along and continue if have super class
     (m-lookup-var name closure s)))
 
 ;; will return a value
+;; looking for a function
 (define m-dot-func
   (lambda (var-name func-name params closure s return)
     (m-funcall func-name params return (get-instance var-name closure s) s)))
 
+;; will return a value
+;; looking for a variable
 (define m-dot-value
   (lambda (instance variable closure s)
     (m-lookup-var variable (get-instance instance closure s) s)))
+
+
 ;new state format
 ;starting state is empty list
 ;(class with closure, class with closure, class with closure)
@@ -1061,7 +1075,7 @@ just pass along and continue if have super class
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
 
-
+#|
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1089,3 +1103,4 @@ just pass along and continue if have super class
 (trace m-what-type)
 (trace m-add)
 (trace m-add-nested)
+|#
