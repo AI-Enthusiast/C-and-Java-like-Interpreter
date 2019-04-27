@@ -122,12 +122,12 @@
       [(and (eq? (statement-type-id exp) 'funcall)
        (and (list? (funcall-name exp))
             (null? (func-params exp))))
-                   (m-dot (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) s))]
+                   (m-dot-func (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) s))]
 
       ;is it a function call w/dot
       [(and (eq? (statement-type-id exp) 'funcall)
             (list? (funcall-name exp)))
-                   (m-dot (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) s))]
+                   (m-dot-func (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) s))]
 
       ;is it a function call w/o parameters
       [(and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp)))
@@ -186,7 +186,7 @@
             ;(call/cc (lambda (k)
                        ;(m-pop
             (m-state body (lists-to-assign actual formal (m-push closure) s) s; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
-                                                                     ; We tried to fix it but it broke more things :( 
+                                                                     ; We tried to fix it but it broke more things :(
                  return
                  (lambda (v) v) ;; break
                  (lambda (v) v) ;; continue
@@ -287,7 +287,7 @@
       [(eq? exp 'false)                       #f] ; false
 
       ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
-      [(and (pair? exp) (am-i-boolean exp))   (m-condition exp s)]
+      [(and (pair? exp) (am-i-boolean exp))   (m-condition exp closure s)]
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
@@ -301,6 +301,9 @@
       ; variable checking
       [(not (pair? exp))                      (m-lookup-var exp s)]
 
+      ; is it looking up a variable in another function
+      [(and (pair? exp) (eq? (statement-type-id exp) 'dot)) (m-dot-value (dot-instance-name exp) (dot-variable-name exp) closure s)]
+;instance variable closure 
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
@@ -311,14 +314,15 @@
                                               (m-value (m-funcall (funcall-name exp) (func-params exp) (λ(v) v) s) s)]
 
 
+
       ;operators
-      [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
+      [(eq? (operator exp) '+) (+         (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
       [(and (eq? (operator exp) '-) (null? (right-operand-exists exp))) ; handle negitive numbers
-                               (* -1      (m-value (left-operand exp) s))]
-      [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-      [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-      [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-      [(eq? (operator exp) '%) (remainder (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
+                               (* -1      (m-value (left-operand exp) closure s))]
+      [(eq? (operator exp) '-) (-         (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
+      [(eq? (operator exp) '*) (*         (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
+      [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
+      [(eq? (operator exp) '%) (remainder (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
 
       ; oh no
       [else                    (error 'undefined "undefined expression")])))
@@ -326,46 +330,46 @@
 ;; Code a function that can take in an expression such as (< 5 2) and return true/false
 ;; Supports ==, !=, <, >, <=, >=, &&, ||, !
 (define m-condition
-  (lambda (exp s) ; exp = expression, s = state
+  (lambda (exp closure s) ; exp = expression, s = state
     (cond
       ; null checking
       [(null? exp)               (error 'undefined "undefined expression")]
-      [(not (pair? exp))         (m-value exp s)]
-      [(null? (operator exp))    (m-value exp s)]
+      [(not (pair? exp))         (m-value exp closure s)]
+      [(null? (operator exp))    (m-value exp closure s)]
 
       ; condition checking (&&, ||, !)
-      [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '&&)  (and (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '!)   (not (m-condition (left-operand exp) s))]
+      [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '&&)  (and (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '!)   (not (m-condition (left-operand exp) closure s))]
 
       ; equality/inequality operator checking (==, !=, <, >, <=, >=)
-      [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '!=)  (not (eq? (m-condition (left-operand exp) s)
-                                           (m-condition (right-operand exp) s)))]
-      [(eq? (operator exp) '<)   (<   (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '>)   (>   (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '<=)  (<=  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '>=)  (>=  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
+      [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '!=)  (not (eq? (m-condition (left-operand exp) closure s)
+                                           (m-condition (right-operand exp) closure s)))]
+      [(eq? (operator exp) '<)   (<   (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '>)   (>   (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '<=)  (<=  (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '>=)  (>=  (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
 
       ; oh no
       [else                      (m-value exp s)])))
 
 ;; Implementing if statement
 (define m-if-statement
-  (lambda (exp s return break continue try catch finally)
+  (lambda (exp closure s return break continue try catch finally)
     (cond
       ; invalid expression
       [(null? exp)                          (error 'undefined "undefined expression")]
 
       ; run the loop of the body
-      [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s
+      [(m-condition (loop-condition exp) closure s) (m-state (loop-body exp) closure s
                                                      return break continue try catch finally)]
 
       ; if there's no else statement, return the state
       [(null? (cdddr exp)) s]
 
       ; run the else of the body
-      [else                                 (m-state (else-statement exp) s
+      [else                                 (m-state (else-statement exp) closure s
                                                      return break continue try catch finally)])))
 
 ;; Implementing while loop
@@ -407,7 +411,7 @@
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
-      [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp s) s return finally))]
+      [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp closure s) closure s return finally))]
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
                                             (return (m-value (m-funcall (funcall-name exp) '() return s)))]
@@ -757,10 +761,13 @@ just pass along and continue if have super class
     (m-lookup-var name closure s)))
 
 ;; will return a value
-(define m-dot
+(define m-dot-func
   (lambda (var-name func-name params closure s return)
     (m-funcall func-name params return (get-instance var-name closure s) s)))
 
+(define m-dot-value
+  (lambda (instance variable closure s)
+    (m-lookup-var variable (get-instance instance closure s) s)))
 ;new state format
 ;starting state is empty list
 ;(class with closure, class with closure, class with closure)
@@ -855,12 +862,11 @@ just pass along and continue if have super class
 
 
 
-(define test-class '((var x 100)
-     (var y 10)
-     (function add (g h) ((return (+ g h))))
-     (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
-(define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
-;(generate-closure test-class empty-closure empty-state)
+
+
+
+
+
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
@@ -876,6 +882,8 @@ just pass along and continue if have super class
 (define operator car)
 (define right-operand caddr)
 (define right-operand-exists cddr)
+(define dot-instance-name cadr)
+(define dot-variable-name caddr)
 
 ;for m-var-dec
 (define assignment cddr)
@@ -981,6 +989,7 @@ just pass along and continue if have super class
 (define s-next-part-vars
   (lambda (s)
     (list (list (cdr (s-vars s)) (cdr (s-vals s))) (cadr s))))
+
 ;;top layer when dealing with just the local state
 (define top-layer car)
 
@@ -1030,7 +1039,16 @@ just pass along and continue if have super class
 (define c2-c '(c2 (c3)
     ((((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
     (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))))
-#|(trace generate-closure)
+
+(define test-class '((var x 100)
+     (var y 10)
+     (function add (g h) ((return (+ g h))))
+     (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
+(define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
+
+
+#|
+(trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
 (trace m-add-global-var)
@@ -1046,5 +1064,7 @@ just pass along and continue if have super class
 (trace m-push)
 (trace m-assign)
 (trace m-lookup-class)
-(trace m-lookup-class-closure)|#
-
+(trace m-lookup-class-closure)
+(trace m-dot-value)
+(trace m-dot-func)
+|#
