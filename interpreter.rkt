@@ -178,7 +178,7 @@
   ;; name is name of the function, actual = input parameters
   (lambda (name actual return closure s)
     (if (and (list? name) (eq? (car name) 'dot))
-        (m-dot-func (cadr name) (caddr name) actual return closure s)
+        (m-dot-func (cadr name) (caddr name) actual closure s  return)
         ;gets the body and the formal parameters of the function
         (let* [(all (m-lookup-func name closure s))
                (formal (func-formal-params all))
@@ -297,7 +297,7 @@
 
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                              (call/cc (lambda (k) (m-funcall (funcall-name exp) (func-params exp) k s)))]
+                                              (call/cc (lambda (k) (m-funcall (funcall-name exp) (func-params exp) k closure s)))]
 
 
       ; variable checking
@@ -416,7 +416,7 @@
       [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp closure s) closure s return finally))]
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
-                                            (return (m-value (m-funcall (funcall-name exp) '() return closure s)))]
+                                            (return (m-value (m-funcall (funcall-name exp) '() return closure s) closure s))]
 
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
@@ -433,7 +433,7 @@
   (lambda (assign closure s)
     (if (not (locate-var (variable assign) s))
         (error "use before declaration")
-        (m-update (variable assign) (m-value (expression assign) s) s))))
+        (m-update (variable assign) (m-value (expression assign) closure s) closure s))))
 
 
 ;; Takes a variable declaration and a state
