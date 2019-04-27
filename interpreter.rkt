@@ -177,8 +177,12 @@
 (define m-funcall
   ;; name is name of the function, actual = input parameters
   (lambda (name actual return closure s)
-    (if (list? name)
-        (m-dot-func (cadr name) (caddr name) actual closure s return)
+    (cond
+      ; is it a dot this funcall
+      [(and (list? name) (eq? (cadr name) 'this)) (m-funcall (caddr name) actual return closure s)]
+      ; is it a dot funcall
+      [(list? name) (m-dot-func (cadr name) (caddr name) actual closure s return)]
+      [else
         ;gets the body and the formal parameters of the function
         (let* [(all (m-lookup-func name closure s))
                (formal (func-formal-params all))
@@ -195,7 +199,7 @@
                        (lambda (v) v) ;; try
                        (lambda (v) v) ;; catch
                        (lambda (v) v)) ;; finally
-              (error 'undefined "Paramater mismatch"))))))
+              (error 'undefined "Paramater mismatch")))])))
 
 ;; Takes two lists (l1 actual values)  (l2 formal values)
 ;; Returns an updated state
@@ -282,6 +286,8 @@
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
       [(number? exp)                          exp] ; if it's a number, return that number
+      [(and (and (list? exp) (eq? (car exp) 'dot)) (eq? (cadr exp) 'this))
+                                              (lookup-global-var (caddr exp) (closure-body closure) closure s)]
       [(and (not (pair? exp)) (boolean? exp)) exp] ; if it's a boolean, return that boolean
 
       ; boolean checking
