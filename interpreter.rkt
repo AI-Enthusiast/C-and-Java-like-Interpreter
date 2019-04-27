@@ -431,7 +431,7 @@
 ;; Returns the updated state
 (define m-assign
   (lambda (assign closure s)
-    (if (not (locate-var (variable assign) s))
+    (if (not (locate-var (variable assign) (closure-body closure) closure s))
         (error "use before declaration")
         (m-update (variable assign) (m-value (expression assign) closure s) closure s))))
 
@@ -450,25 +450,25 @@
       ; need to add value as well
       [else                             (m-update (variable dec)
                                                  (m-value (expression dec) closure s)
-                                                 (m-add (variable dec) closure s))])))
+                                                 (m-add (variable dec) closure s) s)])))
 
 ; declares a variable that's an instance
 (define m-instance-dec
   (lambda (dec closure s)
-    (m-update (variable dec) (m-lookup-class (instance-class-name dec) s) (m-add-global-var (variable dec) closure s))))
+    (m-update (variable dec) (m-lookup-class (instance-class-name dec) s) (m-add-global-var (variable dec) closure s) s)))
 
 
 (define m-global-var-dec
   (lambda (dec closure s)
     (cond
       ; check variable not already declared
-      [(locate-global-var (variable dec) (closure-body closure))  (error "redefining")]
+      [(locate-global-var (variable dec) (closure-body closure) closure s)  (error "redefining")]
       ; just need to add variable, not value
       [(null? (assignment dec))              (m-add-global-var (variable dec) closure s)]
       ; need to add value as well
       [else                                  (m-update (variable dec)
                                                        (m-value (expression dec) closure s)
-                                                       (m-add-global-var (variable dec) closure s))])))
+                                                       (m-add-global-var (variable dec) closure s) s)])))
 
 
 #|
@@ -509,6 +509,8 @@ just pass along and continue if have super class
 ;; takes a variable and a state
 ;; returns the value or an error
 
+;;fix m-update
+;fix calls t m-update to add closure and state
 (define m-lookup-var
   (lambda (var closure s)
     (m-lookup-var-nested var (closure-body closure) closure s)))
@@ -580,17 +582,17 @@ just pass along and continue if have super class
 ;; takes a variable, the value to be updated, and the state
 ;; returns the updated state
 (define m-update
-  (lambda (var update-val closure)
-    (list (closure-class-name closure) (closure-super closure) (m-update-nested var update-val (closure-body closure)))))
+  (lambda (var update-val closure s)
+    (list (closure-class-name closure) (closure-super closure) (m-update-nested var update-val (closure-body closure) closure s))))
 
 
 (define m-update-nested
-  (lambda (var update-val s)
+  (lambda (var update-val closure-s closure s)
     (cond
-      [(null? s)                "error"]
-      [(not (locate-var var s)) "error"]
-      [(local-locate-var var s) (list (local-update var update-val (local s)) (global s))]
-      [else                     (list (local s) (global-update var update-val (global s)))])))
+      [(null? closure-s)                "error"]
+      [(not (locate-var var closure-s closure s)) "error"]
+      [(local-locate-var var closure-s) (list (local-update var update-val (local closure-s)) (global closure-s))]
+      [else                     (list (local closure-s) (global-update var update-val (global closure-s)))])))
 
 ;; takes a variable, the value to be updated, and the local layer of the state
 ;; returns the updated local layer
@@ -706,24 +708,24 @@ just pass along and continue if have super class
 ;; returns #t if the var is found in the state, #f otherwise
 ;; Takes the variable it is locating and a state
 (define locate-var
-  (lambda (var s)
+  (lambda (var closure-s closure state)
     (cond
-      [(null? s)             #f]
-      [(eq? (local s) '())   (locate-global-var var s)]
-      [(null? (vars s))      (locate-var var (nextlayer s))]
-      [(eq? var (nextvar s)) #t]
-      [else                  (locate-var var (next-part-vars s))])))
+      [(null? closure-s)             #f]
+      [(eq? (local closure-s) '())   (locate-global-var var closure-s closure state)]
+      [(null? (vars closure-s))      (locate-var var (nextlayer closure-s) closure state)]
+      [(eq? var (nextvar closure-s)) #t]
+      [else                  (locate-var var (next-part-vars closure-s) closure state)])))
 
 
 ;; returns #t if the given variable exists in the global layer
 (define locate-global-var
-  (lambda (var s)
+  (lambda (var closure-s closure state)
     (cond
-      [(null? s)                    #f]
-      [(null? (global s))           #f]
-      [(null? (global-vars s))      #f]
-      [(eq? var (global-nextvar s)) #t]
-      [else                         (locate-global-var var (global-nextpart-vars s))])))
+      [(and (empty-check-vars closure-s) (not (null? (closure-super closure))))
+       (locate-var var (closure-body (m-lookup-class (car (closure-super closure)) state)) (m-lookup-class (car (closure-super closure)) state) state)]
+      [(empty-check-vars closure-s)         #f]
+      [(eq? var (global-nextvar closure-s)) #t]
+      [else                         (locate-global-var var (global-nextpart-vars closure-s) closure state)])))
 
 
 ;; returns #t if the given variable exists in the local layer
