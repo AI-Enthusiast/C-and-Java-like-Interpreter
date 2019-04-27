@@ -51,9 +51,9 @@
                                                                        closure (m-push s) return k continue
                                                                        try catch finally)))]
       ; else: process one statement at a time
-      [else                                (m-state (rest-of-body exp) closure
-                                                    (m-what-type (first-statement exp) s return break
-                                                                 continue try catch finally)
+      [else                                (m-state (rest-of-body exp)
+                                                    (m-what-type (first-statement exp) closure s return break
+                                                                 continue try catch finally) s
                                                     return break continue try catch finally)])))
 ;; takes a closure
 ;; Returns state (within closure) with most recent layer popped off
@@ -161,7 +161,7 @@
       [(eq? (statement-type-id exp) 'throw)    (try (m-pop (catch (statement-body exp))))]
 
       ; is it a declaration
-      [(eq? (statement-type-id exp) 'var)      (m-var-dec exp s)]
+      [(eq? (statement-type-id exp) 'var)      (m-var-dec exp closure s)]
 
       ; is it an assignment
       [(eq? (statement-type-id exp) '=)        (m-assign exp s)]
@@ -185,7 +185,7 @@
             ;runs the body
             ;(call/cc (lambda (k)
                        ;(m-pop
-            (m-state body (lists-to-assign actual formal closure (m-push s)) ; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
+            (m-state body (lists-to-assign actual formal (m-push closure)) s ; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
                                                                      ; We tried to fix it but it broke more things :(
                  return
                  (lambda (v) v) ;; break
@@ -441,7 +441,7 @@
       [(null? (assignment dec))        (m-add (variable dec) s)]
       ; need to add value as well
       [else                            (m-update (variable dec)
-                                                 (m-value (expression closure dec) s)
+                                                 (m-value (expression dec) closure s)
                                                  (m-add (variable dec) closure s) s)])))
 
 (define m-global-var-dec
@@ -497,34 +497,38 @@ just pass along and continue if have super class
 
 (define m-lookup-var
   (lambda (var closure s)
-    [(m-lookup-var-nested var (closure-body closure))]))
+    [(m-lookup-var-nested var (closure-body closure) closure s)]))
 
 
 (define m-lookup-var-nested
-  (lambda (var s)
+  (lambda (var closure-s closure state)
     (cond
-      [(null? s)                       (error "use before declared")]
-      [(null? (local s))               (lookup-global-var var s)]
-      [(null? (vars s))                (m-lookup-var var (nextlayer s))]
-      [(and (equal? var (nextvar s)) (eq? "init" (unbox (nextval s))))
+      [(null? closure-s)                       (error "use before declared")]
+      [(null? (local closure-s))               (lookup-global-var var closure-s closure state)]
+      [(null? (vars closure-s))                (m-lookup-var var (nextlayer closure-s) closure state)]
+      [(and (equal? var (nextvar closure-s)) (eq? "init" (unbox (nextval closure-s))))
         (error "use before assignment")]
-      [(equal? var (nextvar s))        (unbox (nextval s))]
-      [else                            (m-lookup-var var (next-part-vars s))])))
+      [(equal? var (nextvar closure-s))        (unbox (nextval closure-s))]
+      [else                            (m-lookup-var var (next-part-vars closure-s) closure state)])))
 
 
 ;; takes a global variable and a state
 ;; returns the value or an error
 (define lookup-global-var
-  (lambda (var s)
+  (lambda (var closure-s closure state)
     (cond
-     [(null? s)                       (error "use before declared")]
-     [(null? (global s))              (error "use before declared")]
-     [(null? (global-vars s))         (error "use before declared")]
-     [(and (eq? var (global-nextvar s)) (eq? "init" (unbox (global-nextval s))))
+     [(and (empty-check closure-s) (not (null? (closure-super closure)))) (lookup-global-var var (m-lookup-class (car (closure-super closure)) state))]
+     [(empty-check closure-s)                    (error "use before declared")]
+     [(and (eq? var (global-nextvar closure-s)) (eq? "init" (unbox (global-nextval closure-s))))
                                       (error "use before assignment")]
-     [(equal? var (global-nextvar s)) (unbox (global-nextval s))]
-     [else                            (lookup-global-var var (global-nextpart-vars s))])))
+     [(equal? var (global-nextvar closure-s)) (unbox (global-nextval closure-s))]
+     [else                            (lookup-global-var var (global-nextpart-vars closure-s) closure state)])))
 
+(define empty-check
+  (lambda (closure-s)
+    (if (or (or (null? closure-s) (null? (global closure-s))) (null? (global-vars closure-s)))
+        #t
+        #f)))
 
 
 ;; takes a function and a state
@@ -782,7 +786,8 @@ just pass along and continue if have super class
 (define s-test '((A (B) (stateA))(B (C) (stateB))(C () (stateC))))
 (define noI '((C () (stateC))))
 (define yesI '((A (B) (stateC))))
-(define simplebody '(A (extends B) (stateC)))
+(define simplebody '(A (B) (stateC)))
+(define simpleemptybody '(A () (stateC)))
 
 ;returns the class closure for the given class name
 (define m-lookup-class-closure
@@ -1019,6 +1024,10 @@ just pass along and continue if have super class
 (trace m-update)
 (trace m-add-global-var)
 (trace m-update-nested)
+(trace m-lookup-func)
+(trace m-lookup-func-nested)
+(trace m-var-dec)
+(trace m-state)
+(trace m-update)
+(trace m-value)
 |#
-
-; (run "Tests/Test1.txt" "A")
