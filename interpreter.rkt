@@ -209,16 +209,16 @@
     (if (null? l1)
             closure
             (if (and (not (number? (car l1))) (> (num-in-list l1 0) 1))
-                    (lists-to-assign (list-from-state l1 closure) l2 closure s) ;if l1 null assign this to closure
+                    (lists-to-assign (list-from-state l1 closure s) l2 closure s) ;if l1 null assign this to closure
                     (lists-to-assign (cdr l1) (cdr l2)
                                      (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) closure s) s)))))
 
 (define list-from-state
-  (lambda (lis s)
+  (lambda (lis closure s)
     (cond
       [(null? lis) '()]
-      [(not (number? (car lis))) (cons (m-lookup-var (car lis) s) (list-from-state (cdr lis) s))]
-      [else (cons (car lis) (list-from-state (cdr lis) s))])))
+      [(not (number? (car lis))) (cons (m-lookup-var (car lis) closure s) (list-from-state (cdr lis) closure s))]
+      [else (cons (car lis) (list-from-state (cdr lis) closure s))])))
 
 
 ;; Sums the number of attoms in a list
