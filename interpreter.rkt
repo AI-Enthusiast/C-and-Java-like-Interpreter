@@ -462,7 +462,7 @@
   (lambda (dec closure s)
     (cond
       ; check variable not already declared
-      [(locate-global-var (variable dec) (closure-body closure) closure s)  (error "redefining")]
+      [(locate-global-var-simple (variable dec) (closure-body closure))  (error "redefining")]
       ; just need to add variable, not value
       [(null? (assignment dec))              (m-add-global-var (variable dec) closure s)]
       ; need to add value as well
@@ -727,7 +727,12 @@ just pass along and continue if have super class
       [(eq? var (global-nextvar closure-s)) #t]
       [else                         (locate-global-var var (global-nextpart-vars closure-s) closure state)])))
 
-
+(define locate-global-var-simple
+  (lambda (var closure-s)
+    (cond
+      [(empty-check-vars closure-s)         #f]
+      [(eq? var (global-nextvar closure-s)) #t]
+      [else                         (locate-global-var-simple var (global-nextpart-vars closure-s))])))
 ;; returns #t if the given variable exists in the local layer
 (define local-locate-var
    (lambda (var s)
