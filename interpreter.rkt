@@ -316,13 +316,13 @@
 
 
       ;operators
-      [(eq? (operator exp) '+) (+         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
+      [(eq? (operator exp) '+) (+         (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
       [(and (eq? (operator exp) '-) (null? (right-operand-exists exp))) ; handle negitive numbers
-                               (* -1      (m-value (left-operand exp) s))]
-      [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-      [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-      [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-      [(eq? (operator exp) '%) (remainder (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
+                               (* -1      (m-value (left-operand exp) closure s))]
+      [(eq? (operator exp) '-) (-         (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
+      [(eq? (operator exp) '*) (*         (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
+      [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
+      [(eq? (operator exp) '%) (remainder (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
 
       ; oh no
       [else                    (error 'undefined "undefined expression")])))
