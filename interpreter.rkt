@@ -135,7 +135,7 @@
 
       ;is it a function call
       [(eq? (statement-type-id exp) 'funcall)
-                                               (m-funcall (funcall-name exp) (func-params exp) (lambda (v) s) s)]
+                                               (m-funcall (funcall-name exp) (func-params exp) (lambda (v) s) closure s)]
 
       ; is it a new block
       [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push closure) s
@@ -250,6 +250,7 @@
       [(and (eq? (third-identifier exp) 'finally) (not (pair? (catch-statement exp))))
        (m-state (third-body exp) (m-state (try-body exp) closure s return break continue
                                           (lambda (v) s) (lambda (v) s) finally)
+                s
                 return break continue try catch finally)]
 
 
@@ -269,6 +270,7 @@
                                                                                   exception) (m-push closure) s)
                                                                            return k continue
                                                                            try catch finally)) finally)))
+                s
                 return break continue try catch finally)]
       [else
        (error 'undefined "try statement missing catch or finally")])))
@@ -355,7 +357,7 @@
       [(eq? (operator exp) '>=)  (>=  (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
 
       ; oh no
-      [else                      (m-value exp s)])))
+      [else                      (m-value exp closure s)])))
 
 ;; Implementing if statement
 (define m-if-statement

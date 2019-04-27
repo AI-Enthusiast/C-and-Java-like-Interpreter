@@ -8,6 +8,10 @@ class A {
     } 
     catch(a) {
       x = a + x;
+      
+    }
+    finally {
+      x = x + 50;
     }
     return x;
   }
