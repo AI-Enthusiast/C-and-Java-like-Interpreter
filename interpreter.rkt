@@ -633,7 +633,7 @@ just pass along and continue if have super class
 ;; (does not take value, to update value, use m-update)
 (define m-add
   (lambda (var closure s)
-    [(list (closure-class-name closure) (closure-super closure) (m-add-nested var (closure-body closure)))]))
+    (list (closure-class-name closure) (closure-super closure) (m-add-nested var (closure-body closure)))))
 
 (define m-add-nested
   (lambda (var s)
