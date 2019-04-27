@@ -51,9 +51,9 @@
                                                                        closure (m-push s) return k continue
                                                                        try catch finally)))]
       ; else: process one statement at a time
-      [else                                (m-state (rest-of-body exp)
+      [else                                (m-state (rest-of-body exp) closure
                                                     (m-what-type (first-statement exp) closure s return break
-                                                                 continue try catch finally) s
+                                                                 continue try catch finally)
                                                     return break continue try catch finally)])))
 ;; takes a closure
 ;; Returns state (within closure) with most recent layer popped off
@@ -90,11 +90,11 @@
                                                                                     (list (func-body exp)))) closure)]
 
       ; is it a declaration
-      [(eq? (statement-type-id exp) 'var)       (m-var-dec exp s)]
+      [(eq? (statement-type-id exp) 'var)       (m-var-dec exp closure s)]
 
       ; otherwise, process the first statement, and then the rest of it
       ; (the program shouldn't actually reach this point, because all things in the
-      ; main base level of the program will be either functions or variable declarations. 
+      ; main base level of the program will be either functions or variable declarations.
       [else                                     (m-base-layer (rest-of-body exp) closure
                                                          (m-base-layer (first-statement exp) closure s return break
                                                                        continue try catch finally)
@@ -111,7 +111,7 @@
 
       ;is  it a function
       [(eq? (statement-type-id exp) 'function) (m-add-local-func (full-func exp)
-                                                                  ; function closure 
+                                                                  ; function closure
                                                                   (list (append (list (func-name exp))
                                                                               (list (func-body exp))))
                                                                   ; class closure
@@ -132,7 +132,7 @@
       ;is it a function call w/o parameters
       [(and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp)))
                                                (m-funcall (funcall-name exp) no-params (lambda (v) s) s)]
-      
+
       ;is it a function call
       [(eq? (statement-type-id exp) 'funcall)
                                                (m-funcall (funcall-name exp) (func-params exp) (lambda (v) s) s)]
@@ -175,7 +175,7 @@
 
 ;; m-funcall returns a number
 (define m-funcall
-  ;; name is name of the function, actual = input parameters 
+  ;; name is name of the function, actual = input parameters
   (lambda (name actual return closure s)
     ;gets the body and the formal parameters of the function
     (let* [(all (m-lookup-func name closure s))
@@ -185,7 +185,7 @@
             ;runs the body
             ;(call/cc (lambda (k)
                        ;(m-pop
-            (m-state body (lists-to-assign actual formal (m-push closure)) s ; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
+            (m-state body (lists-to-assign actual formal (m-push closure) s) s; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
                                                                      ; We tried to fix it but it broke more things :( 
                  return
                  (lambda (v) v) ;; break
@@ -199,13 +199,13 @@
 ;; Returns an updated state
 ;; eg: (lists-to-assign '(1 2 3) '(a b c) s)
 (define lists-to-assign
-  (lambda (l1 l2 s)
+  (lambda (l1 l2 closure s)
     (if (null? l1)
-            s
+            (m-var-dec (cons 'var (cons 'this (list closure))) closure s)
             (if (and (not (number? (car l1))) (> (num-in-list l1 0) 1))
-                    (lists-to-assign (list-from-state l1 s) l2 s)
+                    (lists-to-assign (list-from-state l1 closure) l2 closure) ;if l1 null assign this to closure
                     (lists-to-assign (cdr l1) (cdr l2)
-                                     (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) s))))))
+                                     (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) closure s))))))
 
 (define list-from-state
   (lambda (lis s)
@@ -403,7 +403,7 @@
 ;; Takes an expression and a state
 ;; Returns it as if it where in C/Java
 (define m-return
-  (lambda (exp s return finally)
+  (lambda (exp closure s return finally)
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
@@ -416,10 +416,10 @@
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
                                             (return (m-funcall (funcall-name exp) (func-params exp) return s))]
 
-      [(pair? exp)                          (return (m-value exp s))]
-      [(eq? (m-value exp s) #t)             (return 'true)]
-      [(eq? (m-value exp s) #f)             (return 'false)]
-      [else                                 (return (m-value exp s))])))
+      [(pair? exp)                          (return (m-value exp closure s))]
+      [(eq? (m-value exp closure s) #t)     (return 'true)]
+      [(eq? (m-value exp closure s) #f)     (return 'false)]
+      [else                                 (return (m-value exp closure s))])))
 
 ;; Takes an assinment and a state
 ;; Returns the updated state
@@ -439,10 +439,17 @@
       [(local-locate (variable dec) (closure-body closure)) (error "redefining")]
       ; just need to add variable, not value
       [(null? (assignment dec))        (m-add (variable dec) closure s)]
+      ; need to add a value, and that value is a class
+      [(eq? (is-new-instance dec) 'new) (m-instance-dec dec closure s)]
       ; need to add value as well
-      [else                            (m-update (variable dec)
+      [else                             (m-update (variable dec)
                                                  (m-value (expression dec) closure s)
                                                  (m-add (variable dec) closure s) s)])))
+
+; declares a variable that's an instance
+(define m-instance-dec
+  (lambda (dec closure s)
+    (m-update (variable dec) (m-lookup-class (instance-class-name dec) s) closure)))
 
 (define m-global-var-dec
   (lambda (dec closure s)
@@ -529,7 +536,7 @@ just pass along and continue if have super class
     (if (or (or (null? closure-s) (null? (global closure-s))) (null? (global-vars closure-s)))
         #t
         #f)))
-        
+
 
 ;; takes a function and a state
 ;; returns the function closure
@@ -633,8 +640,8 @@ just pass along and continue if have super class
 (define m-add-local-func
   (lambda (func func-closure class-closure s)
     (list (closure-class-name class-closure) (closure-super class-closure) (m-add-local-func-nested func func-closure class-closure s))))
-  
-  
+
+
 
 (define m-add-local-func-nested
   (lambda (func func-closure class-closure s)
@@ -744,7 +751,7 @@ just pass along and continue if have super class
       [(eq? func (global-nextfunc s)) #t]
       [else                           (locate-global-func func (global-nextpart-funcs s))])))
 
-;; will return the instance's closure 
+;; will return the instance's closure
 (define get-instance
   (lambda (name closure s)
     (m-lookup-var name closure s)))
@@ -752,8 +759,7 @@ just pass along and continue if have super class
 ;; will return a value
 (define m-dot
   (lambda (var-name func-name params closure s return)
-    (m-funcall func-name params return (get-instance var-name closure s) s))) 
-     
+    (m-funcall func-name params return (get-instance var-name closure s) s)))
 
 ;new state format
 ;starting state is empty list
@@ -819,7 +825,7 @@ just pass along and continue if have super class
 (define m-new-closure
   (lambda (class-name class-super closure)
     (list (class-name class-super closure))))
-  
+
 ;takes a state and class name and returns the class the class extends
 (define m-lookup-super-class
   (lambda (class-name s)
@@ -846,7 +852,7 @@ just pass along and continue if have super class
       [(equal? 'static-function (first (next body)))
        (generate-closure (cdr body) (m-add-global-func  (full-func (next body)) (list (append (list (func-name (next body)))(list (func-body (next body))))) closure) s)]
       [else (generate-closure (cdr body) closure s)])))
-     
+
 
 
 (define test-class '((var x 100)
@@ -855,7 +861,6 @@ just pass along and continue if have super class
      (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 ;(generate-closure test-class empty-closure empty-state)
-
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
@@ -874,6 +879,8 @@ just pass along and continue if have super class
 
 ;for m-var-dec
 (define assignment cddr)
+(define is-new-instance caaddr)
+(define instance-class-name (lambda (v) (cadar (assignment v))))
 (define variable cadr)
 (define expression caddr)
 
@@ -989,7 +996,7 @@ just pass along and continue if have super class
 (define first-statement car)
 (define rest-of-body cdr)
 
- ;;FOR TESTING PURPOSES!!!: 
+ ;;FOR TESTING PURPOSES!!!:
 (define a-global '(((a b) (1 2))((f1 f2)((stuff1) (stuff2)))))
 (define a-local '((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6))))))
 (define a  '(((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6)))))(((a b) (1 2))((f1 f2)((stuff1) (stuff2))))))
@@ -1002,11 +1009,11 @@ just pass along and continue if have super class
 (define p '(((a b) (#&1 #&2)) ((f1 f2) (#&(s1) #&5(s2)))))
 ;;(define z '((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq)))) (((a f)(#&2 #&1))((f8 f9)(#&(yyd) #&(uuu)))))) ;local test
 (define qqq  '(((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
-(define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ())))) 
+(define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
 
 (define c1-closure (cons '(super-a) e))
 (define c2-closure (cons '(super-b) q))
-(define c3-closure (cons '(super-c) qqq)) 
+(define c3-closure (cons '(super-c) qqq))
 ;;'(q
  ;; ((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2)))) (((q) (#&0)) ((f3 f4) (#&(dd) #&(qqq)))))
  ;; (((a) (#&2)) ((f5 f6) (#&(s5) #&(s6)))))

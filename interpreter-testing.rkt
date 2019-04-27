@@ -141,19 +141,26 @@
   (newline))
 (define (test-p4-test-scripts)
   (display "Test P4 test scripts") (newline)
-  (display "Test 1:  ") (pass? (run "Tests/p4.Test1.txt") 15)                                                         ; 1/
-  (display "Test 2:  ") (pass? (run "Tests/p4.Test2.txt") 12)                                                         ; 2/
-  (display "Test 3:  ") (pass? (run "Tests/p4.Test3.txt") 125)
-  (display "Test 4:  ") (pass? (run "Tests/p4.Test4.txt") 36)
-  (display "Test 5:  ") (pass? (run "Tests/p4.Test5.txt") 54)
-  (display "Test 6:  ") (pass? (run "Tests/p4.Test6.txt") 110)
-  (display "Test 7:  ") (pass? (run "Tests/p4.Test7.txt") 26)
-  (display "Test 8:  ") (pass? (run "Tests/p4.Test8.txt") 117)
-  (display "Test 9:  ") (pass? (run "Tests/p4.Test9.txt") 32)
-  (display "Test 10: ") (pass? (run "Tests/p4.Test10.txt") 15)
-  (display "Test 11: ") (pass? (run "Tests/p4.Test11.txt") 123456)
-  (display "Test 12: ") (pass? (run "Tests/p4.Test12.txt") 5285) 
-  (display "Test 13: ") (pass? (run "Tests/p4.Test13.txt") -716)
+  (display "Test 1:  ") (pass? (run "Tests/p4.Test1.txt" "A") 15)                                                         ; 1/
+  (display "Test 2:  ") (pass? (run "Tests/p4.Test2.txt" "A") 12)                                                         ; 2/
+  (display "Test 3:  ") (pass? (run "Tests/p4.Test3.txt" "A") 125)
+  (display "Test 4:  ") (pass? (run "Tests/p4.Test4.txt" "A") 36)
+  (display "Test 5:  ") (pass? (run "Tests/p4.Test5.txt" "A") 54)
+  (display "Test 6:  ") (pass? (run "Tests/p4.Test6.txt" "A") 110)
+  (display "Test 7:  ") (pass? (run "Tests/p4.Test7.txt" "C") 26)
+  (display "Test 8:  ") (pass? (run "Tests/p4.Test8.txt" "Square") 117)
+  (display "Test 9:  ") (pass? (run "Tests/p4.Test9.txt" "Square") 32)
+  (display "Test 10: ") (pass? (run "Tests/p4.Test10.txt" "List") 15)
+  (display "Test 11: ") (pass? (run "Tests/p4.Test11.txt" "List") 123456)
+  (display "Test 12: ") (pass? (run "Tests/p4.Test12.txt" "List") 5285) 
+  (display "Test 13: ") (pass? (run "Tests/p4.Test13.txt" "C") -716)
 
   (newline)) ; left hanging for easy test addition
+
+(define (test-p4-custom-test-scripts)
+  (display "Test P4 custom test scripts") (newline)
+  (display "Test 1:  ") (pass? (run "Tests/Test1.txt" "A") 5)
+  (display "Test 2:  ") (pass? (run "Tests/Test1.txt" "A") 5)
+
+  (newline))
 
