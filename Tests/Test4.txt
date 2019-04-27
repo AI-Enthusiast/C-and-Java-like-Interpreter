@@ -1,9 +1,11 @@
 class A {
   static function main() {
-    if(2 < 3) {
+    var x = 2;
+    while (x < 5) {
+      x = x + 1;
       continue;
-      return 50;
+      x = x + 500;
     }
-    return 2;
+    return x;
   }
 }

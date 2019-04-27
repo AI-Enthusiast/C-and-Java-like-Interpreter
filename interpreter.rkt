@@ -150,7 +150,7 @@
       [(eq? (statement-type-id exp) 'break)    (break (m-pop closure))]
 
       ; is it a continue
-      [(eq? (statement-type-id exp) 'continue) (continue s)]
+      [(eq? (statement-type-id exp) 'continue) (continue closure)]
 
       ; is it a try/catch statement
       [(eq? (statement-type-id exp) 'try)      (call/cc (λ (k) (m-try-catch-finally exp closure s return break
