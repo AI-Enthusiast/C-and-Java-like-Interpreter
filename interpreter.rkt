@@ -51,9 +51,9 @@
                                                                        closure (m-push s) return k continue
                                                                        try catch finally)))]
       ; else: process one statement at a time
-      [else                                (m-state (rest-of-body exp)
+      [else                                (m-state (rest-of-body exp) closure
                                                     (m-what-type (first-statement exp) closure s return break
-                                                                 continue try catch finally) s
+                                                                 continue try catch finally)
                                                     return break continue try catch finally)])))
 ;; takes a closure
 ;; Returns state (within closure) with most recent layer popped off
@@ -90,7 +90,7 @@
                                                                                     (list (func-body exp)))) closure)]
 
       ; is it a declaration
-      [(eq? (statement-type-id exp) 'var)       (m-var-dec exp s)]
+      [(eq? (statement-type-id exp) 'var)       (m-var-dec exp closure s)]
 
       ; otherwise, process the first statement, and then the rest of it
       ; (the program shouldn't actually reach this point, because all things in the
@@ -185,8 +185,8 @@
             ;runs the body
             ;(call/cc (lambda (k)
                        ;(m-pop
-            (m-state body (lists-to-assign actual formal (m-push closure)) s ; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
-                                                                     ; We tried to fix it but it broke more things :(
+            (m-state body (lists-to-assign actual formal (m-push closure) s) s; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
+                                                                     ; We tried to fix it but it broke more things :( 
                  return
                  (lambda (v) v) ;; break
                  (lambda (v) v) ;; continue
@@ -199,13 +199,13 @@
 ;; Returns an updated state
 ;; eg: (lists-to-assign '(1 2 3) '(a b c) s)
 (define lists-to-assign
-  (lambda (l1 l2 s)
+  (lambda (l1 l2 closure s)
     (if (null? l1)
-            s
+            (m-var-dec (cons 'var (cons 'this (list closure))) closure s)
             (if (and (not (number? (car l1))) (> (num-in-list l1 0) 1))
-                    (lists-to-assign (list-from-state l1 s) l2 s)
+                    (lists-to-assign (list-from-state l1 closure) l2 closure) ;if l1 null assign this to closure
                     (lists-to-assign (cdr l1) (cdr l2)
-                                     (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) s))))))
+                                     (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) closure s))))))
 
 (define list-from-state
   (lambda (lis s)
@@ -756,7 +756,6 @@ just pass along and continue if have super class
   (lambda (var-name func-name params closure s return)
     (m-funcall func-name params return (get-instance var-name closure s) s)))
 
-
 ;new state format
 ;starting state is empty list
 ;(class with closure, class with closure, class with closure)
@@ -857,7 +856,6 @@ just pass along and continue if have super class
      (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 ;(generate-closure test-class empty-closure empty-state)
-
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
