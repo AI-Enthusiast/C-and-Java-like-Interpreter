@@ -768,13 +768,18 @@ just pass along and continue if have super class
     (m-lookup-var name closure s)))
 
 ;; will return a value
+;; looking for a function
 (define m-dot-func
   (lambda (var-name func-name params closure s return)
     (m-funcall func-name params return (get-instance var-name closure s) s)))
 
+;; will return a value
+;; looking for a variable
 (define m-dot-value
   (lambda (instance variable closure s)
     (m-lookup-var variable (get-instance instance closure s) s)))
+
+
 ;new state format
 ;starting state is empty list
 ;(class with closure, class with closure, class with closure)
