@@ -207,7 +207,7 @@
             (if (and (not (number? (car l1))) (> (num-in-list l1 0) 1))
                     (lists-to-assign (list-from-state l1 closure) l2 closure s) ;if l1 null assign this to closure
                     (lists-to-assign (cdr l1) (cdr l2)
-                                     (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) closure s))))))
+                                     (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) closure s) s)))))
 
 (define list-from-state
   (lambda (lis s)
@@ -633,7 +633,7 @@ just pass along and continue if have super class
 ;; (does not take value, to update value, use m-update)
 (define m-add
   (lambda (var closure s)
-    [(list (closure-class-name closure) (closure-super closure) (m-add-nested var (closure-body closure)))]))
+    (list (closure-class-name closure) (closure-super closure) (m-add-nested var (closure-body closure)))))
 
 (define m-add-nested
   (lambda (var s)
@@ -1054,7 +1054,7 @@ just pass along and continue if have super class
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
 
-#|
+
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1080,5 +1080,5 @@ just pass along and continue if have super class
 (trace m-funcall)
 (trace run)
 (trace m-what-type)
-
-|#
+(trace m-add)
+(trace m-add-nested)
