@@ -434,7 +434,7 @@
 ;; Returns the updated state
 (define m-assign
   (lambda (assign closure s)
-    (if (not (locate-var (variable assign) (closure-body closure) closure s))
+    (if (and (not (list (variable assign))) (not (locate-var (variable assign) (closure-body closure) closure s)))
         (error "use before declaration")
         (m-update (variable assign) (m-value (expression assign) closure s) closure s))))
 
