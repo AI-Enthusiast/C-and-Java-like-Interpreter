@@ -122,12 +122,12 @@
       [(and (eq? (statement-type-id exp) 'funcall)
        (and (list? (funcall-name exp))
             (null? (func-params exp))))
-                   (m-dot (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) s))]
+                   (m-dot-func (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) s))]
 
       ;is it a function call w/dot
       [(and (eq? (statement-type-id exp) 'funcall)
             (list? (funcall-name exp)))
-                   (m-dot (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) s))]
+                   (m-dot-func (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) s))]
 
       ;is it a function call w/o parameters
       [(and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp)))
@@ -301,6 +301,8 @@
       ; variable checking
       [(not (pair? exp))                      (m-lookup-var exp s)]
 
+      ; is it looking up a variable in another function
+
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
@@ -309,6 +311,7 @@
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
                                               (m-value (m-funcall (funcall-name exp) (func-params exp) (λ(v) v) s) s)]
+
 
 
       ;operators
@@ -752,10 +755,13 @@ just pass along and continue if have super class
     (m-lookup-var name closure s)))
 
 ;; will return a value
-(define m-dot
+(define m-dot-func
   (lambda (var-name func-name params closure s return)
     (m-funcall func-name params return (get-instance var-name closure s) s)))
 
+(define m-dot-value
+  (lambda (instance variable closure s)
+    (m-lookup-var variable (get-instance instance closure s) s)))
 ;new state format
 ;starting state is empty list
 ;(class with closure, class with closure, class with closure)
@@ -1025,7 +1031,7 @@ just pass along and continue if have super class
     (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))
    (super-c ((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))) |#
 
-#|
+;#|
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1037,4 +1043,4 @@ just pass along and continue if have super class
 (trace m-state)
 (trace m-update)
 (trace m-value)
-|#
+;|#
