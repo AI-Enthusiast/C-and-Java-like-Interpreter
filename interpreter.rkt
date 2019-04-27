@@ -177,23 +177,25 @@
 (define m-funcall
   ;; name is name of the function, actual = input parameters
   (lambda (name actual return closure s)
-    ;gets the body and the formal parameters of the function
-    (let* [(all (m-lookup-func name closure s))
-           (formal (func-formal-params all))
-           (body (func-call-body all))]
-        (if (eq? (num-in-list actual 0) (num-in-list formal 0))
-            ;runs the body
-            ;(call/cc (lambda (k)
-                       ;(m-pop
-            (m-state body (lists-to-assign actual formal (m-push closure) s) s; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
-                                                                     ; We tried to fix it but it broke more things :(
-                 return
-                 (lambda (v) v) ;; break
-                 (lambda (v) v) ;; continue
-                 (lambda (v) v) ;; try
-                 (lambda (v) v) ;; catch
-                 (lambda (v) v)) ;; finally
-            (error 'undefined "Paramater mismatch")))))
+    (if (list? name)
+        (m-dot-func (cadr name) (caddr name) actual return closure s)
+        ;gets the body and the formal parameters of the function
+        (let* [(all (m-lookup-func name closure s))
+               (formal (func-formal-params all))
+               (body (func-call-body all))]
+          (if (eq? (num-in-list actual 0) (num-in-list formal 0))
+              ;runs the body
+              ;(call/cc (lambda (k)
+              ;(m-pop
+              (m-state body (lists-to-assign actual formal (m-push closure) s) s; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
+                       ; We tried to fix it but it broke more things :(
+                       return
+                       (lambda (v) v) ;; break
+                       (lambda (v) v) ;; continue
+                       (lambda (v) v) ;; try
+                       (lambda (v) v) ;; catch
+                       (lambda (v) v)) ;; finally
+              (error 'undefined "Paramater mismatch"))))))
 
 ;; Takes two lists (l1 actual values)  (l2 formal values)
 ;; Returns an updated state
@@ -414,7 +416,7 @@
       [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp closure s) closure s return finally))]
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
-                                            (return (m-value (m-funcall (funcall-name exp) '() return s)))]
+                                            (return (m-value (m-funcall (funcall-name exp) '() return closure s)))]
 
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
@@ -631,7 +633,7 @@ just pass along and continue if have super class
 ;; (does not take value, to update value, use m-update)
 (define m-add
   (lambda (var closure s)
-    (list (closure-class-name closure) (closure-super closure) (m-add-nested var (closure-body closure)))))
+    [(list (closure-class-name closure) (closure-super closure) (m-add-nested var (closure-body closure)))]))
 
 (define m-add-nested
   (lambda (var s)
@@ -1047,7 +1049,7 @@ just pass along and continue if have super class
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
 
-#|
+
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1067,4 +1069,4 @@ just pass along and continue if have super class
 (trace m-lookup-class-closure)
 (trace m-dot-value)
 (trace m-dot-func)
-|#
+(trace m-funcall)
