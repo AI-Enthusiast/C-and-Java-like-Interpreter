@@ -450,12 +450,13 @@
       ; need to add value as well
       [else                             (m-update (variable dec)
                                                  (m-value (expression dec) closure s)
-                                                 (m-add (variable dec) closure s) s)])))
+                                                 (m-add (variable dec) closure s))])))
 
 ; declares a variable that's an instance
 (define m-instance-dec
   (lambda (dec closure s)
-    (m-update (variable dec) (m-lookup-class (instance-class-name dec) s) closure)))
+    (m-update (variable dec) (m-lookup-class (instance-class-name dec) s) (m-add-global-var (variable dec) closure s))))
+
 
 (define m-global-var-dec
   (lambda (dec closure s)
@@ -1049,7 +1050,7 @@ just pass along and continue if have super class
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
 
-
+#|
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1069,4 +1070,4 @@ just pass along and continue if have super class
 (trace m-lookup-class-closure)
 (trace m-dot-value)
 (trace m-dot-func)
-(trace m-funcall)
+|#
