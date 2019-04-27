@@ -66,7 +66,7 @@
 ;; Returns state (within closure) with new empty layer pushed on
 (define m-push
   (lambda (closure)
-    (list (closure-class-name closure) (closure-super closure) (list (cons new-layer (local closure)) (global closure)))))
+    (list (closure-class-name closure) (closure-super closure) (list (cons new-layer (local (closure-body closure))) (global (closure-body closure))))))
 
 ;; Works through the top layer of the code then
 (define m-base-layer
@@ -164,7 +164,7 @@
       [(eq? (statement-type-id exp) 'var)      (m-var-dec exp closure s)]
 
       ; is it an assignment
-      [(eq? (statement-type-id exp) '=)        (m-assign exp s)]
+      [(eq? (statement-type-id exp) '=)        (m-assign exp closure s)]
 
       ; is it a return statement
       [(eq? (statement-type-id exp) 'return)   (m-return (statement-body exp) closure s return finally)]
@@ -201,7 +201,7 @@
 (define lists-to-assign
   (lambda (l1 l2 closure s)
     (if (null? l1)
-            (m-var-dec (cons 'var (cons 'this (list closure))) closure s)
+            closure
             (if (and (not (number? (car l1))) (> (num-in-list l1 0) 1))
                     (lists-to-assign (list-from-state l1 closure) l2 closure) ;if l1 null assign this to closure
                     (lists-to-assign (cdr l1) (cdr l2)
@@ -424,7 +424,7 @@
 ;; Takes an assinment and a state
 ;; Returns the updated state
 (define m-assign
-  (lambda (assign s)
+  (lambda (assign closure s)
     (if (not (locate-var (variable assign) s))
         (error "use before declaration")
         (m-update (variable assign) (m-value (expression assign) s) s))))
@@ -1030,8 +1030,7 @@ just pass along and continue if have super class
 (define c2-c '(c2 (c3)
     ((((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
     (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))))
-#|
-(trace generate-closure)
+#|(trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
 (trace m-add-global-var)
@@ -1042,4 +1041,10 @@ just pass along and continue if have super class
 (trace m-state)
 (trace m-update)
 (trace m-value)
-|#
+(trace m-condition)
+(trace m-pop)
+(trace m-push)
+(trace m-assign)
+(trace m-lookup-class)
+(trace m-lookup-class-closure)|#
+
