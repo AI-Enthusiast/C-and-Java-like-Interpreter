@@ -177,7 +177,7 @@
 (define m-funcall
   ;; name is name of the function, actual = input parameters
   (lambda (name actual return closure s)
-    (if (list? name)
+    (if (and (list? name) (eq? (car name) 'dot))
         (m-dot-func (cadr name) (caddr name) actual return closure s)
         ;gets the body and the formal parameters of the function
         (let* [(all (m-lookup-func name closure s))
@@ -301,7 +301,7 @@
 
 
       ; variable checking
-      [(not (pair? exp))                      (m-lookup-var exp s)]
+      [(not (pair? exp))                      (m-lookup-var exp closure s)]
 
       ; is it looking up a variable in another function
       [(and (pair? exp) (eq? (statement-type-id exp) 'dot)) (m-dot-value (dot-instance-name exp) (dot-variable-name exp) closure s)]
