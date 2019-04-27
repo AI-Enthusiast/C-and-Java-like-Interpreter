@@ -1,9 +1,9 @@
 class A {
   static function main() {
-    if(2 <= 3) {
-      return 8;
-    } else {
-      return 6; 
+    if(2 < 3) {
+      continue;
+      return 50;
     }
+    return 2;
   }
 }

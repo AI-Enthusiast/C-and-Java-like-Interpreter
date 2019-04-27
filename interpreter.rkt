@@ -376,20 +376,23 @@
 
 ;; Implementing while loop
 (define m-while-loop
-  (lambda (exp s return break continue try catch finally)
+  (lambda (exp closure s return break continue try catch finally)
     (cond
       ; invalid expression
       [(null? exp)
        (error 'undefined "undefined expression")]
 
       ; runs the while loop (body is multiple statements)
-      [(m-condition (loop-condition exp) s)
-       (m-while-loop exp (call/cc (lambda (k) (m-state (loop-body exp) s
+      [(m-condition (loop-condition exp) closure s)
+       (m-while-loop exp
+                     ; CLOSURE: 
+                     (call/cc (lambda (k) (m-state (loop-body exp) closure s
                                                        return break k try catch finally)))
+                     s
                      return break continue try catch finally)]
 
       ; otherwise, returns initial state
-      [else s])))
+      [else closure])))
 
 ;; Determines if an expression is boolean
 (define am-i-boolean
