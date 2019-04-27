@@ -26,7 +26,7 @@
                                                                   (lambda (v) v) ;; try
                                                                   (lambda (v) v) ;; catch
                                                                   (lambda (v) v)))]
-       (m-funcall 'main no-params (lambda (v) v)
+       (m-funcall 'main no-params callcc
                   (m-lookup-class classmain s) s)))) ;; finally
 
 ;; Takes a file that contains code to be interpreted and returns the parse tree in list format
@@ -367,8 +367,8 @@
       [(m-condition (loop-condition exp) closure s) (m-state (loop-body exp) closure s
                                                      return break continue try catch finally)]
 
-      ; if there's no else statement, return the state
-      [(null? (cdddr exp)) s]
+      ; if there's no else statement, return the closure
+      [(null? (cdddr exp)) closure]
 
       ; run the else of the body
       [else                                 (m-state (else-statement exp) closure s
@@ -1054,7 +1054,7 @@ just pass along and continue if have super class
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
 
-
+#|
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1082,3 +1082,4 @@ just pass along and continue if have super class
 (trace m-what-type)
 (trace m-add)
 (trace m-add-nested)
+|#
