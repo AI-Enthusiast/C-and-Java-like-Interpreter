@@ -48,12 +48,12 @@
 
       ; checking for block
       [(eq? (first-statement exp) 'begin)  (m-pop (lambda (k) (m-state (rest-of-body exp)
-                                                                       closure (m-push s) return k continue
+                                                                       (m-push closure) s return k continue
                                                                        try catch finally)))]
       ; else: process one statement at a time
-      [else                                (m-state (rest-of-body exp) closure
+      [else                                (m-state (rest-of-body exp)
                                                     (m-what-type (first-statement exp) closure s return break
-                                                                 continue try catch finally)
+                                                                 continue try catch finally) s
                                                     return break continue try catch finally)])))
 ;; takes a closure
 ;; Returns state (within closure) with most recent layer popped off
@@ -138,7 +138,7 @@
                                                (m-funcall (funcall-name exp) (func-params exp) (lambda (v) s) s)]
 
       ; is it a new block
-      [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push s)
+      [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push closure) s
                                                                return break continue try catch finally))]
 
       ; conditional statement checking (if/while/etc.)
@@ -147,7 +147,7 @@
                                                                                   try catch finally)))]
 
       ; is it a break
-      [(eq? (statement-type-id exp) 'break)    (break (m-pop s))]
+      [(eq? (statement-type-id exp) 'break)    (break (m-pop closure))]
 
       ; is it a continue
       [(eq? (statement-type-id exp) 'continue) (continue s)]
@@ -205,7 +205,7 @@
     (if (null? l1)
             closure
             (if (and (not (number? (car l1))) (> (num-in-list l1 0) 1))
-                    (lists-to-assign (list-from-state l1 closure) l2 closure) ;if l1 null assign this to closure
+                    (lists-to-assign (list-from-state l1 closure) l2 closure s) ;if l1 null assign this to closure
                     (lists-to-assign (cdr l1) (cdr l2)
                                      (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) closure s))))))
 
@@ -241,7 +241,7 @@
                                                                   ;; MODIFYING THE STATE
                                                                   (m-var-dec (list 'var (catch-var-name
                                                                                          (second-body exp))
-                                                                                   exception) (m-push s))
+                                                                                   exception) (m-push closure))
                                                                   return break continue k catch finally))
                                      finally)))]
 
@@ -265,7 +265,7 @@
                                                                             (list 'var
                                                                                   (catch-var-name
                                                                                    (second-body exp))
-                                                                                  exception) (m-push s))
+                                                                                  exception) (m-push closure) s)
                                                                            return k continue
                                                                            try catch finally)) finally)))
                 return break continue try catch finally)]
@@ -420,7 +420,7 @@
 
       ;is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                            (return (m-funcall (funcall-name exp) (func-params exp) return s))]
+                                            (return (m-funcall (funcall-name exp) (func-params exp) return closure s))]
 
       [(pair? exp)                          (return (m-value exp closure s))]
       [(eq? (m-value exp closure s) #t)     (return 'true)]
@@ -524,7 +524,6 @@ just pass along and continue if have super class
         (error "use before assignment")]
       [(equal? var (nextvar closure-s))        (unbox (nextval closure-s))]
       [else                            (m-lookup-var-nested var (next-part-vars closure-s) closure state)])))
-
 
 ;; takes a global variable and a state
 ;; returns the value or an error
@@ -1058,6 +1057,8 @@ just pass along and continue if have super class
 (trace m-update-nested)
 (trace m-lookup-func)
 (trace m-lookup-func-nested)
+(trace lookup-global-var)
+(trace m-lookup-var)
 (trace m-var-dec)
 (trace m-state)
 (trace m-update)
@@ -1070,4 +1071,9 @@ just pass along and continue if have super class
 (trace m-lookup-class-closure)
 (trace m-dot-value)
 (trace m-dot-func)
+(trace m-update-nested)
+(trace m-funcall)
+(trace run)
+(trace m-what-type)
+
 |#
