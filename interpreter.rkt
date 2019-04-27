@@ -201,7 +201,7 @@
 (define lists-to-assign
   (lambda (l1 l2 closure s)
     (if (null? l1)
-            (m-var-dec (cons 'var (cons 'this (list closure))) closure s)
+            closure
             (if (and (not (number? (car l1))) (> (num-in-list l1 0) 1))
                     (lists-to-assign (list-from-state l1 closure) l2 closure) ;if l1 null assign this to closure
                     (lists-to-assign (cdr l1) (cdr l2)
@@ -302,7 +302,8 @@
       [(not (pair? exp))                      (m-lookup-var exp s)]
 
       ; is it looking up a variable in another function
-
+      [(and (pair? exp) (eq? (statement-type-id exp) 'dot)) (m-dot-value (dot-instance-name exp) (dot-variable-name exp) closure s)]
+;instance variable closure 
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
@@ -861,12 +862,11 @@ just pass along and continue if have super class
 
 
 
-(define test-class '((var x 100)
-     (var y 10)
-     (function add (g h) ((return (+ g h))))
-     (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
-(define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
-;(generate-closure test-class empty-closure empty-state)
+
+
+
+
+
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
@@ -882,6 +882,8 @@ just pass along and continue if have super class
 (define operator car)
 (define right-operand caddr)
 (define right-operand-exists cddr)
+(define dot-instance-name cadr)
+(define dot-variable-name caddr)
 
 ;for m-var-dec
 (define assignment cddr)
@@ -987,6 +989,7 @@ just pass along and continue if have super class
 (define s-next-part-vars
   (lambda (s)
     (list (list (cdr (s-vars s)) (cdr (s-vals s))) (cadr s))))
+
 ;;top layer when dealing with just the local state
 (define top-layer car)
 
@@ -1036,6 +1039,15 @@ just pass along and continue if have super class
 (define c2-c '(c2 (c3)
     ((((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
     (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))))
+
+(define test-class '((var x 100)
+     (var y 10)
+     (function add (g h) ((return (+ g h))))
+     (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
+(define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
+;(generate-closure test-class empty-closure empty-state)
+
+
 ;#|
 (trace generate-closure)
 (trace m-global-var-dec)
@@ -1048,4 +1060,6 @@ just pass along and continue if have super class
 (trace m-state)
 (trace m-update)
 (trace m-value)
+(trace m-dot-value)
+(trace m-dot-func)
 ;|#
