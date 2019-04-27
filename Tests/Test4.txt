@@ -1,0 +1,9 @@
+class A {
+  static function main() {
+    if(2 <= 3) {
+      return 2 / 2;
+    } 
+    return 3;
+    
+  }
+}

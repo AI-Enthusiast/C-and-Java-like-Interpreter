@@ -122,12 +122,12 @@
       [(and (eq? (statement-type-id exp) 'funcall)
        (and (list? (funcall-name exp))
             (null? (func-params exp))))
-                   (m-dot (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) s))]
+                   (m-dot-func (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) s))]
 
       ;is it a function call w/dot
       [(and (eq? (statement-type-id exp) 'funcall)
             (list? (funcall-name exp)))
-                   (m-dot (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) s))]
+                   (m-dot-func (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) s))]
 
       ;is it a function call w/o parameters
       [(and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp)))
@@ -186,7 +186,7 @@
             ;(call/cc (lambda (k)
                        ;(m-pop
             (m-state body (lists-to-assign actual formal (m-push closure) s) s; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
-                                                                     ; We tried to fix it but it broke more things :( 
+                                                                     ; We tried to fix it but it broke more things :(
                  return
                  (lambda (v) v) ;; break
                  (lambda (v) v) ;; continue
@@ -287,7 +287,7 @@
       [(eq? exp 'false)                       #f] ; false
 
       ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
-      [(and (pair? exp) (am-i-boolean exp))   (m-condition exp s)]
+      [(and (pair? exp) (am-i-boolean exp))   (m-condition exp closure s)]
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
@@ -301,6 +301,9 @@
       ; variable checking
       [(not (pair? exp))                      (m-lookup-var exp s)]
 
+      ; is it looking up a variable in another function
+      [(and (pair? exp) (eq? (statement-type-id exp) 'dot)) (m-dot-value (dot-instance-name exp) (dot-variable-name exp) closure s)]
+;instance variable closure 
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
@@ -311,14 +314,15 @@
                                               (m-value (m-funcall (funcall-name exp) (func-params exp) (λ(v) v) s) s)]
 
 
+
       ;operators
       [(eq? (operator exp) '+) (+         (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
       [(and (eq? (operator exp) '-) (null? (right-operand-exists exp))) ; handle negitive numbers
-                               (* -1      (m-value (left-operand exp) s))]
-      [(eq? (operator exp) '-) (-         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-      [(eq? (operator exp) '*) (*         (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-      [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
-      [(eq? (operator exp) '%) (remainder (m-value (left-operand exp) s) (m-value (right-operand exp) s))]
+                               (* -1      (m-value (left-operand exp) closure s))]
+      [(eq? (operator exp) '-) (-         (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
+      [(eq? (operator exp) '*) (*         (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
+      [(eq? (operator exp) '/) (quotient  (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
+      [(eq? (operator exp) '%) (remainder (m-value (left-operand exp) closure s) (m-value (right-operand exp) closure s))]
 
       ; oh no
       [else                    (error 'undefined "undefined expression")])))
@@ -326,46 +330,46 @@
 ;; Code a function that can take in an expression such as (< 5 2) and return true/false
 ;; Supports ==, !=, <, >, <=, >=, &&, ||, !
 (define m-condition
-  (lambda (exp s) ; exp = expression, s = state
+  (lambda (exp closure s) ; exp = expression, s = state
     (cond
       ; null checking
       [(null? exp)               (error 'undefined "undefined expression")]
-      [(not (pair? exp))         (m-value exp s)]
-      [(null? (operator exp))    (m-value exp s)]
+      [(not (pair? exp))         (m-value exp closure s)]
+      [(null? (operator exp))    (m-value exp closure s)]
 
       ; condition checking (&&, ||, !)
-      [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '&&)  (and (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '!)   (not (m-condition (left-operand exp) s))]
+      [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '&&)  (and (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '!)   (not (m-condition (left-operand exp) closure s))]
 
       ; equality/inequality operator checking (==, !=, <, >, <=, >=)
-      [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '!=)  (not (eq? (m-condition (left-operand exp) s)
-                                           (m-condition (right-operand exp) s)))]
-      [(eq? (operator exp) '<)   (<   (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '>)   (>   (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '<=)  (<=  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
-      [(eq? (operator exp) '>=)  (>=  (m-condition (left-operand exp) s) (m-condition (right-operand exp) s))]
+      [(eq? (operator exp) '==)  (eq? (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '!=)  (not (eq? (m-condition (left-operand exp) closure s)
+                                           (m-condition (right-operand exp) closure s)))]
+      [(eq? (operator exp) '<)   (<   (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '>)   (>   (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '<=)  (<=  (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
+      [(eq? (operator exp) '>=)  (>=  (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
 
       ; oh no
       [else                      (m-value exp s)])))
 
 ;; Implementing if statement
 (define m-if-statement
-  (lambda (exp s return break continue try catch finally)
+  (lambda (exp closure s return break continue try catch finally)
     (cond
       ; invalid expression
       [(null? exp)                          (error 'undefined "undefined expression")]
 
       ; run the loop of the body
-      [(m-condition (loop-condition exp) s) (m-state (loop-body exp) s
+      [(m-condition (loop-condition exp) closure s) (m-state (loop-body exp) closure s
                                                      return break continue try catch finally)]
 
       ; if there's no else statement, return the state
       [(null? (cdddr exp)) s]
 
       ; run the else of the body
-      [else                                 (m-state (else-statement exp) s
+      [else                                 (m-state (else-statement exp) closure s
                                                      return break continue try catch finally)])))
 
 ;; Implementing while loop
@@ -407,7 +411,7 @@
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
-      [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp s) s return finally))]
+      [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp closure s) closure s return finally))]
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
                                             (return (m-value (m-funcall (funcall-name exp) '() return s)))]
@@ -438,7 +442,7 @@
       ; check variable not already declared
       [(local-locate (variable dec) (closure-body closure)) (error "redefining")]
       ; just need to add variable, not value
-      [(null? (assignment dec))         (m-add (variable dec) s)]
+      [(null? (assignment dec))        (m-add (variable dec) closure s)]
       ; need to add a value, and that value is a class
       [(eq? (is-new-instance dec) 'new) (m-instance-dec dec closure s)]
       ; need to add value as well
@@ -504,7 +508,7 @@ just pass along and continue if have super class
 
 (define m-lookup-var
   (lambda (var closure s)
-    [(m-lookup-var-nested var (closure-body closure) closure s)]))
+    (m-lookup-var-nested var (closure-body closure) closure s)))
 
 
 (define m-lookup-var-nested
@@ -512,11 +516,11 @@ just pass along and continue if have super class
     (cond
       [(null? closure-s)                       (error "use before declared")]
       [(null? (local closure-s))               (lookup-global-var var closure-s closure state)]
-      [(null? (vars closure-s))                (m-lookup-var var (nextlayer closure-s) closure state)]
+      [(null? (vars closure-s))                (m-lookup-var-nested var (nextlayer closure-s) closure state)]
       [(and (equal? var (nextvar closure-s)) (eq? "init" (unbox (nextval closure-s))))
         (error "use before assignment")]
       [(equal? var (nextvar closure-s))        (unbox (nextval closure-s))]
-      [else                            (m-lookup-var var (next-part-vars closure-s) closure state)])))
+      [else                            (m-lookup-var-nested var (next-part-vars closure-s) closure state)])))
 
 
 ;; takes a global variable and a state
@@ -524,14 +528,14 @@ just pass along and continue if have super class
 (define lookup-global-var
   (lambda (var closure-s closure state)
     (cond
-     [(and (empty-check closure-s) (not (null? (closure-super closure)))) (lookup-global-var var (m-lookup-class (car (closure-super closure)) state))]
-     [(empty-check closure-s)                    (error "use before declared")]
+     [(and (empty-check-vars closure-s) (not (null? (closure-super closure)))) (m-lookup-var var (m-lookup-class (car (closure-super closure)) state) state)]
+     [(empty-check-vars closure-s)                    (error "use before declared")]
      [(and (eq? var (global-nextvar closure-s)) (eq? "init" (unbox (global-nextval closure-s))))
                                       (error "use before assignment")]
      [(equal? var (global-nextvar closure-s)) (unbox (global-nextval closure-s))]
      [else                            (lookup-global-var var (global-nextpart-vars closure-s) closure state)])))
 
-(define empty-check
+(define empty-check-vars
   (lambda (closure-s)
     (if (or (or (null? closure-s) (null? (global closure-s))) (null? (global-vars closure-s)))
         #t
@@ -542,29 +546,34 @@ just pass along and continue if have super class
 ;; returns the function closure
 (define m-lookup-func
   (lambda (var closure s)
-    (m-lookup-func-nested var (closure-body closure) s)))
+    (m-lookup-func-nested var (closure-body closure) closure s)))
 
 
 (define m-lookup-func-nested
-  (lambda (func closure-s s)
+  (lambda (func closure-s closure state)
     (cond
       [(null?  closure-s)                      (error "function not found")]
-      [(null? (local  closure-s))              (lookup-global-func func  closure-s)]
-      [(null? (funcs  closure-s))              (m-lookup-func-nested func (nextlayer  closure-s) s)]
+      [(null? (local  closure-s))              (lookup-global-func func closure-s closure state)]
+      [(null? (funcs  closure-s))              (m-lookup-func-nested func (nextlayer  closure-s) closure state)]
       [(equal? func (nextfunc  closure-s))     (unbox (nextfunc-def  closure-s))]
-      [else                           (m-lookup-func-nested func (next-part-funcs  closure-s))])))
+      [else                           (m-lookup-func-nested func (next-part-funcs  closure-s) closure state)])))
 
 
 ;; takes a global function and a state
 ;; returns the function closure
 (define lookup-global-func
-  (lambda (func s)
+  (lambda (func closure-s closure state)
     (cond
-     [(or (or (null? s)(null? (global s))) (null? (global-funcs s)))
-                                        (error "function not found")]
-     [(equal? func (global-nextfunc s)) (unbox (global-nextfunc-def s))]
-     [else                              (lookup-global-func func (global-nextpart-funcs s))])))
+     [(and (empty-check-funcs closure-s)(not (null? (closure-super closure)))) (m-lookup-func func (m-lookup-class (car (closure-super closure)) state) state)]
+     [(empty-check-funcs closure-s)                                (error "function not found")]
+     [(equal? func (global-nextfunc closure-s)) (unbox (global-nextfunc-def closure-s))]
+     [else                              (lookup-global-func func (global-nextpart-funcs closure-s) closure state)])))
 
+(define empty-check-funcs
+  (lambda (closure-s)
+    (if (or (or (null? closure-s) (null? (global closure-s))) (null? (global-funcs closure-s)))
+        #t
+        #f)))
 
 ;; takes a variable, the value to be updated, and the state
 ;; returns the updated state
@@ -752,10 +761,13 @@ just pass along and continue if have super class
     (m-lookup-var name closure s)))
 
 ;; will return a value
-(define m-dot
+(define m-dot-func
   (lambda (var-name func-name params closure s return)
     (m-funcall func-name params return (get-instance var-name closure s) s)))
 
+(define m-dot-value
+  (lambda (instance variable closure s)
+    (m-lookup-var variable (get-instance instance closure s) s)))
 ;new state format
 ;starting state is empty list
 ;(class with closure, class with closure, class with closure)
@@ -825,7 +837,7 @@ just pass along and continue if have super class
 (define m-lookup-super-class
   (lambda (class-name s)
     (cond
-      [(null? ( s)) (error "class does not exist")]
+      [(null? s) (error "class does not exist")]
       [(equal? class-name (next-class s)) (next-extends s)]
       [else (m-lookup-super-class class-name (next-part-classes s))])))
 
@@ -850,12 +862,11 @@ just pass along and continue if have super class
 
 
 
-(define test-class '((var x 100)
-     (var y 10)
-     (function add (g h) ((return (+ g h))))
-     (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
-(define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
-;(generate-closure test-class empty-closure empty-state)
+
+
+
+
+
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
@@ -871,6 +882,8 @@ just pass along and continue if have super class
 (define operator car)
 (define right-operand caddr)
 (define right-operand-exists cddr)
+(define dot-instance-name cadr)
+(define dot-variable-name caddr)
 
 ;for m-var-dec
 (define assignment cddr)
@@ -976,6 +989,7 @@ just pass along and continue if have super class
 (define s-next-part-vars
   (lambda (s)
     (list (list (cdr (s-vars s)) (cdr (s-vals s))) (cadr s))))
+
 ;;top layer when dealing with just the local state
 (define top-layer car)
 
@@ -1015,15 +1029,24 @@ just pass along and continue if have super class
 ;;new state format
 (define a1 '((c1 c2 c3 c4) (close1 close2 close3 close4)))
 (define a2 (cons '(c1 c2 c3) (list (list c1-closure c2-closure c3-closure))))
-#|
-'((c1 c2 c3)
-  ((super-a
-    ((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2)))) (((q) (#&0)) ((f3 f4) (#&(dd) #&(qqq)))))
-    (((a) (#&2)) ((f5 f6) (#&(s5) #&(s6)))))
-   (super-b
-    (((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
-    (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))
-   (super-c ((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))) |#
+
+(define sss '((c1 (A) (((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2)))) (((q) (#&0)) ((f3 f4) (#&(dd) #&(qqq)))))
+    (((a) (#&2)) ((f5 f6) (#&(s5) #&(s6))))))
+   (c2 (c3)
+    ((((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
+    (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2))))))
+   (c3 () (((((x) (#&"init")) (() ())) ((() ()) (() ()))) (((s) (#&1)) ((g1) (#&ffdvfvlkj)))))))
+(define c2-c '(c2 (c3)
+    ((((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
+    (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))))
+
+(define test-class '((var x 100)
+     (var y 10)
+     (function add (g h) ((return (+ g h))))
+     (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
+(define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
+;(generate-closure test-class empty-closure empty-state)
+
 
 #|
 (trace generate-closure)
@@ -1037,5 +1060,6 @@ just pass along and continue if have super class
 (trace m-state)
 (trace m-update)
 (trace m-value)
+(trace m-dot-value)
+(trace m-dot-func)
 |#
-
