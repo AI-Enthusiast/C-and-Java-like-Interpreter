@@ -286,6 +286,7 @@
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
       [(number? exp)                          exp] ; if it's a number, return that number
+      ; is it a this?
       [(and (and (list? exp) (eq? (car exp) 'dot)) (eq? (cadr exp) 'this))
                                               (lookup-global-var (caddr exp) (closure-body closure) closure s)]
       [(and (not (pair? exp)) (boolean? exp)) exp] ; if it's a boolean, return that boolean
@@ -511,6 +512,7 @@ just pass along and continue if have super class
 |#
 ;;all of these functions now take a class closure instead of the full state.
 ;;They will only operate on the class closure
+;; fixes p3.test6.txt
 (define m-strip
   (lambda (s)
    (list (list (toplayer s)) (global s))))
@@ -599,6 +601,9 @@ just pass along and continue if have super class
   (lambda (var update-val closure-s closure s)
     (cond
       [(null? closure-s)                "error"]
+      ;is it a this?
+      [(and (and (list? var) (eq? (car var) 'dot)) (eq? (cadr var) 'this))
+       (global-update (caddr var) update-val (global closure-s))]
       [(not (locate-var var closure-s closure s)) "error"]
       [(local-locate-var var closure-s) (list (local-update var update-val (local closure-s)) (global closure-s))]
       [else                     (list (local closure-s) (global-update var update-val (global closure-s)))])))
@@ -1075,7 +1080,6 @@ just pass along and continue if have super class
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
 
-#|
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1103,4 +1107,5 @@ just pass along and continue if have super class
 (trace m-what-type)
 (trace m-add)
 (trace m-add-nested)
-|#
+(trace get-instance)
+(trace m-return)
