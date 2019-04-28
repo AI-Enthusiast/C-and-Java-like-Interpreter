@@ -453,6 +453,8 @@
 ;; Returns the updated state
 (define m-var-dec
   (lambda (dec closure s)
+    (display (closure-body closure)) (newline) (newline)
+    ;; Todo: Error on (run "Tests/Test6.txt" "A")
     (cond
       ; check variable not already declared
       [(local-locate (variable dec) (closure-body closure)) (error "redefining")]
@@ -1082,7 +1084,7 @@ just pass along and continue if have super class
      (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
-
+#|
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1112,3 +1114,4 @@ just pass along and continue if have super class
 (trace m-add-nested)
 (trace get-instance)
 (trace m-return)
+|#

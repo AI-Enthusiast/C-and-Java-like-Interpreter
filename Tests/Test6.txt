@@ -1,0 +1,25 @@
+class B {
+  var x = 100;
+
+  function setX(x) {
+    this.x = x;
+  }
+
+  function add(a) {
+    return a.x + this.x;
+  }
+
+  function getX() {
+    return this.x;
+  }
+}
+
+
+class A {
+  static function main() {
+    var b = new B();
+    b.setX(30);
+    var g = 3;
+    return g;
+  }
+}
