@@ -135,7 +135,7 @@
 
       ;is it a function call
       [(eq? (statement-type-id exp) 'funcall)
-                                               (m-funcall (funcall-name exp) (func-params exp) (lambda (v) s) s)]
+                                               (m-funcall (funcall-name exp) (func-params exp) (lambda (v) s) closure s)]
 
       ; is it a new block
       [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push closure) s
@@ -209,16 +209,16 @@
     (if (null? l1)
             closure
             (if (and (not (number? (car l1))) (> (num-in-list l1 0) 1))
-                    (lists-to-assign (list-from-state l1 closure) l2 closure s) ;if l1 null assign this to closure
+                    (lists-to-assign (list-from-state l1 closure s) l2 closure s) ;if l1 null assign this to closure
                     (lists-to-assign (cdr l1) (cdr l2)
                                      (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) closure s) s)))))
 
 (define list-from-state
-  (lambda (lis s)
+  (lambda (lis closure s)
     (cond
       [(null? lis) '()]
-      [(not (number? (car lis))) (cons (m-lookup-var (car lis) s) (list-from-state (cdr lis) s))]
-      [else (cons (car lis) (list-from-state (cdr lis) s))])))
+      [(not (number? (car lis))) (cons (m-lookup-var (car lis) closure s) (list-from-state (cdr lis) closure s))]
+      [else (cons (car lis) (list-from-state (cdr lis) closure s))])))
 
 
 ;; Sums the number of attoms in a list
@@ -241,11 +241,12 @@
        (call/cc (lambda (k) (m-state (try-body exp) closure s return break continue k
                                      ;; CATCH STATEMENT
                                      (lambda (exception) (m-state (catch-body (second-body exp))
-                                                                  closure
+                                                                  
                                                                   ;; MODIFYING THE STATE
                                                                   (m-var-dec (list 'var (catch-var-name
                                                                                          (second-body exp))
-                                                                                   exception) (m-push closure))
+                                                                                   exception) (m-push closure) s)
+                                                                  s
                                                                   return break continue k catch finally))
                                      finally)))]
 
@@ -253,6 +254,7 @@
       [(and (eq? (third-identifier exp) 'finally) (not (pair? (catch-statement exp))))
        (m-state (third-body exp) (m-state (try-body exp) closure s return break continue
                                           (lambda (v) s) (lambda (v) s) finally)
+                s
                 return break continue try catch finally)]
 
 
@@ -272,6 +274,7 @@
                                                                                   exception) (m-push closure) s)
                                                                            return k continue
                                                                            try catch finally)) finally)))
+                s
                 return break continue try catch finally)]
       [else
        (error 'undefined "try statement missing catch or finally")])))
@@ -361,7 +364,7 @@
       [(eq? (operator exp) '>=)  (>=  (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
 
       ; oh no
-      [else                      (m-value exp s)])))
+      [else                      (m-value exp closure s)])))
 
 ;; Implementing if statement
 (define m-if-statement
@@ -661,16 +664,16 @@ just pass along and continue if have super class
 ;; Takes a local function and it's closure, adds the function and it's closure to the topmost local section of the state
 (define m-add-local-func
   (lambda (func func-closure class-closure s)
-    (list (closure-class-name class-closure) (closure-super class-closure) (m-add-local-func-nested func func-closure class-closure s))))
+    (list (closure-class-name class-closure) (closure-super class-closure) (m-add-local-func-nested func func-closure (closure-body class-closure) s))))
 
 
 
 (define m-add-local-func-nested
   (lambda (func func-closure class-closure s)
-    (list (cons (list (var-layer s) (list (cons func (funcs s))
-                                          (cons (box func-closure) (func-defs s))))
-                (cdr (local s)))
-          (global s))))
+    (list (cons (list (var-layer class-closure) (list (cons func (funcs class-closure))
+                                          (cons (box func-closure) (func-defs class-closure))))
+                (cdr (local class-closure)))
+          (global class-closure))))
 
 ;; Takes a global variable and a state, adds it to the global section of the state with non number uninitilized value "init"
 ;; (does not take value, to update value, use m-update)

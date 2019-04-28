@@ -1,10 +1,17 @@
 class A {
   static function main() {
     var x = 2;
-    while (x < 5) {
-      x = x + 1;
-      continue;
-      x = x + 500;
+    try {
+      if(x < 5)
+        throw 10;
+      x = 50000;
+    } 
+    catch(a) {
+      x = a + x;
+      
+    }
+    finally {
+      x = x + 50;
     }
     return x;
   }
