@@ -659,16 +659,16 @@ just pass along and continue if have super class
 ;; Takes a local function and it's closure, adds the function and it's closure to the topmost local section of the state
 (define m-add-local-func
   (lambda (func func-closure class-closure s)
-    (list (closure-class-name class-closure) (closure-super class-closure) (m-add-local-func-nested func func-closure class-closure s))))
+    (list (closure-class-name class-closure) (closure-super class-closure) (m-add-local-func-nested func func-closure (closure-body class-closure) s))))
 
 
 
 (define m-add-local-func-nested
   (lambda (func func-closure class-closure s)
-    (list (cons (list (var-layer s) (list (cons func (funcs s))
-                                          (cons (box func-closure) (func-defs s))))
-                (cdr (local s)))
-          (global s))))
+    (list (cons (list (var-layer class-closure) (list (cons func (funcs class-closure))
+                                          (cons (box func-closure) (func-defs class-closure))))
+                (cdr (local class-closure)))
+          (global class-closure))))
 
 ;; Takes a global variable and a state, adds it to the global section of the state with non number uninitilized value "init"
 ;; (does not take value, to update value, use m-update)
