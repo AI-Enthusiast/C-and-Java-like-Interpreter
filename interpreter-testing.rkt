@@ -129,8 +129,8 @@
   (display "Test 16: ") (pass? (run "Tests/AdaptedTests/p3.p4.Test16.txt" "A") 64)
   ; (display "Test 17: ") (pass? (run "Tests/AdaptedTests/p3.p4.Test17.txt" "A") 2000400) ;should error 
   (display "Test 18: ") (pass? (run "Tests/AdaptedTests/p3.p4.Test18.txt" "A") 125)
-  (display "Test 19: ") (pass? (run "Tests/AdaptedTests/p3.p4.Test19.txt" "A") 100) 
-  (display "Test 20: ") (pass? (run "Tests/AdaptedTests/p3.p4.Test20.txt" "A") 2000400)
+  ;(display "Test 19: ") (pass? (run "Tests/AdaptedTests/p3.p4.Test19.txt" "A") 100) 
+  ;(display "Test 20: ") (pass? (run "Tests/AdaptedTests/p3.p4.Test20.txt" "A") 2000400)
   
   (newline))
 

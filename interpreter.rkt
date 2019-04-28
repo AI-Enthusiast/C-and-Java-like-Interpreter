@@ -792,8 +792,39 @@ just pass along and continue if have super class
 ;; will return a value
 ;; looking for a function
 (define m-dot-func
-  (lambda (var-name func-name params closure s return)
-    (m-funcall func-name params return (get-instance var-name closure s) s)))
+  (lambda (var-name func-name params big-boy-closure s return)
+    (m-funcall-dot func-name params return (get-instance var-name big-boy-closure s) big-boy-closure s)))
+
+(define m-funcall-dot
+  ;; name is name of the function, actual = input parameters
+  (lambda (name actual return little-boy-closure big-boy-closure s)
+    (display name) (newline)
+    (display little-boy-closure) (newline)
+    (display big-boy-closure) (newline) (newline)
+    (cond
+      ; is it a 'dot this' funcall
+      [(and (list? name) (eq? (cadr name) 'this)) (m-funcall-dot (caddr name) actual return little-boy-closure big-boy-closure s)]
+      ; is it a 'dot' funcall
+      [(list? name) (m-dot-func (cadr name) (caddr name) actual big-boy-closure little-boy-closure s return)]
+      [else
+        ;gets the body and the formal parameters of the function
+        (let* [(all (m-lookup-func name little-boy-closure s))
+               (formal (func-formal-params all))
+               (body (func-call-body all))
+               (my-closure (m-lookup-func name (lists-to-assign actual formal (m-push big-boy-closure) s) s))]
+          (if (eq? (num-in-list actual 0) (num-in-list formal 0))
+              ;runs the body
+              ;(call/cc (lambda (k)
+              ;(m-pop
+              (m-state body my-closure s; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
+                       ; We tried to fix it but it broke more things :(
+                       return
+                       (lambda (v) v) ;; break
+                       (lambda (v) v) ;; continue
+                       (lambda (v) v) ;; try
+                       (lambda (v) v) ;; catch
+                       (lambda (v) v)) ;; finally
+              (error 'undefined "Paramater mismatch")))])))
 
 ;; will return a value
 ;; looking for a variable
@@ -1085,7 +1116,7 @@ just pass along and continue if have super class
      (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
-
+#|
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1115,3 +1146,4 @@ just pass along and continue if have super class
 (trace get-instance)
 (trace m-return)
 (trace local-toplayer-update)
+|#
