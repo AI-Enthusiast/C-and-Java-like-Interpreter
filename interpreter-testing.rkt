@@ -171,7 +171,7 @@
   (display "Test 1:  ") (pass? (run "Tests/AdaptedTests/p1.p4.Test1.txt" "A") 150)
   (display "Test 2:  ") (pass? (run "Tests/AdaptedTests/p1.p4.Test2.txt" "A") -4)
   (display "Test 3:  ") (pass? (run "Tests/AdaptedTests/p1.p4.Test3.txt" "A") 10)
-  (display "Test 4:  ") (pass? (run "Tests/AdaptedTests/p1.p4.Test4.txt" "A") -16)
+  (display "Test 4:  ") (pass? (run "Tests/AdaptedTests/p1.p4.Test4.txt" "A") 16)
   (display "Test 5:  ") (pass? (run "Tests/AdaptedTests/p1.p4.Test5.txt" "A") 220)
   (display "Test 6:  ") (pass? (run "Tests/AdaptedTests/p1.p4.Test6.txt" "A") 5)
   (display "Test 7:  ") (pass? (run "Tests/AdaptedTests/p1.p4.Test7.txt" "A") 6)
