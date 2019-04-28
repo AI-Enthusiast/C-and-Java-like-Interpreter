@@ -10,7 +10,7 @@ class A {
 	}
 	
 	function to(x){
-		return 4+x;
+		return this.x;
 	}
 	
 	function die(){
