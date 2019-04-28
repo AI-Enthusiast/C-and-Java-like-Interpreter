@@ -236,10 +236,6 @@
   (display "Test 18: ") (pass? (run "Tests/AdaptedTests/p3.p4.Test18.txt" "A") 125)
   (display "Test 19: ") (pass? (run "Tests/AdaptedTests/p3.p4.Test19.txt" "A") 100) 
   (display "Test 20: ") (pass? (run "Tests/AdaptedTests/p3.p4.Test20.txt" "A") 2000400)
-  #|
-  (display "Test 15: ") (pass? (run "Tests/p3.Test15.txt") 87)
-
-|#
   
   (newline))
 
