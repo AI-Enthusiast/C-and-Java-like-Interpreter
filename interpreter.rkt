@@ -453,7 +453,6 @@
 ;; Returns the updated state
 (define m-var-dec
   (lambda (dec closure s)
-    (display (closure-body closure)) (newline) (newline)
     ;; Todo: Error on (run "Tests/Test6.txt" "A")
     (cond
       ; check variable not already declared
@@ -584,9 +583,11 @@ just pass along and continue if have super class
 (define lookup-global-func
   (lambda (func closure-s closure state)
     (cond
-     [(and (empty-check-funcs closure-s)(not (null? (closure-super closure)))) (m-lookup-func func (m-lookup-class (car (closure-super closure)) state) state)]
-     [(empty-check-funcs closure-s)                                (error "function not found")]
-     [(equal? func (global-nextfunc closure-s)) (unbox (global-nextfunc-def closure-s))]
+     [(and (empty-check-funcs closure-s)(not (null? (closure-super closure))))
+                                        (m-lookup-func func (m-lookup-class (car (closure-super closure)) state) state)]
+     [(empty-check-funcs closure-s)     (error "function not found")]
+     [(equal? func (global-nextfunc closure-s))
+                                        (unbox (global-nextfunc-def closure-s))]
      [else                              (lookup-global-func func (global-nextpart-funcs closure-s) closure state)])))
 
 (define empty-check-funcs
@@ -608,7 +609,7 @@ just pass along and continue if have super class
       [(null? closure-s)                "error"]
       ;is it a this?
       [(and (and (list? var) (eq? (car var) 'dot)) (eq? (cadr var) 'this))
-       (global-update (caddr var) update-val (global closure-s))]
+       (list (local closure-s) (global-update (caddr var) update-val (global closure-s)))]
       [(not (locate-var var closure-s closure s)) "error"]
       [(local-locate-var var closure-s) (list (local-update var update-val (local closure-s)) (global closure-s))]
       [else                     (list (local closure-s) (global-update var update-val (global closure-s)))])))
@@ -1084,7 +1085,7 @@ just pass along and continue if have super class
      (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
-#|
+
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1108,10 +1109,9 @@ just pass along and continue if have super class
 (trace m-dot-func)
 (trace m-update-nested)
 (trace m-funcall)
-(trace run)
 (trace m-what-type)
 (trace m-add)
 (trace m-add-nested)
 (trace get-instance)
 (trace m-return)
-|#
+(trace local-toplayer-update)
