@@ -122,20 +122,20 @@
       [(and (eq? (statement-type-id exp) 'funcall)
        (and (list? (funcall-name exp))
             (null? (func-params exp))))
-                   (m-dot-func (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) s))]
+                   (m-dot-func (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) closure))]
 
       ;is it a function call w/dot
       [(and (eq? (statement-type-id exp) 'funcall)
             (list? (funcall-name exp)))
-                   (m-dot-func (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) s))]
+                   (m-dot-func (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) closure))]
 
       ;is it a function call w/o parameters
       [(and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp)))
-                                               (m-funcall (funcall-name exp) no-params (lambda (v) s) s)]
+                                               (m-funcall (funcall-name exp) no-params (lambda (v) closure) s)]
 
       ;is it a function call
       [(eq? (statement-type-id exp) 'funcall)
-                                               (m-funcall (funcall-name exp) (func-params exp) (lambda (v) s) closure s)]
+                                               (m-funcall (funcall-name exp) (func-params exp) (lambda (v) closure) closure s)]
 
       ; is it a new block
       [(eq? (first-statement exp) 'begin)      (m-pop (m-state (rest-of-body exp) (m-push closure) s
@@ -253,7 +253,7 @@
       ; check if has finally first (no catch)
       [(and (eq? (third-identifier exp) 'finally) (not (pair? (catch-statement exp))))
        (m-state (third-body exp) (m-state (try-body exp) closure s return break continue
-                                          (lambda (v) s) (lambda (v) s) finally)
+                                          (lambda (v) closure) (lambda (v) closure) finally)
                 s
                 return break continue try catch finally)]
 
