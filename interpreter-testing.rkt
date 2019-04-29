@@ -109,7 +109,7 @@
   ; (display "Test 17: ") (pass? (run "Tests/AdaptedTests/p2.p4.Test17.txt" "A") 2000400)
   (display "Test 18: ") (pass? (run "Tests/AdaptedTests/p2.p4.Test18.txt" "A") 101)
   ; (display "Test 19: ") (pass? (run "Tests/AdaptedTests/p2.p4.Test19.txt" "A") 128) ;should error
-  ; (display "Test 20: ") (pass? (run "Tests/AdaptedTests/p2.p4.Test20.txt" "A") 222)
+  (display "Test 20: ") (pass? (run "Tests/AdaptedTests/p2.p4.Test20.txt" "A") 222)
 
   (newline)
 
