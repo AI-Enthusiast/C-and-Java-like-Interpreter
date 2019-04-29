@@ -265,13 +265,13 @@
                 (call/cc (lambda (k) (m-state (try-body exp) closure s return break continue k
                                               ;; CATCH STATEMENT
                                               (lambda (exception) (m-state (catch-body (second-body exp))
-                                                                           closure
-                                                                           ;; MODIFYING THE STATE
+                                                                           ;; MODIFYING THE CLOSURE
                                                                            (m-var-dec
                                                                             (list 'var
                                                                                   (catch-var-name
                                                                                    (second-body exp))
                                                                                   exception) (m-push closure) s)
+                                                                           s
                                                                            return k continue
                                                                            try catch finally)) finally)))
                 s
@@ -1085,7 +1085,7 @@ just pass along and continue if have super class
      (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
-
+#|
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1115,3 +1115,4 @@ just pass along and continue if have super class
 (trace get-instance)
 (trace m-return)
 (trace local-toplayer-update)
+|#
