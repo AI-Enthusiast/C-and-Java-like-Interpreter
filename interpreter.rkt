@@ -178,21 +178,18 @@
   ;; name is name of the function, actual = input parameters
   (lambda (name actual return closure s)
     (cond
-      ; is it a dot this funcall
-      [(and (list? name) (eq? (cadr name) 'this)) (m-funcall (caddr name) actual return closure s)]
-      ; is it a dot funcall
-      [(list? name) (m-dot-func (cadr name) (caddr name) actual closure s return)]
+      ; is it a dot this funcall (dot this a) 
+      [(and (list? name) (eq? (cadr name) 'this)) (m-update (caddr name) (m-funcall (caddr name) actual return closure s) closure s)]
+      ; is it a dot funcall (dot a setX) () => a.setX()
+      [(list? name)                               (m-update (cadr name) (m-dot-func (cadr name) (caddr name) actual  closure s return)
+                                                            closure s)]
       [else
         ;gets the body and the formal parameters of the function
         (let* [(all (m-lookup-func name closure s))
                (formal (func-formal-params all))
                (body (func-call-body all))]
-          (if (eq? (num-in-list actual 0) (num-in-list formal 0))
-              ;runs the body
-              ;(call/cc (lambda (k)
-              ;(m-pop
-              (m-state body (lists-to-assign actual formal (m-push closure) s) s; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
-                       ; We tried to fix it but it broke more things :(
+          (if (eq? (num-in-list actual 0) (num-in-list formal 0)) 
+              (m-state body (lists-to-assign actual formal (m-push closure) s) s
                        return
                        (lambda (v) v) ;; break
                        (lambda (v) v) ;; continue
@@ -203,7 +200,7 @@
 
 ;; Takes two lists (l1 actual values)  (l2 formal values)
 ;; Returns an updated state
-;; eg: (lists-to-assign '(1 2 3) '(a b c) s)
+;; eg: (lists-to-assign '(1 2 3) '(a b c) closure s)
 (define lists-to-assign
   (lambda (l1 l2 closure s)
     (if (null? l1)
@@ -213,7 +210,7 @@
                     (lists-to-assign (cdr l1) (cdr l2)
                                      (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) closure s) s)))))
 
-(define list-from-state
+(define list-from-state 
   (lambda (lis closure s)
     (cond
       [(null? lis) '()]
@@ -256,8 +253,6 @@
                                           (lambda (v) s) (lambda (v) s) finally)
                 s
                 return break continue try catch finally)]
-
-
 
       ; check for a catch AND a finally
       [(and (eq? (second-identifier exp) 'catch) (eq? (third-identifier exp) 'finally))
@@ -547,7 +542,8 @@ just pass along and continue if have super class
 (define lookup-global-var
   (lambda (var closure-s closure state)
     (cond
-     [(and (empty-check-vars closure-s) (not (null? (closure-super closure)))) (m-lookup-var var (m-lookup-class (car (closure-super closure)) state) state)]
+     [(and (empty-check-vars closure-s) (not (null? (closure-super closure))))
+      (m-lookup-var var (m-lookup-class (car (closure-super closure)) state) state)]
      [(empty-check-vars closure-s)                    (error "use before declared")]
      [(and (eq? var (global-nextvar closure-s)) (eq? "init" (unbox (global-nextval closure-s))))
                                       (error "use before assignment")]
@@ -648,7 +644,6 @@ just pass along and continue if have super class
         (local-toplayer-update var update-val  (s-next-part-vars s)
                                (lambda (v1 v2) (return (cons (s-nextvar s) v1)
                                                        (cons (s-nextval s) v2)))))))
-
 
 
 ;; Takes a local variable and a state, adds it to the topmost local section of the state with non number uninitilized value "init"
