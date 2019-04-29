@@ -122,12 +122,12 @@
       [(and (eq? (statement-type-id exp) 'funcall)
        (and (list? (funcall-name exp))
             (null? (func-params exp))))
-                   (m-dot-func (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) s))]
+                   (m-update (dot-var-name exp) (m-dot-func (dot-var-name exp)  (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) s)) closure s)]
 
       ;is it a function call w/dot
       [(and (eq? (statement-type-id exp) 'funcall)
             (list? (funcall-name exp)))
-                   (m-dot-func (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) s))]
+                   (m-update (dot-var-name exp) (m-dot-func (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) s)) closure s)]
 
       ;is it a function call w/o parameters
       [(and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp)))
@@ -1080,7 +1080,7 @@ just pass along and continue if have super class
      (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
-
+#|
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1110,3 +1110,4 @@ just pass along and continue if have super class
 (trace get-instance)
 (trace m-return)
 (trace local-toplayer-update)
+|#
