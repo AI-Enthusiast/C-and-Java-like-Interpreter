@@ -205,7 +205,7 @@
   (lambda (l1 l2 closure s)
     (cond
       [(null? l1)            closure]
-      [(and (not (number? (car l1))) (not (boolean? (car l1)))) (lists-to-assign (cons (m-value (car l1) closure s) (cdr l1)) l2)]
+      [(and (not (number? (car l1))) (not (boolean? (car l1)))) (lists-to-assign (cons (m-value (car l1) closure s) (cdr l1)) l2 closure s)]
       [(and (not (number? (car l1))) (> (num-in-list l1 0) 1))
                     (lists-to-assign (list-from-state l1 closure s) l2 closure s)] ;if l1 null assign this to closure
 
