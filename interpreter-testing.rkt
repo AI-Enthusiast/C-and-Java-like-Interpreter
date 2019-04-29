@@ -119,7 +119,10 @@
   (display "Test 2:  ") (pass? (run "Tests/AdaptedTests/p3.p4.Test2.txt" "A") 14)
   (display "Test 3:  ") (pass? (run "Tests/AdaptedTests/p3.p4.Test3.txt" "A") 45)
   (display "Test 4:  ") (pass? (run "Tests/AdaptedTests/p3.p4.Test4.txt" "A") 55)
+
+  ; this isn't working because of global vs. local variables
   (display "Test 5:  ") (pass? (run "Tests/AdaptedTests/p3.p4.Test5.txt" "A") 1) 
+
   (display "Test 6:  ") (pass? (run "Tests/AdaptedTests/p3.p4.Test6.txt" "A") 115)
   (display "Test 7:  ") (pass? (run "Tests/AdaptedTests/p3.p4.Test7.txt" "A") 'true)
   (display "Test 8:  ") (pass? (run "Tests/AdaptedTests/p3.p4.Test8.txt" "A") 20)

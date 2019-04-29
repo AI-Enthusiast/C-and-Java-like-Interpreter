@@ -198,14 +198,14 @@
                        (lambda (v) v)) ;; finally
               (error 'undefined "Paramater mismatch")))])))
 
-;; Takes two lists (l1 actual values)  (l2 formal values)
+;; Takes two lists l1: (actual values)  l2: (formal values)
 ;; Returns an updated state
 ;; eg: (lists-to-assign '(1 2 3) '(a b c) closure s)
 (define lists-to-assign
-  (lambda (l1 l2 closure s)
+  (lambda (l1 l2 closure s) ;; l1 = actual parameters, l2 = formal parameters 
     (cond
       [(null? l1)            closure]
-      [(and (not (number? (car l1))) (not (boolean? (car l1)))) (lists-to-assign (cons (m-value (car l1) closure s) (cdr l1)) l2)]
+      [(and (not (number? (car l1))) (not (boolean? (car l1)))) (lists-to-assign (cons (m-value (car l1) closure s) (cdr l1)) l2 closure s)]
       [(and (not (number? (car l1))) (> (num-in-list l1 0) 1))
                     (lists-to-assign (list-from-state l1 closure s) l2 closure s)] ;if l1 null assign this to closure
 
@@ -282,6 +282,7 @@
 ;; The operators are +, -, *, /, %, and division is integer division
 (define m-value
   (lambda (exp closure s)
+    (display "m-value: ") (display exp) (newline)
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
@@ -340,11 +341,14 @@
 ;; Supports ==, !=, <, >, <=, >=, &&, ||, !
 (define m-condition
   (lambda (exp closure s) ; exp = expression, s = state
+    ; (display closure) (newline) (newline)
     (cond
       ; null checking
       [(null? exp)               (error 'undefined "undefined expression")]
       [(not (pair? exp))         (m-value exp closure s)]
       [(null? (operator exp))    (m-value exp closure s)]
+
+      
 
       ; condition checking (&&, ||, !)
       [(eq? (operator exp) '||)  (or  (m-condition (left-operand exp) closure s) (m-condition (right-operand exp) closure s))]
@@ -458,10 +462,23 @@
       [(null? (assignment dec))        (m-add (variable dec) closure s)]
       ; need to add a value, and that value is a class
       [(eq? (is-new-instance dec) 'new) (m-instance-dec dec closure s)]
+      [(and (pair? (expression dec)) (am-i-a-class-name (car (expression dec)) s))
+                                       (m-update (variable dec)
+                                                  (expression dec)
+                                                  (m-add (variable dec) closure s) s)]
+
+      
       ; need to add value as well
       [else                             (m-update (variable dec)
                                                  (m-value (expression dec) closure s)
                                                  (m-add (variable dec) closure s) s)])))
+
+(define am-i-a-class-name
+  (lambda (class-name s)
+    (cond
+      [(null? s) #f]
+      [(equal? class-name (next-class s)) #t]
+      [else (am-i-a-class-name class-name (next-part-classes s))])))
 
 ; declares a variable that's an instance
 (define m-instance-dec
@@ -790,7 +807,52 @@ just pass along and continue if have super class
 ;; looking for a function
 (define m-dot-func
   (lambda (var-name func-name params closure s return)
-    (m-funcall func-name params return (get-instance var-name closure s) s)))
+      (m-funcall func-name (get-params-from-big-boy params closure s) return (get-instance var-name closure s) s)))
+
+(define get-params-from-big-boy
+  (lambda (params closure s)
+    (display params) (newline) (display (m-value ((lambda (v)
+                                                    (if (pair? v)
+                                                        (car v)
+                                                        1234567890
+                                                    )) params) closure s)) (newline) (newline)
+    (cond
+      [(null? params) '()]
+      [(list? params) (cons (m-value (car params) closure s) (get-params-from-big-boy (cdr params) closure s))]
+      [else           (m-value params closure s)])))
+    #|
+(cond
+      ; null checking
+      [(null? exp)                            (error 'undefined "undefined expression")]
+      [(number? exp)                          exp] ; if it's a number, return that number
+      ; is it a this?
+      [(and (and (list? exp) (eq? (car exp) 'dot)) (eq? (cadr exp) 'this))
+                                              (lookup-global-var (caddr exp) (closure-body closure) closure s)]
+      [(and (not (pair? exp)) (boolean? exp)) exp] ; if it's a boolean, return that boolean
+
+      ; boolean checking
+      [(eq? exp 'true)                        #t] ; true
+      [(eq? exp 'false)                       #f] ; false
+
+      ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
+      [(and (pair? exp) (am-i-boolean exp))   (m-condition exp closure s)]
+
+      ;is it a function call w/o parameters
+      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
+                                              (call/cc (lambda (k) (m-funcall (funcall-name exp) '() k closure s)))]
+
+      ;is it a function call
+      [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
+                                              (call/cc (lambda (k) (m-funcall (funcall-name exp) (func-params exp) k closure s)))]
+
+
+      ; variable checking
+      [(not (pair? exp))                      (m-lookup-var exp closure s)]
+
+      ; is it looking up a variable in another function
+      [(and (pair? exp) (eq? (statement-type-id exp) 'dot)) (m-dot-value (dot-instance-name exp) (dot-variable-name exp) closure s)]
+;instance variable closure
+|#
 
 ;; will return a value
 ;; looking for a variable
