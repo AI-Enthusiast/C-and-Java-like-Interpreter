@@ -122,12 +122,12 @@
       [(and (eq? (statement-type-id exp) 'funcall)
        (and (list? (funcall-name exp))
             (null? (func-params exp))))
-                   (m-dot-func (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) closure))]
+                   (m-update (dot-var-name exp) (m-dot-func (dot-var-name exp)  (dot-var-name exp) (dot-func-name exp) no-params closure s (lambda (v) s)) closure s)]
 
       ;is it a function call w/dot
       [(and (eq? (statement-type-id exp) 'funcall)
             (list? (funcall-name exp)))
-                   (m-dot-func (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) closure))]
+                   (m-update (dot-var-name exp) (m-dot-func (dot-var-name exp) (dot-func-name exp) (func-params exp) closure s (lambda (v) s)) closure s)]
 
       ;is it a function call w/o parameters
       [(and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp)))
@@ -178,21 +178,18 @@
   ;; name is name of the function, actual = input parameters
   (lambda (name actual return closure s)
     (cond
-      ; is it a dot this funcall
-      [(and (list? name) (eq? (cadr name) 'this)) (m-funcall (caddr name) actual return closure s)]
-      ; is it a dot funcall
-      [(list? name) (m-dot-func (cadr name) (caddr name) actual closure s return)]
+      ; is it a dot this funcall (dot this a)
+      [(and (list? name) (eq? (cadr name) 'this)) (m-update (caddr name) (m-funcall (caddr name) actual return closure s) closure s)]
+      ; is it a dot funcall (dot a setX) () => a.setX()
+      [(list? name)                               (m-update (cadr name) (m-dot-func (cadr name) (caddr name) actual  closure s return)
+                                                            closure s)]
       [else
         ;gets the body and the formal parameters of the function
         (let* [(all (m-lookup-func name closure s))
                (formal (func-formal-params all))
                (body (func-call-body all))]
           (if (eq? (num-in-list actual 0) (num-in-list formal 0))
-              ;runs the body
-              ;(call/cc (lambda (k)
-              ;(m-pop
-              (m-state body (lists-to-assign actual formal (m-push closure) s) s; THERE'S AN ISSUE HERE!!!! IT'S NOT LETTING TEST 6 WORK!!!!!!
-                       ; We tried to fix it but it broke more things :(
+              (m-state body (lists-to-assign actual formal (m-push closure) s) s
                        return
                        (lambda (v) v) ;; break
                        (lambda (v) v) ;; continue
@@ -203,15 +200,17 @@
 
 ;; Takes two lists (l1 actual values)  (l2 formal values)
 ;; Returns an updated state
-;; eg: (lists-to-assign '(1 2 3) '(a b c) s)
+;; eg: (lists-to-assign '(1 2 3) '(a b c) closure s)
 (define lists-to-assign
   (lambda (l1 l2 closure s)
-    (if (null? l1)
-            closure
-            (if (and (not (number? (car l1))) (> (num-in-list l1 0) 1))
-                    (lists-to-assign (list-from-state l1 closure s) l2 closure s) ;if l1 null assign this to closure
-                    (lists-to-assign (cdr l1) (cdr l2)
-                                     (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) closure s) s)))))
+    (cond
+      [(null? l1)            closure]
+      [(and (not (number? (car l1))) (not (boolean? (car l1)))) (lists-to-assign (cons (m-value (car l1) closure s) (cdr l1)) l2)]
+      [(and (not (number? (car l1))) (> (num-in-list l1 0) 1))
+                    (lists-to-assign (list-from-state l1 closure s) l2 closure s)] ;if l1 null assign this to closure
+
+      [else (lists-to-assign (cdr l1) (cdr l2)
+                                     (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) closure s) s)])))
 
 (define list-from-state
   (lambda (lis closure s)
@@ -241,7 +240,7 @@
        (call/cc (lambda (k) (m-state (try-body exp) closure s return break continue k
                                      ;; CATCH STATEMENT
                                      (lambda (exception) (m-state (catch-body (second-body exp))
-                                                                  
+
                                                                   ;; MODIFYING THE STATE
                                                                   (m-var-dec (list 'var (catch-var-name
                                                                                          (second-body exp))
@@ -256,8 +255,6 @@
                                           (lambda (v) closure) (lambda (v) closure) finally)
                 s
                 return break continue try catch finally)]
-
-
 
       ; check for a catch AND a finally
       [(and (eq? (second-identifier exp) 'catch) (eq? (third-identifier exp) 'finally))
@@ -315,7 +312,7 @@
 
       ; is it looking up a variable in another function
       [(and (pair? exp) (eq? (statement-type-id exp) 'dot)) (m-dot-value (dot-instance-name exp) (dot-variable-name exp) closure s)]
-;instance variable closure 
+;instance variable closure
 
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
@@ -395,7 +392,7 @@
       ; runs the while loop (body is multiple statements)
       [(m-condition (loop-condition exp) closure s)
        (m-while-loop exp
-                     ; CLOSURE: 
+                     ; CLOSURE:
                      (call/cc (lambda (k) (m-state (loop-body exp) closure s
                                                        return break k try catch finally)))
                      s
@@ -537,9 +534,9 @@ just pass along and continue if have super class
       [(null? closure-s)                       (error "use before declared")]
       [(null? (local closure-s))               (lookup-global-var var closure-s closure state)]
       [(null? (vars closure-s))                (m-lookup-var-nested var (nextlayer closure-s) closure state)]
-      [(and (equal? var (nextvar closure-s)) (eq? "init" (unbox (nextval closure-s))))
+      [(and (equal? var (nextvar closure-s)) (eq? "init" (nextval closure-s)))
         (error "use before assignment")]
-      [(equal? var (nextvar closure-s))        (unbox (nextval closure-s))]
+      [(equal? var (nextvar closure-s))        (nextval closure-s)]
       [else                            (m-lookup-var-nested var (next-part-vars closure-s) closure state)])))
 
 ;; takes a global variable and a state
@@ -547,11 +544,12 @@ just pass along and continue if have super class
 (define lookup-global-var
   (lambda (var closure-s closure state)
     (cond
-     [(and (empty-check-vars closure-s) (not (null? (closure-super closure)))) (m-lookup-var var (m-lookup-class (car (closure-super closure)) state) state)]
+     [(and (empty-check-vars closure-s) (not (null? (closure-super closure))))
+      (m-lookup-var var (m-lookup-class (car (closure-super closure)) state) state)]
      [(empty-check-vars closure-s)                    (error "use before declared")]
-     [(and (eq? var (global-nextvar closure-s)) (eq? "init" (unbox (global-nextval closure-s))))
+     [(and (eq? var (global-nextvar closure-s)) (eq? "init" (global-nextval closure-s)))
                                       (error "use before assignment")]
-     [(equal? var (global-nextvar closure-s)) (unbox (global-nextval closure-s))]
+     [(equal? var (global-nextvar closure-s)) (global-nextval closure-s)]
      [else                            (lookup-global-var var (global-nextpart-vars closure-s) closure state)])))
 
 (define empty-check-vars
@@ -574,7 +572,7 @@ just pass along and continue if have super class
       [(null?  closure-s)                      (error "function not found")]
       [(null? (local  closure-s))              (lookup-global-func func closure-s closure state)]
       [(null? (funcs  closure-s))              (m-lookup-func-nested func (nextlayer  closure-s) closure state)]
-      [(equal? func (nextfunc  closure-s))     (unbox (nextfunc-def  closure-s))]
+      [(equal? func (nextfunc  closure-s))     (nextfunc-def  closure-s)]
       [else                           (m-lookup-func-nested func (next-part-funcs  closure-s) closure state)])))
 
 
@@ -587,7 +585,7 @@ just pass along and continue if have super class
                                         (m-lookup-func func (m-lookup-class (car (closure-super closure)) state) state)]
      [(empty-check-funcs closure-s)     (error "function not found")]
      [(equal? func (global-nextfunc closure-s))
-                                        (unbox (global-nextfunc-def closure-s))]
+                                        (global-nextfunc-def closure-s)]
      [else                              (lookup-global-func func (global-nextpart-funcs closure-s) closure state)])))
 
 (define empty-check-funcs
@@ -643,12 +641,11 @@ just pass along and continue if have super class
 (define local-toplayer-update
   (lambda (var update-val s return)
     (if (equal? var (s-nextvar s))
-        (return (s-vars s) (begin  (set-box! (s-nextval s) update-val)
-                                   (cons (s-nextval s) (rest-of (s-vals s)))))
+        (return (s-vars s)
+                                   (cons update-val (rest-of (s-vals s))))
         (local-toplayer-update var update-val  (s-next-part-vars s)
                                (lambda (v1 v2) (return (cons (s-nextvar s) v1)
                                                        (cons (s-nextval s) v2)))))))
-
 
 
 ;; Takes a local variable and a state, adds it to the topmost local section of the state with non number uninitilized value "init"
@@ -660,7 +657,7 @@ just pass along and continue if have super class
 (define m-add-nested
   (lambda (var s)
      (list (cons (list (list (cons  var (vars s))
-                             (cons (box "init") (vals s))) (func-layer s))
+                             (cons "init" (vals s))) (func-layer s))
                  (cdr (local s)))
            (global s))))
 
@@ -674,7 +671,7 @@ just pass along and continue if have super class
 (define m-add-local-func-nested
   (lambda (func func-closure class-closure s)
     (list (cons (list (var-layer class-closure) (list (cons func (funcs class-closure))
-                                          (cons (box func-closure) (func-defs class-closure))))
+                                          (cons func-closure (func-defs class-closure))))
                 (cdr (local class-closure)))
           (global class-closure))))
 
@@ -687,7 +684,7 @@ just pass along and continue if have super class
 (define m-add-global-var-nested
   (lambda (var s)
     (list (local s) (list (list (cons var (global-vars s))
-                                (cons (box "init") (global-vals s)))
+                                (cons "init" (global-vals s)))
                           (global-func-layer s)))))
 
 ;; Takes a global function and it's closure, adds the function and it's closure to the global section of the state
@@ -699,7 +696,7 @@ just pass along and continue if have super class
   (lambda (func closure s)
     (list (local s) (list (global-var-layer s)
                           (list (cons func (global-funcs s))
-                                (cons (box closure) (global-func-defs s)))))))
+                                (cons closure (global-func-defs s)))))))
 
 ;;; the following are helper methods for state functions
 
@@ -926,7 +923,7 @@ just pass along and continue if have super class
     (if (list? (expression dec))
         (caaddr dec)
         (expression dec))))
-        
+
 (define instance-class-name (lambda (v) (cadar (assignment v))))
 (define variable cadr)
 (define expression caddr)
@@ -1115,4 +1112,5 @@ just pass along and continue if have super class
 (trace get-instance)
 (trace m-return)
 (trace local-toplayer-update)
+(trace lists-to-assign)
 |#
