@@ -509,46 +509,34 @@
 
 
 #|
-define an internal var and func closure for the class with abstration with the format:
-'(((((var1, var2 ..)(val1, val2 ..))((local-func1, localfunc2 ...)(closure1, closure2 ... )))(Inner local layer1)(Inner local layer2))
-   (((glob-var1, glob-var2 ...)(val1, val2 ..))((glob-func1, glob-func2 ..)(closure1, closure2 ..)))))
-methods for state
-(Note, when searching for values/closures, they will be searched for first in the local layer
-then globaly)
-m-lookup-var - looks up variable's value, returns value found at highest layer
-m-lookup-func - lookes up a function's closure, returns closure found at highest level
-m-update - updates variable's value on the first location the variable is found, returns updated state
-m-add-local-var - adds uninitilized variable to local layer of state (on topmost layer), returns updated state
-m-add-global-var - adds uninitilized variable to global layer of state , returns updated state
-m-add-local-func - adds function and function closure to local layer of state
-m-add-global-func - adds function and function closure to the global layer of state
-|#
+The main state has the format
+(class1, class2, class3 ...)
 
-;; Takes a variable and a state
-;; Returns the value of the variable at the first instance it is found, or error message if it does not exist
-;; Will error if not yet initilized or if it does not exist
+where a class closure has the format
+(Class-name (super-class-name) (inner-class-closure))
+
+where an inner class closure has the format
+((local)(global))
+
+where local has the format
+((layer1)(layer2)(layer3) ...) and global has the format (layer)
+
+An internal layer has the format
+(((vars)(vals))((funcs)(func-definitions)))
+
+A closer look, looks like this:
+(((var1, var2 ..)(val1, val2 ..))((local-func1, localfunc2 ...)(closure1, closure2 ... )))
+|#
 
 
 ;;takes a state and strips off everything except the top layer and global
-#| class closure needs to be passed in. later on, state will need to be passed in
-need to handle objectes function calls on object, and
- superclasses (with inherited vars and functions),
-update lookup for funcs vars to continue looking if it has a superclass still
-in that case need to pass in entire closure along with the specific body,
-just pass along and continue if have super class
-|#
-;;all of these functions now take a class closure instead of the full state.
-;;They will only operate on the class closure
-;; fixes p3.test6.txt
 (define m-strip
   (lambda (s)
    (list (list (toplayer s)) (global s))))
 
+
 ;; takes a variable and a state
 ;; returns the value or an error
-
-;;fix m-update
-;fix calls t m-update to add closure and state
 (define m-lookup-var
   (lambda (var closure s)
     (m-lookup-var-nested var (closure-body closure) closure s)))
@@ -565,15 +553,7 @@ just pass along and continue if have super class
       [(equal? var (nextvar closure-s))        (unbox (nextval closure-s))]
       [else                            (m-lookup-var-nested var (next-part-vars closure-s) closure state)])))
 
-
-#|
-;get value from somthing that might or might not be a box
-(define get-value
-  (lambda (value)
-
-;store a value in the right way
-(define store-value
-|#  
+ 
 ;; takes a global variable and a state
 ;; returns the value or an error
 (define lookup-global-var
@@ -587,6 +567,7 @@ just pass along and continue if have super class
      [(equal? var (global-nextvar closure-s)) (unbox (global-nextval closure-s))]
      [else                            (lookup-global-var var (global-nextpart-vars closure-s) closure state)])))
 
+;;check if state is done with recursion with respect to variables
 (define empty-check-vars
   (lambda (closure-s)
     (if (or (or (null? closure-s) (null? (global closure-s))) (null? (global-vars closure-s)))
@@ -623,6 +604,7 @@ just pass along and continue if have super class
                                         (unbox (global-nextfunc-def closure-s))]
      [else                              (lookup-global-func func (global-nextpart-funcs closure-s) closure state)])))
 
+;; check if state is done with recursion in respect to functions
 (define empty-check-funcs
   (lambda (closure-s)
     (if (or (or (null? closure-s) (null? (global closure-s))) (null? (global-funcs closure-s)))
@@ -774,7 +756,8 @@ just pass along and continue if have super class
   (lambda (var closure-s closure state)
     (cond
       [(and (empty-check-vars closure-s) (not (null? (closure-super closure))))
-       (locate-var var (closure-body (m-lookup-class (car (closure-super closure)) state)) (m-lookup-class (car (closure-super closure)) state) state)]
+       (locate-var var (closure-body (m-lookup-class (car (closure-super closure)) state))
+                   (m-lookup-class (car (closure-super closure)) state) state)]
       [(empty-check-vars closure-s)         #f]
       [(eq? var (global-nextvar closure-s)) #t]
       [else                         (locate-global-var var (global-nextpart-vars closure-s) closure state)])))
@@ -785,6 +768,8 @@ just pass along and continue if have super class
       [(empty-check-vars closure-s)         #f]
       [(eq? var (global-nextvar closure-s)) #t]
       [else                         (locate-global-var-simple var (global-nextpart-vars closure-s))])))
+
+
 ;; returns #t if the given variable exists in the local layer
 (define local-locate-var
    (lambda (var s)
@@ -817,7 +802,6 @@ just pass along and continue if have super class
       [else                           (locate-global-func func (global-nextpart-funcs s))])))
 
 ;; will return the instance's closure
-;; TODO: add something here so that if it says "new" then it'll return the closure thingy i guess
 (define get-instance
   (lambda (name closure s)
     (m-lookup-var name closure s)))
@@ -869,58 +853,6 @@ just pass along and continue if have super class
       [else (m-lookup-var variable (get-instance instance closure s)  s)])))
     
 
-
-;new state format
-;starting state is empty list
-;(class with closure, class with closure, class with closure)
-;class with closure contains: (name (superclass) (traditional state))
-(define next-full-class-closure car)
-(define next-class caar)
-(define next-extends cadar)
-(define next-closure caddar)
-(define next-part-classes cdr)
-(define c1 '(class B (extends A)  body))
-(define c2 '(class A () body))
-
-;returns values for the input class information
-;format (class A (super) (body))
-(define class-name cadr)
-(define class-extends
-  (lambda (class-closure)
-    (if (null? (caddr class-closure))
-        '()
-      (cdaddr class-closure))))
-(define class-body cadddr)
-
-;returns values for a class closure
-;format (A (super) (body)) where body is a complete state of vars and funcs
-(define closure-super cadr)
-
-
-(define closure-class-name car)
-(define closure-body caddr)
-(define next car)
-(define first car)
-
-
-;;iterate along next part of state, classnames, and closures
-(define s-test '((A (B) (stateA))(B (C) (stateB))(C () (stateC))))
-(define noI '((C () (stateC))))
-(define yesI '((A (B) (stateC))))
-(define simplebody '(A (B) (stateC)))
-(define simpleemptybody '(A () (stateC)))
-
-;returns the class closure for the given class name
-(define m-lookup-class-closure
-  (lambda (class-name s)
-    (cond
-      [(null? s) (error "class does not exist")]
-      [(equal? class-name (next-class s)) (next-full-class-closure s)]
-      [else (m-lookup-class-closure class-name (next-part-classes s))])))
-
-; (A () ((((() ()) (() ()))) (((y x) (10 100)) ((main add) (((() (((return (funcall (dot (new A) add) 3 2)))))) (((g h) (((return (+ g h)))))))))))
-;       ((((() ()) (() ()))) (((y x) (10 100)) ((main add) (((() (((return (funcall (dot (new A) add) 3 2)))))) (((g h) (((return (+ g h))))))))))
-
 (define m-lookup-class
   (lambda (class-name s)
     (cond
@@ -929,13 +861,6 @@ just pass along and continue if have super class
       [else (m-lookup-class class-name (next-part-classes s))])))
 
 
-#|(define m-update-class-closure
-  (lambda (closure update s)
-    (cond
-      [(null? s) '()]
-      [(equal? class-name (next-class s)) (cons (m-new-closure class-name (closure-super (next-class s)) closure-to-update) s)]
-      [else (cons (next-closure s) (m-update-class-closure class-name closure-to-update (next-part-classes s)))])))
-|#
 (define m-new-closure
   (lambda (class-name class-super closure)
     (list (class-name class-super closure))))
@@ -954,8 +879,7 @@ just pass along and continue if have super class
    (cons (generate-closure (class-body class-dec) (list (class-name class-dec) (class-extends class-dec) empty-state) s) s)))
 
 
-;This needs to be filled in. Given a class, the closure or code for the class should be filled in
-;all of the functions and global variables must be searched and filled in
+;;given a class body, generate a closure for the class and add it to the state
 (define generate-closure
   (lambda (body closure s)
     (cond
@@ -977,6 +901,7 @@ just pass along and continue if have super class
   (lambda (closure)
      (list (closure-class-name closure) (closure-super closure) (new-closure-body (closure-body closure)))))
 
+;;create a new body for the closure
 (define new-closure-body
   (lambda (closure-body)
     (list (new-local (local closure-body)) (new-layer-gen (global closure-body)))))
@@ -985,7 +910,7 @@ just pass along and continue if have super class
   (lambda (local)
     (cond
      [(null? local) '()]
-     [else (cons (new-layer-gen (car local)) (new-local (cdr local)))])))
+     [else (cons (new-layer-gen (car local)) (new-local (next-part-list local)))])))
 
 (define new-layer-gen
   (lambda (layer)
@@ -1001,15 +926,17 @@ just pass along and continue if have super class
   (lambda (list)
     (if (null? list)
         '()
-        (cons (unbox (car list)) (unbox-all (cdr list))))))
+        (cons (unbox (next-in-list list)) (unbox-all (next-part-list list))))))
 
 ;boxes all values of a list
 (define box-all
   (lambda (list)
     (if (null? list)
         '()
-        (cons (box (car list)) (box-all (cdr list))))))
+        (cons (box (next-in-list list)) (box-all (next-part-list list))))))
 
+(define next-in-list car)
+(define next-part-list cdr)
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
 (define statement-body cadr)   ; e.g. the body of a return statement
@@ -1158,77 +1085,35 @@ just pass along and continue if have super class
 (define first-statement car)
 (define rest-of-body cdr)
 
- ;;FOR TESTING PURPOSES!!!:
-(define a-global '(((a b) (1 2))((f1 f2)((stuff1) (stuff2)))))
-(define a-local '((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6))))))
-(define a  '(((((c d) (3 4))((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6)))))(((a b) (1 2))((f1 f2)((stuff1) (stuff2))))))
-(define c '((((() ()) (() ()))) (((a) (#&"init")) (() ()))))
-(define d '((((() ()) (() ()))) (((a) (#&2)) (() ()))))
-(define e '(((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq))))) (((a) (#&2)) ((f5 f6) (#&(s5) #&(s6))))))
-(define q '((((() ())((f3 f4)((s3) (s4))))(((g h) (5 6))((f5 f6)((s5) (s6)))))(((a b) (1 2))((f1 f2)((stuff1) (stuff2))))))
-(define state2 '(((a b c d)(#&2 #&5 #&6 #&7))((s d e w)(#&1 #&8 #&9 #&0))))
-(define w '(((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))
-(define p '(((a b) (#&1 #&2)) ((f1 f2) (#&(s1) #&5(s2)))))
-;;(define z '((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2))))(((q)(#&0))((f3 f4)(#&(dd) #&(qqq)))) (((a f)(#&2 #&1))((f8 f9)(#&(yyd) #&(uuu)))))) ;local test
-(define qqq  '(((((x) (#&"init")) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
-(define test1 '(((((z y x) (#&30 #&20 #&10)) (() ())) ((() ()) (() ()))) ((() ()) (() ()))))
+;new state format
+;starting state is empty list
+;(class with closure, class with closure, class with closure)
+;class with closure contains: (name (superclass) (traditional state))
+(define next-full-class-closure car)
+(define next-class caar)
+(define next-extends cadar)
+(define next-closure caddar)
+(define next-part-classes cdr)
+(define c1 '(class B (extends A)  body))
+(define c2 '(class A () body))
 
-(define c1-closure (cons '(super-a) e))
-(define c2-closure (cons '(super-b) q))
-(define c3-closure (cons '(super-c) qqq))
-;;'(q
- ;; ((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2)))) (((q) (#&0)) ((f3 f4) (#&(dd) #&(qqq)))))
- ;; (((a) (#&2)) ((f5 f6) (#&(s5) #&(s6)))))
-;;new state format
-(define a1 '((c1 c2 c3 c4) (close1 close2 close3 close4)))
-(define a2 (cons '(c1 c2 c3) (list (list c1-closure c2-closure c3-closure))))
+;returns values for the input class information
+;format (class A (super) (body))
+(define class-name cadr)
+(define class-extends
+  (lambda (class-closure)
+    (if (null? (caddr class-closure))
+        '()
+      (cdaddr class-closure))))
+(define class-body cadddr)
 
-(define sss '((c1 (A) (((((c d) (#&1 #&34)) ((f1 f2) (#&(stufffff) #&(stuff2)))) (((q) (#&0)) ((f3 f4) (#&(dd) #&(qqq)))))
-    (((a) (#&2)) ((f5 f6) (#&(s5) #&(s6))))))
-   (c2 (c3)
-    ((((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
-    (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2))))))
-   (c3 () (((((x) (#&"init")) (() ())) ((() ()) (() ()))) (((s) (#&1)) ((g1) (#&ffdvfvlkj)))))))
-(define c2-c '(c2 (c3)
-    ((((() ()) ((f3 f4) ((#&s3) (#&s4)))) (((g h) (#&5 #&6)) ((f5 f6) ((#&s5) (#&s6)))))
-    (((a b) (#&1 #&2)) ((f1 f2) ((#&stuff1) (#&stuff2)))))))
+;returns values for a class closure
+;format (A (super) (body)) where body is a complete state of vars and funcs
+(define closure-super cadr)
 
-(define test-class '((var x 100)
-     (var y 10)
-     (function add (g h) ((return (+ g h))))
-     (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
-(define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
-#|
-(trace generate-closure)
-(trace m-global-var-dec)
-(trace m-update)
-(trace m-add-global-var)
-(trace m-update-nested)
-(trace m-lookup-func)
-(trace m-lookup-func-nested)
-(trace lookup-global-var)
-(trace m-lookup-var)
-(trace m-var-dec)
-(trace m-state)
-(trace m-update)
-(trace m-value)
-(trace m-condition)
-(trace m-pop)
-(trace m-push)
-(trace m-assign)
-(trace m-lookup-class)
-(trace m-lookup-class-closure)
-(trace m-dot-value)
-(trace m-dot-func)
-(trace m-update-nested)
-(trace m-funcall)
-(trace m-what-type)
-(trace m-add)
-(trace m-add-nested)
-(trace get-instance)
-(trace m-return)
-(trace local-toplayer-update)
-(trace lists-to-assign)
-|#
+(define closure-class-name car)
+(define closure-body caddr)
+(define next car)
+(define first car)
 
