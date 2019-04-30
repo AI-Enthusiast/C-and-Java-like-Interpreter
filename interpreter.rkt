@@ -203,9 +203,10 @@
 ;; eg: (lists-to-assign '(1 2 3) '(a b c) closure s)
 (define lists-to-assign
   (lambda (l1 l2 closure s) ;; l1 = actual parameters, l2 = formal parameters 
+    (display l1)
     (cond
       [(null? l1)            closure]
-      ;[(and (not (number? (car l1))) (not (boolean? (car l1)))) (lists-to-assign (cons (m-value (car l1) closure s) (cdr l1)) l2 closure s)]
+      [(and (not (number? (car l1))) (not (boolean? (car l1)))) (lists-to-assign (cons (m-value (car l1) closure s) (cdr l1)) l2 closure s)]
       [(and (not (number? (car l1))) (> (num-in-list l1 0) 1))
                     (lists-to-assign (list-from-state l1 closure s) l2 closure s)] ;if l1 null assign this to closure
 
@@ -1145,7 +1146,7 @@ just pass along and continue if have super class
      (static-function main () ((return (funcall (dot (new A) add) (dot (new A) x) (dot (new A) y)))))))
 (define empty-closure '(dd () ((((() ()) (() ()))) ((() ()) (() ())))))
 
-#|
+
 (trace generate-closure)
 (trace m-global-var-dec)
 (trace m-update)
@@ -1176,4 +1177,4 @@ just pass along and continue if have super class
 (trace m-return)
 (trace local-toplayer-update)
 (trace lists-to-assign)
-|#
+
