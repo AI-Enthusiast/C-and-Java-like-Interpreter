@@ -534,11 +534,20 @@ just pass along and continue if have super class
       [(null? closure-s)                       (error "use before declared")]
       [(null? (local closure-s))               (lookup-global-var var closure-s closure state)]
       [(null? (vars closure-s))                (m-lookup-var-nested var (nextlayer closure-s) closure state)]
-      [(and (equal? var (nextvar closure-s)) (eq? "init" (nextval closure-s)))
+      [(and (equal? var (nextvar closure-s)) (eq? "init" (unbox (nextval closure-s))))
         (error "use before assignment")]
-      [(equal? var (nextvar closure-s))        (nextval closure-s)]
+      [(equal? var (nextvar closure-s))        (unbox (nextval closure-s))]
       [else                            (m-lookup-var-nested var (next-part-vars closure-s) closure state)])))
 
+
+#|
+;get value from somthing that might or might not be a box
+(define get-value
+  (lambda (value)
+
+;store a value in the right way
+(define store-value
+|#  
 ;; takes a global variable and a state
 ;; returns the value or an error
 (define lookup-global-var
@@ -547,9 +556,9 @@ just pass along and continue if have super class
      [(and (empty-check-vars closure-s) (not (null? (closure-super closure))))
       (m-lookup-var var (m-lookup-class (car (closure-super closure)) state) state)]
      [(empty-check-vars closure-s)                    (error "use before declared")]
-     [(and (eq? var (global-nextvar closure-s)) (eq? "init" (global-nextval closure-s)))
+     [(and (eq? var (global-nextvar closure-s)) (eq? "init" (unbox (global-nextval closure-s))))
                                       (error "use before assignment")]
-     [(equal? var (global-nextvar closure-s)) (global-nextval closure-s)]
+     [(equal? var (global-nextvar closure-s)) (unbox (global-nextval closure-s))]
      [else                            (lookup-global-var var (global-nextpart-vars closure-s) closure state)])))
 
 (define empty-check-vars
@@ -572,7 +581,7 @@ just pass along and continue if have super class
       [(null?  closure-s)                      (error "function not found")]
       [(null? (local  closure-s))              (lookup-global-func func closure-s closure state)]
       [(null? (funcs  closure-s))              (m-lookup-func-nested func (nextlayer  closure-s) closure state)]
-      [(equal? func (nextfunc  closure-s))     (nextfunc-def  closure-s)]
+      [(equal? func (nextfunc  closure-s))     (unbox (nextfunc-def  closure-s))]
       [else                           (m-lookup-func-nested func (next-part-funcs  closure-s) closure state)])))
 
 
@@ -585,7 +594,7 @@ just pass along and continue if have super class
                                         (m-lookup-func func (m-lookup-class (car (closure-super closure)) state) state)]
      [(empty-check-funcs closure-s)     (error "function not found")]
      [(equal? func (global-nextfunc closure-s))
-                                        (global-nextfunc-def closure-s)]
+                                        (unbox (global-nextfunc-def closure-s))]
      [else                              (lookup-global-func func (global-nextpart-funcs closure-s) closure state)])))
 
 (define empty-check-funcs
@@ -641,8 +650,8 @@ just pass along and continue if have super class
 (define local-toplayer-update
   (lambda (var update-val s return)
     (if (equal? var (s-nextvar s))
-        (return (s-vars s) 
-                                   (cons update-val (rest-of (s-vals s))))
+        (return (s-vars s) (begin  (set-box! (s-nextval s) update-val)
+                                   (cons (s-nextval s) (rest-of (s-vals s)))))
         (local-toplayer-update var update-val  (s-next-part-vars s)
                                (lambda (v1 v2) (return (cons (s-nextvar s) v1)
                                                        (cons (s-nextval s) v2)))))))
@@ -657,7 +666,7 @@ just pass along and continue if have super class
 (define m-add-nested
   (lambda (var s)
      (list (cons (list (list (cons  var (vars s))
-                             (cons "init" (vals s))) (func-layer s))
+                             (cons (box "init") (vals s))) (func-layer s))
                  (cdr (local s)))
            (global s))))
 
@@ -671,7 +680,7 @@ just pass along and continue if have super class
 (define m-add-local-func-nested
   (lambda (func func-closure class-closure s)
     (list (cons (list (var-layer class-closure) (list (cons func (funcs class-closure))
-                                          (cons func-closure (func-defs class-closure))))
+                                          (cons (box func-closure) (func-defs class-closure))))
                 (cdr (local class-closure)))
           (global class-closure))))
 
@@ -684,7 +693,7 @@ just pass along and continue if have super class
 (define m-add-global-var-nested
   (lambda (var s)
     (list (local s) (list (list (cons var (global-vars s))
-                                (cons "init" (global-vals s)))
+                                (cons (box "init") (global-vals s)))
                           (global-func-layer s)))))
 
 ;; Takes a global function and it's closure, adds the function and it's closure to the global section of the state
@@ -696,7 +705,7 @@ just pass along and continue if have super class
   (lambda (func closure s)
     (list (local s) (list (global-var-layer s)
                           (list (cons func (global-funcs s))
-                                (cons closure (global-func-defs s)))))))
+                                (cons (box closure) (global-func-defs s)))))))
 
 ;;; the following are helper methods for state functions
 
@@ -850,8 +859,9 @@ just pass along and continue if have super class
   (lambda (class-name s)
     (cond
       [(null? s) (error "class does not exist")]
-      [(equal? class-name (next-class s)) (next s)]
+      [(equal? class-name (next-class s)) (new-closure (next s))]
       [else (m-lookup-class class-name (next-part-classes s))])))
+
 
 #|(define m-update-class-closure
   (lambda (closure update s)
@@ -896,8 +906,43 @@ just pass along and continue if have super class
 
 
 
+;given a closure, generate an identical copy of the closure, with new boxes
+(define new-closure
+  (lambda (closure)
+     (list (closure-class-name closure) (closure-super closure) (new-closure-body (closure-body closure)))))
+
+(define new-closure-body
+  (lambda (closure-body)
+    (list (new-local (local closure-body)) (new-layer-gen (global closure-body)))))
+
+(define new-local
+  (lambda (local)
+    (cond
+     [(null? local) '()]
+     [else (cons (new-layer-gen (car local)) (new-local (cdr local)))])))
+
+(define new-layer-gen
+  (lambda (layer)
+    (list (list (s-vars layer) (handle-boxes (s-vals layer))) (list (s-just-funcs layer) (handle-boxes (s-func-defs layer))))))
 
 
+(define handle-boxes
+  (lambda (list)
+    (box-all (unbox-all list))))
+
+;unboxes all values of a list
+(define unbox-all
+  (lambda (list)
+    (if (null? list)
+        '()
+        (cons (unbox (car list)) (unbox-all (cdr list))))))
+
+;boxes all values of a list
+(define box-all
+  (lambda (list)
+    (if (null? list)
+        '()
+        (cons (box (car list)) (box-all (cdr list))))))
 
 ;;;;**********ABSTRACTION**********
 (define statement-type-id car) ; e.g. if, while, var, etc.
@@ -1022,6 +1067,8 @@ just pass along and continue if have super class
 (define s-vars caar)
 (define s-vals cadar)
 (define s-funcs cadr)
+(define s-just-funcs caadr)
+(define s-func-defs cadadr)
 (define s-next-part-vars
   (lambda (s)
     (list (list (cdr (s-vars s)) (cdr (s-vals s))) (cadr s))))
@@ -1073,8 +1120,8 @@ just pass along and continue if have super class
     (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2))))))
    (c3 () (((((x) (#&"init")) (() ())) ((() ()) (() ()))) (((s) (#&1)) ((g1) (#&ffdvfvlkj)))))))
 (define c2-c '(c2 (c3)
-    ((((() ()) ((f3 f4) ((s3) (s4)))) (((g h) (5 6)) ((f5 f6) ((s5) (s6)))))
-    (((a b) (1 2)) ((f1 f2) ((stuff1) (stuff2)))))))
+    ((((() ()) ((f3 f4) ((#&s3) (#&s4)))) (((g h) (#&5 #&6)) ((f5 f6) ((#&s5) (#&s6)))))
+    (((a b) (#&1 #&2)) ((f1 f2) ((#&stuff1) (#&stuff2)))))))
 
 (define test-class '((var x 100)
      (var y 10)
@@ -1112,5 +1159,3 @@ just pass along and continue if have super class
 (trace get-instance)
 (trace m-return)
 (trace local-toplayer-update)
-(trace lists-to-assign)
-
