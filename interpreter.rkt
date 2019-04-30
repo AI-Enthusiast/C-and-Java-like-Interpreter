@@ -424,15 +424,25 @@
 ;; Returns it as if it where in C/Java
 (define m-return
   (lambda (exp closure s return finally)
+    (display exp) (newline)
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
       [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp closure s) closure s return finally))]
+      ; is it a function call that involves dot
+      [(and (pair? exp)
+       (and (eq? (statement-type-id exp) 'funcall)
+       (and (pair? (funcall-name exp))
+            (eq? (car (funcall-name exp)) 'dot))))
+                                            (return (m-dot-func (cadr (funcall-name exp)) (caddr (funcall-name exp)) (cddr exp) closure s return))]
+      ; (var-name func-name params closure s return)
+      
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
-                                            (return (m-value (m-funcall (funcall-name exp) '() return closure s) closure s))]
+                                            (return (m-value (m-funcall (funcall-name exp) (cddr exp) return closure s) closure s))]
 
-      ;is it a function call
+      
+      ; is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
                                             (return (m-funcall (funcall-name exp) (func-params exp) return closure s))]
 
@@ -800,6 +810,7 @@ just pass along and continue if have super class
       [else                           (locate-global-func func (global-nextpart-funcs s))])))
 
 ;; will return the instance's closure
+;; TODO: add something here so that if it says "new" then it'll return the closure thingy i guess
 (define get-instance
   (lambda (name closure s)
     (m-lookup-var name closure s)))
@@ -808,15 +819,15 @@ just pass along and continue if have super class
 ;; looking for a function
 (define m-dot-func
   (lambda (var-name func-name params closure s return)
-      (m-funcall func-name (get-params-from-big-boy params closure s) return (get-instance var-name closure s) s)))
+    (cond
+      [(and (list? var-name) (eq? (car var-name) 'new))
+                   (return 500000)]
+      [else
+                   (m-funcall func-name (get-params-from-big-boy params closure s) return (get-instance var-name closure s) s)])))
+      
 
 (define get-params-from-big-boy
   (lambda (params closure s)
-    #| (display params) (newline) (display (m-value ((lambda (v)
-                                                    (if (pair? v)
-                                                        (car v)
-                                                        1234567890
-                                                    )) params) closure s)) (newline) (newline)|#
     (cond
       [(null? params) '()]
       [(list? params) (cons (m-value (car params) closure s) (get-params-from-big-boy (cdr params) closure s))]
