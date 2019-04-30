@@ -591,6 +591,7 @@ just pass along and continue if have super class
 ;; returns the function closure
 (define m-lookup-func
   (lambda (var closure s)
+    (display closure) (newline)
     (m-lookup-func-nested var (closure-body closure) closure s)))
 
 
@@ -820,8 +821,9 @@ just pass along and continue if have super class
 (define m-dot-func
   (lambda (var-name func-name params closure s return)
     (cond
+      ; the left side of the dot is a declaration
       [(and (list? var-name) (eq? (car var-name) 'new))
-                   (return 500000)]
+                   (m-funcall func-name (get-params-from-big-boy params closure s) return (m-lookup-class-closure (cadr var-name) s) s)]
       [else
                    (m-funcall func-name (get-params-from-big-boy params closure s) return (get-instance var-name closure s) s)])))
       
@@ -877,6 +879,7 @@ just pass along and continue if have super class
 ;starting state is empty list
 ;(class with closure, class with closure, class with closure)
 ;class with closure contains: (name (superclass) (traditional state))
+(define next-full-class-closure car)
 (define next-class caar)
 (define next-extends cadar)
 (define next-closure caddar)
@@ -915,10 +918,14 @@ just pass along and continue if have super class
 ;returns the class closure for the given class name
 (define m-lookup-class-closure
   (lambda (class-name s)
+    (display "S: ") (newline) (display s) (newline)
     (cond
       [(null? s) (error "class does not exist")]
-      [(equal? class-name (next-class s)) (next-closure s)]
+      [(equal? class-name (next-class s)) (next-full-class-closure s)]
       [else (m-lookup-class-closure class-name (next-part-classes s))])))
+
+; (A () ((((() ()) (() ()))) (((y x) (10 100)) ((main add) (((() (((return (funcall (dot (new A) add) 3 2)))))) (((g h) (((return (+ g h)))))))))))
+;       ((((() ()) (() ()))) (((y x) (10 100)) ((main add) (((() (((return (funcall (dot (new A) add) 3 2)))))) (((g h) (((return (+ g h))))))))))
 
 (define m-lookup-class
   (lambda (class-name s)
