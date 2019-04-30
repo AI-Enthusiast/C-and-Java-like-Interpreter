@@ -45,13 +45,13 @@
   (display "Test 4:  ") (pass? (run "Tests/p4.Test4.txt" "A") 36)
   (display "Test 5:  ") (pass? (run "Tests/p4.Test5.txt" "A") 54)
   (display "Test 6:  ") (pass? (run "Tests/p4.Test6.txt" "A") 110)
-  (display "Test 7:  ") (pass? (run "Tests/p4.Test7.txt" "C") 26)
-  (display "Test 8:  ") (pass? (run "Tests/p4.Test8.txt" "Square") 117)
-  (display "Test 9:  ") (pass? (run "Tests/p4.Test9.txt" "Square") 32)
-  (display "Test 10: ") (pass? (run "Tests/p4.Test10.txt" "List") 15)
-  (display "Test 11: ") (pass? (run "Tests/p4.Test11.txt" "List") 123456)
-  (display "Test 12: ") (pass? (run "Tests/p4.Test12.txt" "List") 5285) 
-  (display "Test 13: ") (pass? (run "Tests/p4.Test13.txt" "C") -716)
+  ;(display "Test 7:  ") (pass? (run "Tests/p4.Test7.txt" "C") 26)
+  ;(display "Test 8:  ") (pass? (run "Tests/p4.Test8.txt" "Square") 117)
+  ;(display "Test 9:  ") (pass? (run "Tests/p4.Test9.txt" "Square") 32)
+  ;(display "Test 10: ") (pass? (run "Tests/p4.Test10.txt" "List") 15)
+  ;(display "Test 11: ") (pass? (run "Tests/p4.Test11.txt" "List") 123456)
+  ;(display "Test 12: ") (pass? (run "Tests/p4.Test12.txt" "List") 5285) 
+  ;(display "Test 13: ") (pass? (run "Tests/p4.Test13.txt" "C") -716)
 
   (newline)) ; left hanging for easy test addition
 

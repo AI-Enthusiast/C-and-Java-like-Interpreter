@@ -3,7 +3,7 @@
 ;;;; EECS 345
 ;;;; Group #7: Shanti Polara, Catlin Campbell, Cormac Dacker
 ;;;; Will run a txt file containing code by using the run function (run "Filename.txt" "class w/ main")
-;;;; Order of inputs for ALL m-state and m-state like things
+;;;; Order of inputs for ALL m-state and m-state like things matters
 
 (provide (all-defined-out))         ; allows for testing to be done in interpreter-testing.rkt
 (require "classParser.rkt")         ; loads simpleParser.rkt, which itself loads lex.rkt
@@ -525,14 +525,8 @@ An internal layer has the format
 (((vars)(vals))((funcs)(func-definitions)))
 
 A closer look, looks like this:
-(((var1, var2 ..)(val1, val2 ..))((local-func1, localfunc2 ...)(closure1, closure2 ... )))
+(((var1, var2 ..)(val1, val2 ..))((func1, func2 ...)(closure1, closure2 ... )))
 |#
-
-
-;;takes a state and strips off everything except the top layer and global
-(define m-strip
-  (lambda (s)
-   (list (list (toplayer s)) (global s))))
 
 
 ;; takes a variable and a state
@@ -549,9 +543,9 @@ A closer look, looks like this:
       [(null? (local closure-s))               (lookup-global-var var closure-s closure state)]
       [(null? (vars closure-s))                (m-lookup-var-nested var (nextlayer closure-s) closure state)]
       [(and (equal? var (nextvar closure-s)) (eq? "init" (unbox (nextval closure-s))))
-        (error "use before assignment")]
+                                               (error "use before assignment")]
       [(equal? var (nextvar closure-s))        (unbox (nextval closure-s))]
-      [else                            (m-lookup-var-nested var (next-part-vars closure-s) closure state)])))
+      [else                                    (m-lookup-var-nested var (next-part-vars closure-s) closure state)])))
 
  
 ;; takes a global variable and a state
@@ -560,8 +554,11 @@ A closer look, looks like this:
   (lambda (var closure-s closure state)
     (cond
      [(and (empty-check-vars closure-s) (not (null? (closure-super closure))))
-      (m-lookup-var var (m-lookup-class (car (closure-super closure)) state) state)]
-     [(empty-check-vars closure-s)                    (error "use before declared")]
+                                      (m-lookup-var var (m-lookup-class (car (closure-super closure)) state) state)]
+     ; it's not there! oh no!
+     [(empty-check-vars closure-s)    (error "use before declared")]
+
+     ; it's not assigned! oh no!
      [(and (eq? var (global-nextvar closure-s)) (eq? "init" (unbox (global-nextval closure-s))))
                                       (error "use before assignment")]
      [(equal? var (global-nextvar closure-s)) (unbox (global-nextval closure-s))]
@@ -589,7 +586,7 @@ A closer look, looks like this:
       [(null? (local  closure-s))              (lookup-global-func func closure-s closure state)]
       [(null? (funcs  closure-s))              (m-lookup-func-nested func (nextlayer  closure-s) closure state)]
       [(equal? func (nextfunc  closure-s))     (unbox (nextfunc-def  closure-s))]
-      [else                           (m-lookup-func-nested func (next-part-funcs  closure-s) closure state)])))
+      [else                                    (m-lookup-func-nested func (next-part-funcs  closure-s) closure state)])))
 
 
 ;; takes a global function and a state
@@ -597,7 +594,7 @@ A closer look, looks like this:
 (define lookup-global-func
   (lambda (func closure-s closure state)
     (cond
-     [(and (empty-check-funcs closure-s)(not (null? (closure-super closure))))
+     [(and (empty-check-funcs closure-s) (not (null? (closure-super closure))))
                                         (m-lookup-func func (m-lookup-class (car (closure-super closure)) state) state)]
      [(empty-check-funcs closure-s)     (error "function not found")]
      [(equal? func (global-nextfunc closure-s))
@@ -621,13 +618,13 @@ A closer look, looks like this:
 (define m-update-nested
   (lambda (var update-val closure-s closure s)
     (cond
-      [(null? closure-s)                "error"]
+      [(null? closure-s)                          "error"]
       ;is it a this?
       [(and (and (list? var) (eq? (car var) 'dot)) (eq? (cadr var) 'this))
-       (list (local closure-s) (global-update (caddr var) update-val (global closure-s)))]
+                                                  (list (local closure-s) (global-update (caddr var) update-val (global closure-s)))]
       [(not (locate-var var closure-s closure s)) "error"]
-      [(local-locate-var var closure-s) (list (local-update var update-val (local closure-s)) (global closure-s))]
-      [else                     (list (local closure-s) (global-update var update-val (global closure-s)))])))
+      [(local-locate-var var closure-s)           (list (local-update var update-val (local closure-s)) (global closure-s))]
+      [else                                       (list (local closure-s) (global-update var update-val (global closure-s)))])))
 
 ;; takes a variable, the value to be updated, and the local layer of the state
 ;; returns the updated local layer
