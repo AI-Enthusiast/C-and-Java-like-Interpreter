@@ -425,15 +425,25 @@
 ;; Returns it as if it where in C/Java
 (define m-return
   (lambda (exp closure s return finally)
+    (display exp) (newline)
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
       [(and (pair? exp) (am-i-boolean exp)) (finally (m-return (m-condition exp closure s) closure s return finally))]
+      ; is it a function call that involves dot
+      [(and (pair? exp)
+       (and (eq? (statement-type-id exp) 'funcall)
+       (and (pair? (funcall-name exp))
+            (eq? (car (funcall-name exp)) 'dot))))
+                                            (return (m-dot-func (cadr (funcall-name exp)) (caddr (funcall-name exp)) (cddr exp) closure s return))]
+      ; (var-name func-name params closure s return)
+      
       ;is it a function call w/o parameters
       [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
-                                            (return (m-value (m-funcall (funcall-name exp) '() return closure s) closure s))]
+                                            (return (m-value (m-funcall (funcall-name exp) (cddr exp) return closure s) closure s))]
 
-      ;is it a function call
+      
+      ; is it a function call
       [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
                                             (return (m-funcall (funcall-name exp) (func-params exp) return closure s))]
 
@@ -582,6 +592,7 @@ just pass along and continue if have super class
 ;; returns the function closure
 (define m-lookup-func
   (lambda (var closure s)
+    (display closure) (newline)
     (m-lookup-func-nested var (closure-body closure) closure s)))
 
 
@@ -801,6 +812,7 @@ just pass along and continue if have super class
       [else                           (locate-global-func func (global-nextpart-funcs s))])))
 
 ;; will return the instance's closure
+;; TODO: add something here so that if it says "new" then it'll return the closure thingy i guess
 (define get-instance
   (lambda (name closure s)
     (m-lookup-var name closure s)))
@@ -809,15 +821,16 @@ just pass along and continue if have super class
 ;; looking for a function
 (define m-dot-func
   (lambda (var-name func-name params closure s return)
-      (m-funcall func-name (get-params-from-big-boy params closure s) return (get-instance var-name closure s) s)))
+    (cond
+      ; the left side of the dot is a declaration
+      [(and (list? var-name) (eq? (car var-name) 'new))
+                   (m-funcall func-name (get-params-from-big-boy params closure s) return (m-lookup-class-closure (cadr var-name) s) s)]
+      [else
+                   (m-funcall func-name (get-params-from-big-boy params closure s) return (get-instance var-name closure s) s)])))
+      
 
 (define get-params-from-big-boy
   (lambda (params closure s)
-    #| (display params) (newline) (display (m-value ((lambda (v)
-                                                    (if (pair? v)
-                                                        (car v)
-                                                        1234567890
-                                                    )) params) closure s)) (newline) (newline)|#
     (cond
       [(null? params) '()]
       [(list? params) (cons (m-value (car params) closure s) (get-params-from-big-boy (cdr params) closure s))]
@@ -867,6 +880,7 @@ just pass along and continue if have super class
 ;starting state is empty list
 ;(class with closure, class with closure, class with closure)
 ;class with closure contains: (name (superclass) (traditional state))
+(define next-full-class-closure car)
 (define next-class caar)
 (define next-extends cadar)
 (define next-closure caddar)
@@ -905,10 +919,14 @@ just pass along and continue if have super class
 ;returns the class closure for the given class name
 (define m-lookup-class-closure
   (lambda (class-name s)
+    (display "S: ") (newline) (display s) (newline)
     (cond
       [(null? s) (error "class does not exist")]
-      [(equal? class-name (next-class s)) (next-closure s)]
+      [(equal? class-name (next-class s)) (next-full-class-closure s)]
       [else (m-lookup-class-closure class-name (next-part-classes s))])))
+
+; (A () ((((() ()) (() ()))) (((y x) (10 100)) ((main add) (((() (((return (funcall (dot (new A) add) 3 2)))))) (((g h) (((return (+ g h)))))))))))
+;       ((((() ()) (() ()))) (((y x) (10 100)) ((main add) (((() (((return (funcall (dot (new A) add) 3 2)))))) (((g h) (((return (+ g h))))))))))
 
 (define m-lookup-class
   (lambda (class-name s)
