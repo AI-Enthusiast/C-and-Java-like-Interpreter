@@ -173,15 +173,21 @@
       [else                                    (error 'undefined "undefined expression")])))
 
 
+;; ABSTRACTION M-FUNCALL
+(define funcall-function-name caddr)
+(define funcall-instance-name cadr)
+
+
 ;; m-funcall returns a number
 (define m-funcall
   ;; name is name of the function, actual = input parameters
   (lambda (name actual return closure s)
     (cond
       ; is it a dot this funcall (dot this a)
-      [(and (list? name) (eq? (cadr name) 'this)) (m-update (caddr name) (m-funcall (caddr name) actual return closure s) closure s)]
+      [(and (list? name) (eq? (cadr name) 'this))  (m-update (funcall-function-name name) (m-funcall (funcall-function-name name) actual return closure s) closure s)]
       ; is it a dot funcall (dot a setX) () => a.setX()
-      [(list? name)                               (m-update (cadr name) (m-dot-func (cadr name) (caddr name) actual  closure s return)
+      [(list? name)                               (m-update (funcall-instance-name name)
+                                                            (m-dot-func (funcall-instance-name name) (funcall-function-name name) actual  closure s return)
                                                             closure s)]
       [else
         ;gets the body and the formal parameters of the function
@@ -828,6 +834,10 @@ just pass along and continue if have super class
       ; the left side of the dot is a declaration
       [(and (list? instance) (eq? (car instance) 'new))
                    (m-funcall func-name (get-params-from-big-boy params closure s) return (m-lookup-class (cadr instance) s) s)]
+
+      [(eq? instance 'super)
+                   (m-funcall func-name (get-params-from-big-boy params closure s) return (m-lookup-class (car (closure-super closure)) s) s)]
+      
       [else
                    (m-funcall func-name (get-params-from-big-boy params closure s) return (get-instance instance closure s) s)])))
       
@@ -839,6 +849,7 @@ just pass along and continue if have super class
 ;;    .... a.add(b)
 ;;   }
 ;; "big boy" is main()'s closure, while "little boy" is a's closure
+;; We hope this makes you chuckle :) (it makes us chuckle, but maybe we just need to sleep)
 (define get-params-from-big-boy
   (lambda (params closure s)
     (cond

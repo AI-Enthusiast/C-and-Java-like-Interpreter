@@ -1,0 +1,17 @@
+class A {
+  var x = 1;
+  var y = 2;
+
+  function m() {
+    return 5;
+  }
+}
+
+class C extends A {
+  var y = 222;
+  var w = 4;
+
+  static function main() {
+    return super.m();
+  }
+}
