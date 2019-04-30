@@ -73,29 +73,25 @@
   (lambda (exp closure s return break continue try catch finally)
     (cond
       ; null checking & if exp is not a list, then it wouldn't change the state
-      [(null? exp)                 s]
-      [(null? (rest-of-body exp))  (m-base-layer (first-statement exp) closure s
+      [(null? exp)                          s]
+      [(null? (rest-of-body exp))           (m-base-layer (first-statement exp) closure s
                                                          return break continue try catch finally)]
-      ;is it the main
-      ;[(and (eq? (statement-body exp) 'main) (eq? (statement-type-id exp) 'function))
-      ;                             (m-state (main-body exp) (m-push s)
-      ;                                      return break continue try catch finally)]
 
       ; is it a class
       [(eq? (statement-type-id exp) 'class) (m-add-class exp s)]
 
       ;is it a function
       [(eq? (statement-type-id exp) 'function)
-                                   (m-add-global-func (full-func exp) (list (append (list (func-name exp))
+                                            (m-add-global-func (full-func exp) (list (append (list (func-name exp))
                                                                                     (list (func-body exp)))) closure)]
 
       ; is it a declaration
-      [(eq? (statement-type-id exp) 'var)       (m-var-dec exp closure s)]
+      [(eq? (statement-type-id exp) 'var)   (m-var-dec exp closure s)]
 
       ; otherwise, process the first statement, and then the rest of it
       ; (the program shouldn't actually reach this point, because all things in the
       ; main base level of the program will be either functions or variable declarations.
-      [else                                     (m-base-layer (rest-of-body exp) closure
+      [else                                 (m-base-layer (rest-of-body exp) closure
                                                          (m-base-layer (first-statement exp) closure s return break
                                                                        continue try catch finally)
                                                          return break continue try catch finally)])))
