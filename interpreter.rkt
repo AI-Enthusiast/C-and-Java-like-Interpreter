@@ -205,7 +205,7 @@
   (lambda (l1 l2 closure s) ;; l1 = actual parameters, l2 = formal parameters 
     (cond
       [(null? l1)            closure]
-      [(and (not (number? (car l1))) (not (boolean? (car l1)))) (lists-to-assign (cons (m-value (car l1) closure s) (cdr l1)) l2 closure s)]
+      ;[(and (not (number? (car l1))) (not (boolean? (car l1)))) (lists-to-assign (cons (m-value (car l1) closure s) (cdr l1)) l2 closure s)]
       [(and (not (number? (car l1))) (> (num-in-list l1 0) 1))
                     (lists-to-assign (list-from-state l1 closure s) l2 closure s)] ;if l1 null assign this to closure
 
@@ -282,7 +282,7 @@
 ;; The operators are +, -, *, /, %, and division is integer division
 (define m-value
   (lambda (exp closure s)
-    (display "m-value: ") (display exp) (newline)
+    ; (display "m-value: ") (display exp) (newline)
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
@@ -455,6 +455,7 @@
 (define m-var-dec
   (lambda (dec closure s)
     ;; Todo: Error on (run "Tests/Test6.txt" "A")
+    ; (display (and (pair? (expression dec)) (am-i-a-class-name (car (expression dec)) s))) (newline)
     (cond
       ; check variable not already declared
       [(local-locate (variable dec) (closure-body closure)) (error "redefining")]
@@ -811,11 +812,11 @@ just pass along and continue if have super class
 
 (define get-params-from-big-boy
   (lambda (params closure s)
-    (display params) (newline) (display (m-value ((lambda (v)
+    #| (display params) (newline) (display (m-value ((lambda (v)
                                                     (if (pair? v)
                                                         (car v)
                                                         1234567890
-                                                    )) params) closure s)) (newline) (newline)
+                                                    )) params) closure s)) (newline) (newline)|#
     (cond
       [(null? params) '()]
       [(list? params) (cons (m-value (car params) closure s) (get-params-from-big-boy (cdr params) closure s))]

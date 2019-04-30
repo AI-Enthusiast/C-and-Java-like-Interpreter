@@ -8,7 +8,7 @@ class A {
   }
 
   function add(a) {
-    return a.x + this.x;
+    return this.x + a.x;
   }
 
   static function main() {
