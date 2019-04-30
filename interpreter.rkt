@@ -823,15 +823,22 @@ just pass along and continue if have super class
 ;; will return a value
 ;; looking for a function
 (define m-dot-func
-  (lambda (var-name func-name params closure s return)
+  (lambda (instance func-name params closure s return)
     (cond
       ; the left side of the dot is a declaration
-      [(and (list? var-name) (eq? (car var-name) 'new))
-                   (m-funcall func-name (get-params-from-big-boy params closure s) return (m-lookup-class (cadr var-name) s) s)]
+      [(and (list? instance) (eq? (car instance) 'new))
+                   (m-funcall func-name (get-params-from-big-boy params closure s) return (m-lookup-class (cadr instance) s) s)]
       [else
-                   (m-funcall func-name (get-params-from-big-boy params closure s) return (get-instance var-name closure s) s)])))
+                   (m-funcall func-name (get-params-from-big-boy params closure s) return (get-instance instance closure s) s)])))
       
 
+;; This method gets the values of parameters from the original class closure in order to access variables that will become out of scope
+;; we call it this because that is what we called it in our discussions
+;; For clarity, in the code:
+;;   main() {
+;;    .... a.add(b)
+;;   }
+;; "big boy" is main()'s closure, while "little boy" is a's closure
 (define get-params-from-big-boy
   (lambda (params closure s)
     (cond
@@ -842,11 +849,7 @@ just pass along and continue if have super class
       [(list? params) (cons (m-value (first-param params) closure s) (get-params-from-big-boy (other-params params) closure s))]
       [else           (m-value params closure s)])))
 
-;; ABSTRACTION FOR get-params-from-big-boy
-(define first-param  car)
-(define other-params cdr)
-(define first-param-dot-instance cadar)
-(define first-param-dot-variable caddar)
+
 
 ;; will return a value
 ;; looking for a variable
@@ -1072,7 +1075,11 @@ just pass along and continue if have super class
 (define local car) ;returns entire local state
 (define toplayer caar)
 
-
+;; get-params-from-big-boy
+(define first-param  car)
+(define other-params cdr)
+(define first-param-dot-instance cadar)
+(define first-param-dot-variable caddar)
 
 (define next-local-layer ;returns entire state minus a local layer
   (lambda (s)
