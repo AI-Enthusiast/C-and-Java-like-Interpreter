@@ -32,8 +32,8 @@
   
 
   (test-old-tests-with-classes)
-  ; (test-p4-custom-test-scripts)
-  ; (test-p4-test-scripts)
+  (test-p4-custom-test-scripts)
+  (test-p4-test-scripts)
 
   ) ;left hanging for easy test addition
 
