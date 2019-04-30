@@ -8,6 +8,6 @@ class A {
   }
 
   static function main() {
-    return new A().add(3, 2);
+    return new A().add(new A().x, new A().y);
   }
 }

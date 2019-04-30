@@ -202,12 +202,13 @@
 ;; Returns an updated state
 ;; eg: (lists-to-assign '(1 2 3) '(a b c) closure s)
 (define lists-to-assign
-  (lambda (l1 l2 closure s) ;; l1 = actual parameters, l2 = formal parameters 
+  (lambda (l1 l2 closure s) ;; l1 = actual parameters, l2 = formal parameters
     (cond
       [(null? l1)            closure]
       ;[(and (not (number? (car l1))) (not (boolean? (car l1)))) (lists-to-assign (cons (m-value (car l1) closure s) (cdr l1)) l2 closure s)]
       [(and (not (number? (car l1))) (> (num-in-list l1 0) 1))
                     (lists-to-assign (list-from-state l1 closure s) l2 closure s)] ;if l1 null assign this to closure
+      
 
       [else (lists-to-assign (cdr l1) (cdr l2)
                                      (m-var-dec (cons 'var (cons (car l2) (list (car l1)))) closure s) s)])))
@@ -282,7 +283,6 @@
 ;; The operators are +, -, *, /, %, and division is integer division
 (define m-value
   (lambda (exp closure s)
-    ; (display "m-value: ") (display exp) (newline)
     (cond
       ; null checking
       [(null? exp)                            (error 'undefined "undefined expression")]
@@ -341,7 +341,6 @@
 ;; Supports ==, !=, <, >, <=, >=, &&, ||, !
 (define m-condition
   (lambda (exp closure s) ; exp = expression, s = state
-    ; (display closure) (newline) (newline)
     (cond
       ; null checking
       [(null? exp)               (error 'undefined "undefined expression")]
@@ -424,7 +423,6 @@
 ;; Returns it as if it where in C/Java
 (define m-return
   (lambda (exp closure s return finally)
-    (display exp) (newline)
     (cond
       [(eq?   exp #t)                       (return 'true)]
       [(eq?   exp #f)                       (return 'false)]
@@ -464,8 +462,6 @@
 ;; Returns the updated state
 (define m-var-dec
   (lambda (dec closure s)
-    ;; Todo: Error on (run "Tests/Test6.txt" "A")
-    ; (display (and (pair? (expression dec)) (am-i-a-class-name (car (expression dec)) s))) (newline)
     (cond
       ; check variable not already declared
       [(local-locate (variable dec) (closure-body closure)) (error "redefining")]
@@ -591,7 +587,6 @@ just pass along and continue if have super class
 ;; returns the function closure
 (define m-lookup-func
   (lambda (var closure s)
-    (display closure) (newline)
     (m-lookup-func-nested var (closure-body closure) closure s)))
 
 
@@ -823,7 +818,7 @@ just pass along and continue if have super class
     (cond
       ; the left side of the dot is a declaration
       [(and (list? var-name) (eq? (car var-name) 'new))
-                   (m-funcall func-name (get-params-from-big-boy params closure s) return (m-lookup-class-closure (cadr var-name) s) s)]
+                   (m-funcall func-name (get-params-from-big-boy params closure s) return (m-lookup-class (cadr var-name) s) s)]
       [else
                    (m-funcall func-name (get-params-from-big-boy params closure s) return (get-instance var-name closure s) s)])))
       
@@ -832,47 +827,28 @@ just pass along and continue if have super class
   (lambda (params closure s)
     (cond
       [(null? params) '()]
-      [(list? params) (cons (m-value (car params) closure s) (get-params-from-big-boy (cdr params) closure s))]
+      [(and (list? params) (list? first-param))
+                      (cons (m-dot-value (first-param-dot-instance params) (first-param-dot-variable params) closure s)
+                            (get-params-from-big-boy (other-params params) closure s))]
+      [(list? params) (cons (m-value (first-param params) closure s) (get-params-from-big-boy (other-params params) closure s))]
       [else           (m-value params closure s)])))
-    #|
-(cond
-      ; null checking
-      [(null? exp)                            (error 'undefined "undefined expression")]
-      [(number? exp)                          exp] ; if it's a number, return that number
-      ; is it a this?
-      [(and (and (list? exp) (eq? (car exp) 'dot)) (eq? (cadr exp) 'this))
-                                              (lookup-global-var (caddr exp) (closure-body closure) closure s)]
-      [(and (not (pair? exp)) (boolean? exp)) exp] ; if it's a boolean, return that boolean
 
-      ; boolean checking
-      [(eq? exp 'true)                        #t] ; true
-      [(eq? exp 'false)                       #f] ; false
-
-      ; more complex boolean expression (e.g. 10 >= 20 || 10 == a)
-      [(and (pair? exp) (am-i-boolean exp))   (m-condition exp closure s)]
-
-      ;is it a function call w/o parameters
-      [(and (pair? exp) (and (eq? (statement-type-id exp) 'funcall) (null? (func-params exp))))
-                                              (call/cc (lambda (k) (m-funcall (funcall-name exp) '() k closure s)))]
-
-      ;is it a function call
-      [(and (pair? exp) (eq? (statement-type-id exp) 'funcall))
-                                              (call/cc (lambda (k) (m-funcall (funcall-name exp) (func-params exp) k closure s)))]
-
-
-      ; variable checking
-      [(not (pair? exp))                      (m-lookup-var exp closure s)]
-
-      ; is it looking up a variable in another function
-      [(and (pair? exp) (eq? (statement-type-id exp) 'dot)) (m-dot-value (dot-instance-name exp) (dot-variable-name exp) closure s)]
-;instance variable closure
-|#
+;; ABSTRACTION FOR get-params-from-big-boy
+(define first-param  car)
+(define other-params cdr)
+(define first-param-dot-instance cadar)
+(define first-param-dot-variable caddar)
 
 ;; will return a value
 ;; looking for a variable
 (define m-dot-value
   (lambda (instance variable closure s)
-    (m-lookup-var variable (get-instance instance closure s) s)))
+    (cond
+      ; the left side of the dot is a declaration
+      [(and (list? instance) (eq? (car instance) 'new))
+            (m-lookup-var variable (m-lookup-class (cadr instance) s) s)]
+      [else (m-lookup-var variable (get-instance instance closure s)  s)])))
+    
 
 
 ;new state format
@@ -918,7 +894,6 @@ just pass along and continue if have super class
 ;returns the class closure for the given class name
 (define m-lookup-class-closure
   (lambda (class-name s)
-    (display "S: ") (newline) (display s) (newline)
     (cond
       [(null? s) (error "class does not exist")]
       [(equal? class-name (next-class s)) (next-full-class-closure s)]
